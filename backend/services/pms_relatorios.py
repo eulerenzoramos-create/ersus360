@@ -14,6 +14,7 @@ from services import pms_monitoramento as mon
 from services import pms_vivo as base
 
 TIPOS = {
+    "execucao_acoes": "Relatório de Execução das Ações do PMS/PAS",
     "execucao_pas": "Relatório de Execução da PAS",
     "metas_pms": "Relatório de Metas do PMS",
     "pendencias": "Relatório de Pendências",
@@ -60,6 +61,8 @@ def _sub(municipio: str, plano: dict, extra: str) -> str:
 async def montar(db, tipo: str, plano, municipio: str, ano: int, quadrimestre: int | None = None,
                  responsavel: str | None = None) -> Documento:
     p = base.dict_plano(plano)
+    if tipo == "execucao_acoes":
+        return await _execucao_acoes(db, plano, p, municipio, ano, quadrimestre)
     if tipo == "checklist":
         from services import pms_checklist as chk
         c = await chk.checklist(db, plano, ano)
@@ -191,6 +194,81 @@ async def montar(db, tipo: str, plano, municipio: str, ano: int, quadrimestre: i
               f"{f['causa']}", "—", _br(f["prazo"]), _v(f["responsavel"]), "—", "—", f["situacao"]] for f in fcas])] if fcas else []))
         return doc
     raise ValueError("Tipo de relatório desconhecido.")
+
+
+def _planejado(a: dict) -> str:
+    partes = [a["descricao"]]
+    if a["produto"]:
+        partes.append(f"Entrega: {a['produto']}")
+    if a["quantidade_prevista"] is not None:
+        partes.append(f"Qtd. prevista: {_v(a['quantidade_prevista'])}")
+    partes.append(f"Prazo: {_br(a['prazo'])}")
+    return " · ".join(partes)
+
+
+def _executado(a: dict, sit: str, upd: dict | None) -> str:
+    if sit in ("nao_iniciada", "sem_registro"):
+        return "—"
+    res = (upd or {}).get("resultado_alcancado") if upd else a["resultado_alcancado"]
+    txt = base.SITUACOES_ACAO.get(sit, sit)
+    if a["quantidade_realizada"] is not None and not upd:
+        txt += f" · qtd. realizada: {_v(a['quantidade_realizada'])}"
+    if a["percentual_execucao"] is not None and not upd:
+        txt += f" · {_v(a['percentual_execucao'])}%"
+    return txt + (f" — {res}" if res else "")
+
+
+def _nao_executado(a: dict, sit: str) -> str:
+    if sit == "nao_executada":
+        return "Ação não executada" + (f" — motivo: {a['motivo']}" if a["motivo"] else "")
+    if sit == "parcial":
+        falta = ""
+        if a["quantidade_prevista"] is not None and a["quantidade_realizada"] is not None:
+            falta = f" — faltou {_v(max(a['quantidade_prevista'] - a['quantidade_realizada'], 0))} de {_v(a['quantidade_prevista'])}"
+        return "Executada em parte" + falta + (f" — motivo: {a['motivo']}" if a["motivo"] else "")
+    if sit == "cancelada":
+        return "Cancelada"
+    if sit in ("nao_iniciada", "em_andamento") and a["atrasada"]:
+        return "Prazo vencido sem conclusão"
+    return "—"
+
+
+async def _execucao_acoes(db, plano, p: dict, municipio: str, ano: int, quadrimestre: int | None) -> Documento:
+    from services import pms_execucao as exe
+    acomp = await exe.acompanhamento(db, plano, ano, {}, quadrimestre)
+    r, linhas = acomp["resumo"], acomp["linhas"]
+    periodo = f"{quadrimestre}º quadrimestre de {ano}" if quadrimestre else f"Exercício {ano} (situação oficial)"
+    pas = acomp["pas"]
+    doc = Documento(TIPOS["execucao_acoes"], _sub(municipio, p, periodo + (f" · PAS {pas['situacao']}" if pas else " · sem PAS")),
+                    aviso="Subsídio ao RDQA e ao RAG. Só constam dados registrados e validados no PMS Vivo; "
+                          "\"—\" = não informado. Não substitui os instrumentos oficiais do DigiSUS.")
+    if not pas:
+        doc.secoes.append(Secao("Ações", [f"Não há PAS cadastrada para {ano}."]))
+        return doc
+    pct = f"{_v(r['percentual_execucao'])}%" if r["percentual_execucao"] is not None else "—"
+    doc.secoes.append(Secao("Síntese", [
+        f"Ações previstas: {r['total']} · executadas: {r['executadas']} · parcialmente: {r['parciais']} · em andamento: "
+        f"{r['em_andamento']} · não executadas: {r['nao_executadas']} · não iniciadas: {r['nao_iniciadas']} · canceladas: "
+        f"{r['canceladas']}" + (f" · sem registro no quadrimestre: {r['sem_registro_no_quadrimestre']}"
+                                if quadrimestre else "") + ".",
+        f"Percentual de execução: {pct} · atrasadas: {r['atrasadas']} · sem justificativa completa: {r['sem_justificativa']}."]))
+    linhas_tab = []
+    for a in linhas:
+        upd = a["quadrimestres"].get(quadrimestre) if quadrimestre else None
+        sit = (upd["situacao"] if upd and upd["status"] == "validada" else "sem_registro") if quadrimestre else a["situacao"]
+        detalhe = sit in base.EXIGE_DETALHE
+        just = " ".join(x for x in [a["justificativa"] if detalhe else None,
+                                    f"Dificuldades: {a['dificuldades']}" if detalhe and a["dificuldades"] else None] if x)
+        linhas_tab.append([
+            a["codigo"], ", ".join(m["codigo"] for m in a["metas"]) or "—", _planejado(a), _executado(a, sit, upd),
+            _nao_executado(a, sit), _v(just), _v(a["providencias"] if detalhe else None),
+            _v(a["responsavel_nome"]) + (f" ({a['setor_responsavel']})" if a["setor_responsavel"] else "")
+            + (f" · solução: {a['responsavel_solucao']}" if detalhe and a["responsavel_solucao"] else ""),
+            _br(a["novo_prazo"]) if detalhe else "—"])
+    doc.secoes.append(Secao("Execução por ação", [] if linhas_tab else ["Nenhuma ação na PAS do ano."], [(
+        ["Ação", "Meta(s)", "1. Planejado", "2. Executado", "3. Não executado", "4. Justificativa", "5. Providências",
+         "6. Responsável", "7. Prazo p/ regularização"], linhas_tab)] if linhas_tab else []))
+    return doc
 
 
 def _secao_metas(metas: list[dict], ano: int, titulo: str) -> Secao:

@@ -41,10 +41,15 @@ TIPOS_INDICADOR = {
 }
 POLARIDADES = {"maior_melhor": "Quanto maior, melhor", "menor_melhor": "Quanto menor, melhor"}
 SITUACOES_ACAO = {
-    "nao_iniciada": "Não iniciada", "em_andamento": "Em andamento", "concluida": "Concluída",
+    "nao_iniciada": "Não iniciada", "em_andamento": "Em andamento", "concluida": "Executada",
     "parcial": "Parcialmente executada", "nao_executada": "Não executada", "cancelada": "Cancelada",
 }
 EXIGE_JUSTIFICATIVA = {"parcial", "nao_executada", "cancelada"}
+# Parcial / não executada: além da justificativa, o registro só fecha com o detalhamento completo.
+EXIGE_DETALHE = {"parcial", "nao_executada"}
+CAMPOS_DETALHE = {"motivo": "Motivo", "justificativa": "Justificativa detalhada", "dificuldades": "Dificuldades encontradas",
+                  "providencias": "Providências necessárias", "responsavel_solucao": "Responsável pela solução",
+                  "novo_prazo": "Novo prazo previsto"}
 SITUACOES_ENCERRADAS = {"concluida", "parcial", "nao_executada", "cancelada"}
 PRAZO_PROXIMO_DIAS = 15
 
@@ -339,12 +344,43 @@ def prazo_proximo(a: PmsAcao, hoje: date | None = None) -> bool:
                 and a.situacao not in SITUACOES_ENCERRADAS)
 
 
+def _detalhe(x) -> dict:
+    return {"motivo": x.motivo, "dificuldades": x.dificuldades, "providencias": x.providencias,
+            "responsavel_solucao": x.responsavel_solucao, "novo_prazo": x.novo_prazo.isoformat() if x.novo_prazo else None}
+
+
+def detalhe_completo(x) -> bool:
+    """Parcial/não executada com justificativa e todo o detalhamento preenchidos."""
+    return all(getattr(x, k) not in (None, "") and str(getattr(x, k)).strip() for k in CAMPOS_DETALHE)
+
+
+def quadrimestre_de(d: date) -> int:
+    return (d.month - 1) // 4 + 1
+
+
+def quadrimestre_padrao(exercicio: int, hoje: date | None = None) -> int:
+    """Quadrimestre de referência sugerido: o corrente no exercício; 3º se o exercício já passou; 1º se não começou."""
+    hoje = hoje or date.today()
+    if hoje.year == exercicio:
+        return quadrimestre_de(hoje)
+    return 3 if hoje.year > exercicio else 1
+
+
+def periodo_da_atualizacao(u, exercicio: int) -> tuple[int, int]:
+    """(ano, quadrimestre) de referência; registros antigos sem o campo usam a data em que foram informados."""
+    if u.ano_referencia and u.quadrimestre:
+        return u.ano_referencia, u.quadrimestre
+    d = u.informado_em.date()
+    return exercicio, (quadrimestre_de(d) if d.year == exercicio else (3 if d.year > exercicio else 1))
+
+
 def dict_acao(a: PmsAcao) -> dict:
     d = {k: getattr(a, k) for k in (
         "id", "pas_id", "codigo", "descricao", "produto", "quantidade_prevista", "setor_responsavel",
         "responsavel_usuario_id", "responsavel_nome", "recursos", "fonte_financiamento", "indicador_acompanhamento",
         "evidencia_esperada", "situacao", "percentual_execucao", "quantidade_realizada", "resultado_alcancado",
         "justificativa", "situacao_validada_por")}
+    d.update(_detalhe(a))
     d["prazo"] = a.prazo.isoformat() if a.prazo else None
     d["situacao_validada_em"] = a.situacao_validada_em.isoformat() if a.situacao_validada_em else None
     d["situacao_rotulo"] = SITUACOES_ACAO.get(a.situacao, a.situacao)
@@ -360,15 +396,20 @@ def dict_atualizacao(u: PmsAtualizacao) -> dict:
             "resultado_alcancado": u.resultado_alcancado, "justificativa": u.justificativa, "status": u.status,
             "informado_por": u.informado_por, "informado_em": u.informado_em.isoformat(),
             "validado_por": u.validado_por, "validado_em": u.validado_em.isoformat() if u.validado_em else None,
-            "parecer": u.parecer}
+            "parecer": u.parecer, **_detalhe(u), "ano_referencia": u.ano_referencia, "quadrimestre": u.quadrimestre}
 
 
 def validar_atualizacao_informada(situacao: str, justificativa: str | None, resultado: str | None,
-                                  percentual: float | None) -> None:
+                                  percentual: float | None, detalhe: dict | None = None) -> None:
     if situacao not in SITUACOES_ACAO:
         raise ValueError("Situação inválida.")
     if situacao in EXIGE_JUSTIFICATIVA and not (justificativa or "").strip():
         raise ValueError(f"Informe a justificativa para \"{SITUACOES_ACAO[situacao]}\".")
+    if situacao in EXIGE_DETALHE:
+        dados = {**(detalhe or {}), "justificativa": justificativa}
+        faltam = [rot for k, rot in CAMPOS_DETALHE.items() if dados.get(k) in (None, "") or not str(dados.get(k)).strip()]
+        if faltam:
+            raise ValueError(f"Para \"{SITUACOES_ACAO[situacao]}\" preencha: " + ", ".join(faltam) + ".")
     if situacao == "concluida" and not (resultado or "").strip():
         raise ValueError("Informe o resultado alcançado para registrar a conclusão.")
     if percentual is not None and not 0 <= percentual <= 100:

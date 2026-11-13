@@ -60,7 +60,7 @@ async def test_checklist_marcacao_validacao_relatorio_e_agente(ambiente):
     url = f"{URL}/acoes/{acoes['A2']}/atualizacoes"
     assert (await c.post(url, headers=_h(tok), json={"situacao": "nao_executada"})).status_code == 422
     assert (await c.post(url, headers=_h(tok), json={"situacao": "nao_executada",
-                                                     "justificativa": "Recurso não liberado"})).status_code == 201
+                                                     "justificativa": "Recurso não liberado", "motivo": "Sem recurso", "dificuldades": "Atraso no repasse", "providencias": "Pedir suplementação", "responsavel_solucao": "Coordenação APS", "novo_prazo": "2027-03-31"})).status_code == 201
     assert (await c.post(f"{URL}/acoes/{acoes['A1']}/atualizacoes", headers=_h(tok),
                          json={"situacao": "concluida", "percentual_execucao": 100})).status_code == 422
     assert (await c.post(f"{URL}/acoes/{acoes['A1']}/atualizacoes", headers=_h(tok),

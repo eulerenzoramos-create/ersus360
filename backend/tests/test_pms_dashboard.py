@@ -43,7 +43,7 @@ async def test_dashboard(ambiente):
                  json={"codigo": "A2", "descricao": "Ação 2", "meta_ids": [m2["id"]], "prazo": "2026-12-31",
                        "responsavel_nome": "Coordenação APS"})
     await c.post(f"{URL}/acoes/{a1}/atualizacoes", headers=_h(tok),
-                 json={"situacao": "nao_executada", "justificativa": "Sem recurso"})
+                 json={"situacao": "nao_executada", "justificativa": "Sem recurso", "motivo": "Sem recurso", "dificuldades": "Atraso no repasse", "providencias": "Pedir suplementação", "responsavel_solucao": "Coordenação APS", "novo_prazo": "2027-03-31"})
     u = (await c.get(f"{URL}/validacoes-pendentes", headers=_h(tok_coord))).json()[0]
     await c.post(f"{URL}/atualizacoes/{u['id']}/validar", headers=_h(tok_coord), json={"decisao": "validar"})
 

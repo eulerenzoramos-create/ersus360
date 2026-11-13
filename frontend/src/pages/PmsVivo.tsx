@@ -26,10 +26,13 @@ interface Acao { id: number; codigo: string; descricao: string; produto: string 
   fonte_financiamento: string | null; indicador_acompanhamento: string | null; evidencia_esperada: string | null; situacao: string;
   situacao_rotulo: string; percentual_execucao: number | null; quantidade_realizada: number | null; resultado_alcancado: string | null;
   justificativa: string | null; situacao_validada_por: string | null; atrasada: boolean; prazo_proximo: boolean; metas: MetaRef[];
-  aguardando_validacao?: boolean; devolvida?: boolean; parecer?: string | null; evidencia_pendente?: boolean; exercicio?: number }
+  aguardando_validacao?: boolean; devolvida?: boolean; parecer?: string | null; evidencia_pendente?: boolean; exercicio?: number;
+  motivo?: string | null; dificuldades?: string | null; providencias?: string | null; responsavel_solucao?: string | null; novo_prazo?: string | null }
 interface Atualizacao { id: number; acao_id: number; situacao: string; situacao_rotulo: string; percentual_execucao: number | null;
   quantidade_realizada: number | null; resultado_alcancado: string | null; justificativa: string | null; status: string;
-  informado_por: string; informado_em: string; validado_por: string | null; validado_em: string | null; parecer: string | null }
+  informado_por: string; informado_em: string; validado_por: string | null; validado_em: string | null; parecer: string | null;
+  motivo?: string | null; dificuldades?: string | null; providencias?: string | null; responsavel_solucao?: string | null;
+  novo_prazo?: string | null; quadrimestre?: number | null; ano_referencia?: number | null }
 interface AcaoDet extends Acao { atualizacoes: Atualizacao[]; anexos: Anexo[]; historico: { evento: string; descricao: string; usuario: string | null; criado_em: string }[];
   pode_atualizar: boolean; pode_validar: boolean }
 interface Previa { diretrizes: Diretriz[]; erros: string[]; avisos: string[]; totais: Record<string, number> }
@@ -188,31 +191,63 @@ function AbaPms({ ref_, planoId, setPlanoId }: { ref_: Ref; planoId: number | nu
     </>);
 }
 
+// ── Detalhamento obrigatório da não execução (parcial / não executada) ───────
+const DETALHE_VAZIO = { motivo: "", justificativa: "", dificuldades: "", providencias: "", responsavel_solucao: "", novo_prazo: "" };
+type Detalhe = typeof DETALHE_VAZIO;
+const EXIGE_DETALHE = ["parcial", "nao_executada"];
+const detalheOk = (d: Detalhe) => Object.values(d).every(v => v.trim().length > 0);
+const QUADS: [number, string][] = [[1, "1º quadrimestre (jan–abr)"], [2, "2º quadrimestre (mai–ago)"], [3, "3º quadrimestre (set–dez)"]];
+const quadPadrao = (ano: number) => { const h = new Date(); return h.getFullYear() === ano ? Math.floor(h.getMonth() / 4) + 1 : h.getFullYear() > ano ? 3 : 1; };
+
+function FormDetalhe({ d, setD, situacao }: { d: Detalhe; setD: (d: Detalhe) => void; situacao: string }) {
+  const c = (k: keyof Detalhe, rot: string, area = false, tipo = "text") => <label style={lbl}>{rot} *{area
+    ? <textarea style={{ ...inp, minHeight: 50 }} value={d[k]} onChange={e => setD({ ...d, [k]: e.target.value })} />
+    : <input type={tipo} style={inp} value={d[k]} onChange={e => setD({ ...d, [k]: e.target.value })} />}</label>;
+  return (
+    <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 8, padding: 10, marginTop: 6, gridColumn: "1 / -1" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#9a3412", marginBottom: 6 }}>
+        {situacao === "parcial" ? "Execução parcial" : "Ação não executada"} — preencha todos os campos (o registro não é concluído sem eles)</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
+        {c("motivo", situacao === "parcial" ? "Motivo de não ter sido executada por completo" : "Motivo da não execução")}
+        {c("justificativa", "Justificativa detalhada", true)}{c("dificuldades", "Dificuldades encontradas", true)}
+        {c("providencias", "Providências necessárias", true)}{c("responsavel_solucao", "Responsável pela solução")}
+        {c("novo_prazo", "Novo prazo previsto", false, "date")}
+      </div>
+    </div>);
+}
+
 // ── Execução: formulário e detalhe da ação ───────────────────────────────────
 function InformarExecucao({ acao, ref_ }: { acao: Acao; ref_: Ref }) {
   const qc = useQueryClient();
   const [f, setF] = useState({ situacao: acao.situacao === "nao_iniciada" ? "em_andamento" : acao.situacao, percentual_execucao: "", quantidade_realizada: "", resultado_alcancado: "", justificativa: "" });
+  const [d, setD] = useState<Detalhe>({ ...DETALHE_VAZIO });
+  const [quad, setQuad] = useState(quadPadrao(acao.exercicio ?? new Date().getFullYear()));
   const [arq, setArq] = useState<File | null>(null);
+  const detalhe = EXIGE_DETALHE.includes(f.situacao);
   const enviar = useMutation({
     mutationFn: async () => {
       const u = (await api.post(`/api/pms-vivo/acoes/${acao.id}/atualizacoes`, {
-        situacao: f.situacao, percentual_execucao: f.percentual_execucao === "" ? null : Number(f.percentual_execucao),
+        situacao: f.situacao, quadrimestre: quad, percentual_execucao: f.percentual_execucao === "" ? null : Number(f.percentual_execucao),
         quantidade_realizada: f.quantidade_realizada === "" ? null : Number(f.quantidade_realizada),
-        resultado_alcancado: f.resultado_alcancado || null, justificativa: f.justificativa || null })).data as Atualizacao;
+        resultado_alcancado: f.resultado_alcancado || null,
+        ...(detalhe ? d : { justificativa: f.justificativa || null }) })).data as Atualizacao;
       if (arq) await upload(`/api/pms-vivo/acoes/${acao.id}/anexos`, arq, { atualizacao_id: String(u.id), descricao: "Evidência da execução" });
       return u;
-    }, onSuccess: () => { setArq(null); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+    }, onSuccess: () => { setArq(null); setD({ ...DETALHE_VAZIO }); qc.invalidateQueries({ queryKey: ["pms"] }); } });
   const exige = ref_.exige_justificativa.includes(f.situacao);
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, marginTop: 8 }}>
       <label style={lbl}>Situação informada<select style={inp} value={f.situacao} onChange={e => setF({ ...f, situacao: e.target.value })}>
         {Object.entries(ref_.situacoes_acao).filter(([k]) => k !== "nao_iniciada").map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+      <label style={lbl}>Quadrimestre de referência<select style={inp} value={quad} onChange={e => setQuad(Number(e.target.value))}>
+        {QUADS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label style={lbl}>% de execução<input type="number" min={0} max={100} style={inp} value={f.percentual_execucao} onChange={e => setF({ ...f, percentual_execucao: e.target.value })} /></label>
       <label style={lbl}>Quantidade realizada{acao.quantidade_prevista != null ? ` (prevista ${num(acao.quantidade_prevista)})` : ""}<input type="number" min={0} style={inp} value={f.quantidade_realizada} onChange={e => setF({ ...f, quantidade_realizada: e.target.value })} /></label>
       <label style={lbl}>Resultado alcançado{f.situacao === "concluida" ? " *" : ""}<textarea style={{ ...inp, minHeight: 50 }} value={f.resultado_alcancado} onChange={e => setF({ ...f, resultado_alcancado: e.target.value })} /></label>
-      <label style={lbl}>Justificativa{exige ? " *" : ""}<textarea style={{ ...inp, minHeight: 50 }} value={f.justificativa} onChange={e => setF({ ...f, justificativa: e.target.value })} /></label>
+      {!detalhe && <label style={lbl}>Justificativa{exige ? " *" : ""}<textarea style={{ ...inp, minHeight: 50 }} value={f.justificativa} onChange={e => setF({ ...f, justificativa: e.target.value })} /></label>}
       <label style={lbl}>Evidência{acao.evidencia_esperada ? ` (esperada: ${acao.evidencia_esperada})` : ""}<input type="file" style={{ fontSize: 12 }} onChange={e => setArq(e.target.files?.[0] ?? null)} /></label>
-      <div style={{ alignSelf: "end" }}><button style={btn()} disabled={enviar.isPending} onClick={() => enviar.mutate()}>Enviar para validação</button><Erro e={enviar.error} /></div>
+      {detalhe && <FormDetalhe d={d} setD={setD} situacao={f.situacao} />}
+      <div style={{ alignSelf: "end" }}><button style={btn()} disabled={enviar.isPending || (detalhe && !detalheOk(d))} onClick={() => enviar.mutate()}>Enviar para validação</button><Erro e={enviar.error} /></div>
     </div>);
 }
 
@@ -245,8 +280,9 @@ function DetalheAcao({ id, ref_, onFechar }: { id: number; ref_: Ref; onFechar: 
       <h4 style={{ margin: "12px 0 4px", fontSize: 13, color: "#1f2937" }}>Atualizações</h4>
       {a.atualizacoes.length === 0 && <div style={{ fontSize: 12, color: "#64748b" }}>Nenhuma.</div>}
       {a.atualizacoes.map(u => <div key={u.id} style={{ fontSize: 12, padding: "4px 0", borderTop: "1px solid #f1f1f1" }}>
-        <b>{u.situacao_rotulo}</b> — {u.status === "pendente" ? "aguardando validação" : u.status === "validada" ? `validada por ${u.validado_por}` : `devolvida por ${u.validado_por}`}
+        <b>{u.situacao_rotulo}</b>{u.quadrimestre && <> ({u.quadrimestre}º quadrimestre/{u.ano_referencia})</>} — {u.status === "pendente" ? "aguardando validação" : u.status === "validada" ? `validada por ${u.validado_por}` : `devolvida por ${u.validado_por}`}
         {" "}· informado por {u.informado_por} em {dataBr(u.informado_em)}{u.resultado_alcancado && <> · {u.resultado_alcancado}</>}{u.justificativa && <> · justificativa: {u.justificativa}</>}{u.parecer && <> · parecer: {u.parecer}</>}
+        {u.motivo && <div style={{ color: "#9a3412" }}>Motivo: {u.motivo} · Dificuldades: {u.dificuldades ?? "—"} · Providências: {u.providencias ?? "—"} · Solução: {u.responsavel_solucao ?? "—"} · Novo prazo: {dataBr(u.novo_prazo)}</div>}
       </div>)}
       <h4 style={{ margin: "12px 0 4px", fontSize: 13, color: "#1f2937" }}>Evidências</h4>
       {a.anexos.length === 0 ? <div style={{ fontSize: 12, color: "#64748b" }}>Nenhuma.</div> : a.anexos.map(x =>
@@ -265,11 +301,15 @@ function AbaPas({ ref_, planoId }: { ref_: Ref; planoId: number | null }) {
   const plano = useQuery({ queryKey: ["pms", "plano", planoId], enabled: !!planoId, queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}`).then(r => r.data as PlanoDet) });
   const pass = useQuery({ queryKey: ["pms", "pas", planoId], enabled: !!planoId, queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/pas`).then(r => r.data as Pas[]) });
   const resp = useQuery({ queryKey: ["pms", "resp"], queryFn: () => api.get("/api/pms-vivo/responsaveis").then(r => r.data as { id: number; nome: string; perfil: string }[]) });
-  const [pasId, setPasId] = useState<number | null>(null);
-  useEffect(() => { if (pass.data?.length && !pass.data.some(p => p.id === pasId)) setPasId(pass.data[pass.data.length - 1].id); }, [pass.data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [filtro, setFiltro] = useState({ setor: "", situacao: "" });
-  const acoes = useQuery({ queryKey: ["pms", "acoes", pasId, filtro], enabled: !!pasId,
-    queryFn: () => api.get(`/api/pms-vivo/pas/${pasId}/acoes`, { params: { setor: filtro.setor || undefined, situacao: filtro.situacao || undefined } }).then(r => r.data as Acao[]) });
+  const [ano, setAno] = useState<number | null>(null);
+  // Abre no exercício atual (ou no primeiro da vigência).
+  useEffect(() => {
+    if (ano || !plano.data?.anos?.length) return;
+    const atual = new Date().getFullYear();
+    setAno(plano.data.anos.includes(atual) ? atual : plano.data.anos[0]);
+  }, [plano.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pas = pass.data?.find(x => x.exercicio === ano);
+  const pasId = pas?.id ?? null;
   const [exercicio, setExercicio] = useState("");
   // Sugere o exercício atual (ou o primeiro da vigência) que ainda não tem PAS.
   useEffect(() => {
@@ -280,18 +320,17 @@ function AbaPas({ ref_, planoId }: { ref_: Ref; planoId: number | null }) {
     if (sug) setExercicio(String(sug));
   }, [plano.data, pass.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const criarPas = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/planos/${planoId}/pas`, { exercicio: Number(exercicio) }).then(r => r.data as Pas),
-    onSuccess: x => { setExercicio(""); qc.invalidateQueries({ queryKey: ["pms"] }); setPasId(x.id); } });
+    onSuccess: x => { setExercicio(""); qc.invalidateQueries({ queryKey: ["pms"] }); setAno(x.exercicio); } });
   const [resPas, setResPas] = useState("");
   const aprovarPas = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/pas/${pasId}/aprovar`, { resolucao_cms: resPas }), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
   const [f, setF] = useState({ ...ACAO_VAZIA });
+  const [novaAberta, setNovaAberta] = useState(false);
   const criarAcao = useMutation({
     mutationFn: () => api.post(`/api/pms-vivo/pas/${pasId}/acoes`, Object.fromEntries(Object.entries(f).map(([k, v]) =>
       [k, v === "" ? null : (k === "quantidade_prevista" || k === "responsavel_usuario_id") ? Number(v) : v]))),
     onSuccess: () => { setF({ ...ACAO_VAZIA }); qc.invalidateQueries({ queryKey: ["pms"] }); } });
   const [aberta, setAberta] = useState<number | null>(null);
   const metas = useMemo(() => (plano.data?.diretrizes ?? []).flatMap(d => d.objetivos.flatMap(o => o.metas)), [plano.data]);
-  const pas = pass.data?.find(x => x.id === pasId);
-  const setores = useMemo(() => Array.from(new Set((acoes.data ?? []).map(a => a.setor_responsavel).filter(Boolean))) as string[], [acoes.data]);
 
   if (!planoId) return <div style={card}>Selecione uma versão do PMS na aba "Plano (PMS)".</div>;
   const c = (k: keyof typeof ACAO_VAZIA, rot: string, tipo = "text") => <label style={lbl}>{rot}{tipo === "area"
@@ -300,9 +339,14 @@ function AbaPas({ ref_, planoId }: { ref_: Ref; planoId: number | null }) {
   return (
     <>
       <div style={{ ...card, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
-        <label style={{ ...lbl, marginBottom: 0, width: 220 }}>Programação Anual (PAS)<select style={inp} value={pasId ?? ""} onChange={e => setPasId(Number(e.target.value))}>
-          <option value="">—</option>{(pass.data ?? []).map(x => <option key={x.id} value={x.id}>PAS {x.exercicio} · {x.situacao === "aprovada" ? "aprovada" : "rascunho"}</option>)}</select></label>
-        {ref_.pode_planejar && plano.data?.situacao === "aprovado" && <>
+        <div><div style={{ fontSize: 12, color: "#475569", marginBottom: 4 }}>Exercício da Programação Anual (PAS)</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(plano.data?.anos ?? []).map(a => { const x = pass.data?.find(p => p.exercicio === a); const sel = a === ano;
+              return <button key={a} onClick={() => { setAno(a); setAberta(null); }} style={{ ...btn(sel ? "#1d4ed8" : "#fff"), color: sel ? "#fff" : "#1f2937",
+                border: `1px solid ${sel ? "#1d4ed8" : "#cbd5e1"}`, flexDirection: "column", alignItems: "flex-start", gap: 0, padding: "5px 12px" }}>
+                <span style={{ fontSize: 14 }}>{a}</span><span style={{ fontSize: 10, fontWeight: 500, opacity: .85 }}>{x ? (x.situacao === "aprovada" ? "PAS aprovada" : "PAS em rascunho") : "sem PAS"}</span></button>; })}
+          </div></div>
+        {ref_.pode_planejar && plano.data?.situacao === "aprovado" && plano.data.anos.some(a => !(pass.data ?? []).some(p => p.exercicio === a)) && <>
           <label style={{ ...lbl, marginBottom: 0, width: 120 }}>Novo exercício<select style={inp} value={exercicio} onChange={e => setExercicio(e.target.value)}>
             <option value="">—</option>{plano.data.anos.filter(a => !(pass.data ?? []).some(p => p.exercicio === a)).map(a => <option key={a} value={a}>{a}</option>)}</select></label>
           <button style={btn()} disabled={!exercicio} onClick={() => criarPas.mutate()}>Criar PAS</button></>}
@@ -313,47 +357,239 @@ function AbaPas({ ref_, planoId }: { ref_: Ref; planoId: number | null }) {
         {pas?.resolucao_cms && <span style={{ fontSize: 12, color: "#475569" }}>{pas.resolucao_cms}</span>}
         <Erro e={criarPas.error} /><Erro e={aprovarPas.error} />
       </div>
-      {pass.isSuccess && pass.data.length === 0 && plano.data?.situacao === "aprovado" && (
+      {pass.isSuccess && !pas && ano && plano.data?.situacao === "aprovado" && (
         <div style={{ ...card, background: "#eff6ff", borderColor: "#bfdbfe", fontSize: 13, color: "#1e3a8a" }}>
-          <b>Nenhuma Programação Anual de Saúde cadastrada para o PMS {plano.data.vigencia_inicio}–{plano.data.vigencia_fim}.</b>
+          <b>Não há Programação Anual de Saúde cadastrada para {ano}.</b>
           {ref_.pode_planejar
-            ? <> Confira o exercício em “Novo exercício” e clique em <b>Criar PAS</b>. Depois cadastre as ações do ano ligadas às metas do PMS e aprove a PAS com a resolução do Conselho Municipal de Saúde.</>
+            ? <> Escolha o exercício em “Novo exercício” e clique em <b>Criar PAS</b>. Depois cadastre as ações do ano ligadas às metas do PMS e aprove a PAS com a resolução do Conselho Municipal de Saúde.</>
             : <> O cadastro é feito pela Coordenação de Planejamento.</>}
         </div>)}
       {pas && ref_.pode_planejar && (
-        <div style={card}><h3 style={h3}>Nova ação da PAS {pas.exercicio}</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
-            {c("codigo", "Código *")}{c("descricao", "Descrição da ação *", "area")}{c("produto", "Produto / entrega")}
-            {c("quantidade_prevista", "Quantidade prevista", "number")}{c("prazo", "Prazo", "date")}{c("setor_responsavel", "Setor responsável")}
-            <label style={lbl}>Responsável (usuário)<select style={inp} value={f.responsavel_usuario_id} onChange={e => setF({ ...f, responsavel_usuario_id: e.target.value })}>
-              <option value="">—</option>{(resp.data ?? []).map(u => <option key={u.id} value={u.id}>{u.nome} ({u.perfil})</option>)}</select></label>
-            {c("recursos", "Recursos necessários", "area")}{c("fonte_financiamento", "Fonte de financiamento")}
-            {c("indicador_acompanhamento", "Indicador de acompanhamento")}{c("evidencia_esperada", "Evidência esperada", "area")}
-            <label style={lbl}>Metas do PMS * (uma ou mais)<select multiple style={{ ...inp, minHeight: 90 }} value={f.meta_ids.map(String)}
-              onChange={e => setF({ ...f, meta_ids: Array.from(e.target.selectedOptions).map(o => Number(o.value)) })}>
-              {metas.map(m => <option key={m.id} value={m.id}>{m.codigo} — {m.descricao.slice(0, 80)}</option>)}</select></label>
-          </div>
-          <button style={btn()} disabled={!f.codigo || f.descricao.length < 3 || !f.meta_ids.length || criarAcao.isPending} onClick={() => criarAcao.mutate()}>Incluir ação</button>
-          <Erro e={criarAcao.error} />
+        <div style={card}>
+          <button style={btn(novaAberta ? "#64748b" : "#1d4ed8")} onClick={() => setNovaAberta(!novaAberta)}>{novaAberta ? "Fechar cadastro de ação" : `+ Nova ação na PAS ${pas.exercicio}`}</button>
+          {novaAberta && <div style={{ marginTop: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
+              {c("codigo", "Código *")}{c("descricao", "Descrição da ação *", "area")}{c("produto", "Produto / entrega")}
+              {c("quantidade_prevista", "Quantidade prevista", "number")}{c("prazo", "Prazo", "date")}{c("setor_responsavel", "Setor responsável")}
+              <label style={lbl}>Responsável (usuário)<select style={inp} value={f.responsavel_usuario_id} onChange={e => setF({ ...f, responsavel_usuario_id: e.target.value })}>
+                <option value="">—</option>{(resp.data ?? []).map(u => <option key={u.id} value={u.id}>{u.nome} ({u.perfil})</option>)}</select></label>
+              {c("recursos", "Recursos necessários", "area")}{c("fonte_financiamento", "Fonte de financiamento")}
+              {c("indicador_acompanhamento", "Indicador de acompanhamento")}{c("evidencia_esperada", "Evidência esperada", "area")}
+              <label style={lbl}>Metas do PMS * (uma ou mais)<select multiple style={{ ...inp, minHeight: 90 }} value={f.meta_ids.map(String)}
+                onChange={e => setF({ ...f, meta_ids: Array.from(e.target.selectedOptions).map(o => Number(o.value)) })}>
+                {metas.map(m => <option key={m.id} value={m.id}>{m.codigo} — {m.descricao.slice(0, 80)}</option>)}</select></label>
+            </div>
+            <button style={btn()} disabled={!f.codigo || f.descricao.length < 3 || !f.meta_ids.length || criarAcao.isPending} onClick={() => criarAcao.mutate()}>Incluir ação</button>
+            <Erro e={criarAcao.error} />
+          </div>}
         </div>)}
       {aberta && <DetalheAcao id={aberta} ref_={ref_} onFechar={() => setAberta(null)} />}
-      {pas && <div style={card}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-          <select style={{ ...inp, width: 200 }} value={filtro.setor} onChange={e => setFiltro({ ...filtro, setor: e.target.value })}><option value="">Todos os setores</option>{setores.map(s => <option key={s}>{s}</option>)}</select>
-          <select style={{ ...inp, width: 200 }} value={filtro.situacao} onChange={e => setFiltro({ ...filtro, situacao: e.target.value })}><option value="">Todas as situações</option>{Object.entries(ref_.situacoes_acao).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+      {pas && ano && <AcompanhamentoAcoes planoId={planoId} ano={ano} pasId={pas.id} ref_={ref_} plano={plano.data} abrir={setAberta} />}
+    </>);
+}
+
+// ── Acompanhamento individual das ações (tabela editável) ────────────────────
+interface MetaAcomp extends MetaRef { objetivo_id: number; objetivo_codigo: string; objetivo: string; diretriz_id: number; diretriz_codigo: string; diretriz: string }
+interface UpdResumo { id: number; situacao: string; situacao_rotulo: string; status: string; informado_por: string; informado_em: string;
+  validado_por: string | null; resultado_alcancado: string | null; justificativa: string | null; parecer: string | null }
+interface LinhaAcomp extends Omit<Acao, "metas"> { metas: MetaAcomp[]; tem_evidencia: boolean; quadrimestres: Record<string, UpdResumo | null>;
+  ultima: UpdResumo | null; justificativa_completa: boolean | null; pode_atualizar: boolean; atualizacoes: number }
+interface Acomp { ano: number; quadrimestre: number | null; quadrimestre_atual: number; pas: Pas | null; linhas: LinhaAcomp[];
+  resumo: Record<string, number | null>; setores: string[]; nota: string }
+const OPCOES_SIT: [string, string][] = [["concluida", "Executada"], ["parcial", "Parcialmente executada"], ["em_andamento", "Em andamento"],
+  ["nao_executada", "Não executada"], ["nao_iniciada", "Não iniciada"]];
+const curto = (t: string | null | undefined, n = 70) => (!t ? "—" : t.length > n ? t.slice(0, n) + "…" : t);
+
+function MarcarSituacao({ l, sit, quadInicial, ano, onFechar }: { l: LinhaAcomp; sit: string; quadInicial: number; ano: number; onFechar: () => void }) {
+  const qc = useQueryClient();
+  const [quad, setQuad] = useState(quadInicial);
+  const [d, setD] = useState<Detalhe>({ ...DETALHE_VAZIO });
+  const [resultado, setResultado] = useState("");
+  const [qtd, setQtd] = useState("");
+  const [pct, setPct] = useState("");
+  const [arq, setArq] = useState<File | null>(null);
+  const detalhe = EXIGE_DETALHE.includes(sit);
+  const ok = (!detalhe || detalheOk(d)) && (sit !== "concluida" || resultado.trim().length >= 3);
+  const enviar = useMutation({
+    mutationFn: async () => {
+      const u = (await api.post(`/api/pms-vivo/acoes/${l.id}/atualizacoes`, {
+        situacao: sit, quadrimestre: quad, resultado_alcancado: resultado.trim() || null,
+        quantidade_realizada: qtd === "" ? null : Number(qtd),
+        percentual_execucao: pct === "" ? (sit === "concluida" ? 100 : null) : Number(pct),
+        ...(detalhe ? d : {}) })).data as Atualizacao;
+      if (arq) await upload(`/api/pms-vivo/acoes/${l.id}/anexos`, arq, { atualizacao_id: String(u.id), descricao: "Evidência da execução" });
+      return u;
+    }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["pms"] }); onFechar(); } });
+  const rot = OPCOES_SIT.find(([k]) => k === sit)?.[1] ?? sit;
+  return (
+    <div style={{ background: "#f8fafc", border: `1px solid ${COR_SIT[sit]}66`, borderLeft: `4px solid ${COR_SIT[sit]}`, borderRadius: 8, padding: 10, margin: "4px 0 8px" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+        <b style={{ fontSize: 13 }}>Ação {l.codigo}: marcar como “{rot}”</b>
+        <select style={{ ...inp, width: 230 }} value={quad} onChange={e => setQuad(Number(e.target.value))}>
+          {QUADS.map(([k, v]) => <option key={k} value={k}>{v} de {ano}</option>)}</select>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
+        {sit !== "nao_iniciada" && sit !== "nao_executada" && <label style={lbl}>{sit === "concluida" ? "Resultado alcançado *" : "O que já foi feito"}
+          <textarea style={{ ...inp, minHeight: 46 }} value={resultado} onChange={e => setResultado(e.target.value)}
+            placeholder={sit === "concluida" ? "Ex.: 2 UBS reformadas e entregues em 10/09/2026" : ""} /></label>}
+        {(sit === "concluida" || sit === "parcial") && <label style={lbl}>Quantidade realizada{l.quantidade_prevista != null ? ` (prevista ${num(l.quantidade_prevista)})` : ""}
+          <input type="number" min={0} style={inp} value={qtd} onChange={e => setQtd(e.target.value)} /></label>}
+        {(sit === "em_andamento" || sit === "parcial") && <label style={lbl}>% de execução<input type="number" min={0} max={100} style={inp} value={pct} onChange={e => setPct(e.target.value)} /></label>}
+        {sit !== "nao_iniciada" && sit !== "nao_executada" && <label style={lbl}>Evidência comprobatória{l.evidencia_esperada ? ` (esperada: ${curto(l.evidencia_esperada, 60)})` : ""}
+          <input type="file" style={{ fontSize: 12 }} onChange={e => setArq(e.target.files?.[0] ?? null)} /></label>}
+        {detalhe && <FormDetalhe d={d} setD={setD} situacao={sit} />}
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
+        <button style={btn()} disabled={!ok || enviar.isPending} onClick={() => enviar.mutate()}>{enviar.isPending ? "Enviando…" : "Enviar para validação"}</button>
+        <button style={btn("#64748b")} onClick={onFechar}>Cancelar</button>
+        <span style={{ fontSize: 12, color: "#64748b" }}>Fica registrado com seu usuário, data e hora; passa a valer depois da validação por outra pessoa.</span>
+      </div>
+      <Erro e={enviar.error} />
+    </div>);
+}
+
+function AcompanhamentoAcoes({ planoId, ano, pasId, ref_, plano, abrir }: { planoId: number; ano: number; pasId: number; ref_: Ref; plano?: PlanoDet; abrir: (id: number) => void }) {
+  const qc = useQueryClient();
+  const resp = useQuery({ queryKey: ["pms", "resp"], queryFn: () => api.get("/api/pms-vivo/responsaveis").then(r => r.data as { id: number; nome: string; perfil: string }[]) });
+  const [quad, setQuad] = useState<number | null>(null);
+  const [f, setF] = useState({ diretriz_id: "", objetivo_id: "", setor: "", responsavel_usuario_id: "" });
+  const q = useQuery({ queryKey: ["pms", "acomp", planoId, ano, quad, f], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/acompanhamento`, {
+    params: { ano, quadrimestre: quad ?? undefined, ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)) } }).then(r => r.data as Acomp) });
+  const [busca, setBusca] = useState("");
+  const [filtroSit, setFiltroSit] = useState("");
+  const [marcando, setMarcando] = useState<{ id: number; sit: string } | null>(null);
+  const [sel, setSel] = useState<number[]>([]);
+  const [lote, setLote] = useState({ setor_responsavel: "", responsavel_usuario_id: "", responsavel_nome: "", prazo: "" });
+  const [msg, setMsg] = useState<string | null>(null);
+  const aplicar = useMutation({
+    mutationFn: () => api.put(`/api/pms-vivo/pas/${pasId}/acoes/lote`, {
+      acao_ids: sel, ...Object.fromEntries(Object.entries(lote).filter(([, v]) => v).map(([k, v]) => [k, k === "responsavel_usuario_id" ? Number(v) : v])) }).then(r => r.data),
+    onSuccess: r => { setMsg(`${r.atualizadas} ação(ões) atualizada(s).`); setSel([]); setLote({ setor_responsavel: "", responsavel_usuario_id: "", responsavel_nome: "", prazo: "" }); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+  const evid = useMutation({ mutationFn: ({ id, arq }: { id: number; arq: File }) => upload(`/api/pms-vivo/acoes/${id}/anexos`, arq, { descricao: "Evidência comprobatória" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const d = q.data;
+  const objetivos = (plano?.diretrizes ?? []).filter(x => !f.diretriz_id || String(x.id) === f.diretriz_id).flatMap(x => x.objetivos);
+  const qAtual = d?.quadrimestre_atual ?? quadPadrao(ano);
+  const linhas = (d?.linhas ?? []).filter(l => {
+    if (busca && !`${l.codigo} ${l.descricao} ${l.metas.map(m => m.codigo + " " + m.descricao).join(" ")} ${l.responsavel_nome ?? ""}`.toLowerCase().includes(busca.toLowerCase())) return false;
+    if (!filtroSit) return true;
+    if (filtroSit === "atrasada") return l.atrasada;
+    if (filtroSit === "aguardando") return !!l.aguardando_validacao;
+    if (filtroSit === "sem_justificativa") return EXIGE_DETALHE.includes(l.situacao) && !l.justificativa_completa;
+    if (filtroSit === "sem_responsavel") return !l.responsavel_nome;
+    const s = quad ? (l.quadrimestres[String(quad)]?.status === "validada" ? l.quadrimestres[String(quad)]!.situacao : "sem_registro") : l.situacao;
+    return s === filtroSit;
+  });
+  const r = d?.resumo ?? {};
+  const kpis: [string, string, number | string | null | undefined, string][] = [
+    ["", "Ações previstas", r.total, "#1d4ed8"], ["concluida", "Executadas", r.executadas, "#059669"], ["parcial", "Parciais", r.parciais, "#d97706"],
+    ["em_andamento", "Em andamento", r.em_andamento, "#2563eb"], ["nao_executada", "Não executadas", r.nao_executadas, "#dc2626"],
+    ["nao_iniciada", "Não iniciadas", r.nao_iniciadas, "#64748b"], ["atrasada", "Atrasadas", r.atrasadas, "#b91c1c"],
+    ["sem_justificativa", "Sem justificativa", r.sem_justificativa, "#9a3412"], ["aguardando", "Aguardando validação", r.aguardando_validacao, "#7c3aed"],
+    ["", "% de execução", r.percentual_execucao == null ? "—" : `${String(r.percentual_execucao).replace(".", ",")}%`, "#0f766e"]];
+  if (quad) kpis.splice(6, 0, ["sem_registro", `Sem registro no ${quad}º quad.`, r.sem_registro_no_quadrimestre, "#94a3b8"]);
+  const podeLote = ref_.pode_planejar;
+  const todasSel = linhas.length > 0 && linhas.every(l => sel.includes(l.id));
+  const th: React.CSSProperties = { padding: "6px 4px", background: "#f8fafc" };
+  return (
+    <>
+      <div style={card}>
+        <h3 style={h3}>Acompanhamento das ações — PAS {ano}{d?.pas ? ` (${d.pas.situacao === "aprovada" ? "aprovada" : "rascunho"})` : ""}</h3>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontSize: 12, color: "#475569" }}>Período:</span>
+          {([[null, "Ano todo (situação oficial)"], [1, "1º quadrimestre"], [2, "2º quadrimestre"], [3, "3º quadrimestre"]] as [number | null, string][]).map(([k, t]) =>
+            <button key={String(k)} onClick={() => setQuad(k)} style={{ ...btn(quad === k ? "#1d4ed8" : "#e2e8f0"), color: quad === k ? "#fff" : "#1f2937", padding: "5px 10px", fontSize: 12 }}>
+              {t}{k === qAtual && ano === new Date().getFullYear() ? " · atual" : ""}</button>)}
         </div>
-        <div style={{ overflowX: "auto" }}><table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 800 }}>
-          <thead><tr style={{ textAlign: "left", color: "#64748b" }}><th>Ação</th><th>Metas</th><th>Produto</th><th>Prazo</th><th>Responsável</th><th>Situação oficial</th></tr></thead>
-          <tbody>{(acoes.data ?? []).map(a => (
-            <tr key={a.id} onClick={() => setAberta(a.id)} style={{ borderTop: "1px solid #eee", cursor: "pointer", verticalAlign: "top", background: aberta === a.id ? "#f8fafc" : undefined }}>
-              <td style={{ padding: "6px 4px" }}><b>{a.codigo}</b> {a.descricao}</td><td>{a.metas.map(m => m.codigo).join(", ")}</td>
-              <td>{a.produto ?? "—"}{a.quantidade_prevista != null && ` (${num(a.quantidade_prevista)})`}</td>
-              <td style={{ color: a.atrasada ? "#dc2626" : undefined }}>{dataBr(a.prazo)}{a.atrasada && " · atrasada"}</td>
-              <td>{a.responsavel_nome ?? "—"}<div style={{ color: "#64748b" }}>{a.setor_responsavel}</div></td>
-              <td><Selo t={a.situacao_rotulo} cor={COR_SIT[a.situacao]} />{a.aguardando_validacao && <div style={{ color: "#7c3aed", marginTop: 2 }}>aguardando validação</div>}</td>
-            </tr>))}</tbody></table></div>
-        {(acoes.data ?? []).length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 8 }}>Nenhuma ação.</div>}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <select style={{ ...inp, width: 230 }} value={f.diretriz_id} onChange={e => setF({ ...f, diretriz_id: e.target.value, objetivo_id: "" })}>
+            <option value="">Todas as diretrizes</option>{(plano?.diretrizes ?? []).map(x => <option key={x.id} value={x.id}>{x.codigo} — {x.descricao.slice(0, 45)}</option>)}</select>
+          <select style={{ ...inp, width: 230 }} value={f.objetivo_id} onChange={e => setF({ ...f, objetivo_id: e.target.value })}>
+            <option value="">Todos os objetivos</option>{objetivos.map(x => <option key={x.id} value={x.id}>{x.codigo} — {x.descricao.slice(0, 45)}</option>)}</select>
+          <select style={{ ...inp, width: 180 }} value={f.setor} onChange={e => setF({ ...f, setor: e.target.value })}>
+            <option value="">Todos os setores</option>{(d?.setores ?? []).map(s => <option key={s}>{s}</option>)}</select>
+          <select style={{ ...inp, width: 190 }} value={f.responsavel_usuario_id} onChange={e => setF({ ...f, responsavel_usuario_id: e.target.value })}>
+            <option value="">Todos os responsáveis</option>{(resp.data ?? []).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}</select>
+          <input style={{ ...inp, width: 220 }} placeholder="Buscar ação, meta ou responsável" value={busca} onChange={e => setBusca(e.target.value)} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 6, marginTop: 10 }}>
+          {kpis.map(([k, t, v, cor]) => <button key={t} disabled={!k} onClick={() => setFiltroSit(filtroSit === k ? "" : k)}
+            style={{ textAlign: "left", background: filtroSit && filtroSit === k ? cor + "18" : "#fff", border: `1px solid ${filtroSit === k && k ? cor : "#e5e5e3"}`,
+              borderTop: `3px solid ${cor}`, borderRadius: 8, padding: "8px 10px", cursor: k ? "pointer" : "default" }}>
+            <div style={{ fontSize: 11, color: "#64748b" }}>{t}</div><div style={{ fontSize: 20, fontWeight: 700, color: cor }}>{v ?? 0}</div></button>)}
+        </div>
+        {filtroSit && <div style={{ fontSize: 12, marginTop: 6 }}>Mostrando {linhas.length} ação(ões) com o filtro escolhido · <a href="#" onClick={e => { e.preventDefault(); setFiltroSit(""); }}>limpar</a></div>}
+        {!!r.sem_responsavel && <div style={{ fontSize: 12, color: "#9a3412", marginTop: 8, display: "flex", gap: 6 }}><AlertTriangle size={14} />
+          {r.sem_responsavel} ação(ões) sem responsável{r.sem_prazo ? ` e ${r.sem_prazo} sem prazo` : ""}. {podeLote ? "Marque as caixas da tabela e use a atribuição em lote abaixo." : "A atribuição é feita pela Coordenação de Planejamento."}</div>}
+      </div>
+      {podeLote && sel.length > 0 && <div style={{ ...card, background: "#eff6ff", borderColor: "#bfdbfe", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end", position: "sticky", top: 0, zIndex: 2 }}>
+        <b style={{ fontSize: 13, alignSelf: "center" }}>{sel.length} selecionada(s):</b>
+        <label style={{ ...lbl, marginBottom: 0, width: 180 }}>Setor responsável<input style={inp} value={lote.setor_responsavel} onChange={e => setLote({ ...lote, setor_responsavel: e.target.value })} /></label>
+        <label style={{ ...lbl, marginBottom: 0, width: 200 }}>Responsável (usuário)<select style={inp} value={lote.responsavel_usuario_id} onChange={e => setLote({ ...lote, responsavel_usuario_id: e.target.value })}>
+          <option value="">—</option>{(resp.data ?? []).map(u => <option key={u.id} value={u.id}>{u.nome} ({u.perfil})</option>)}</select></label>
+        <label style={{ ...lbl, marginBottom: 0, width: 180 }}>ou nome do responsável<input style={inp} value={lote.responsavel_nome} onChange={e => setLote({ ...lote, responsavel_nome: e.target.value })} /></label>
+        <label style={{ ...lbl, marginBottom: 0, width: 150 }}>Prazo<input type="date" style={inp} value={lote.prazo} onChange={e => setLote({ ...lote, prazo: e.target.value })} /></label>
+        <button style={btn()} disabled={!Object.values(lote).some(Boolean) || aplicar.isPending} onClick={() => aplicar.mutate()}>Aplicar às selecionadas</button>
+        <button style={btn("#64748b")} onClick={() => setSel([])}>Limpar seleção</button>
+        <Erro e={aplicar.error} />
       </div>}
+      {msg && <div style={{ fontSize: 12, color: "#065f46", marginBottom: 8 }}>{msg}</div>}
+      <div style={card}>
+        {q.isLoading && <div style={{ fontSize: 13 }}>Carregando…</div>}<Erro e={q.error} /><Erro e={evid.error} />
+        <div style={{ overflowX: "auto" }}><table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 1500 }}>
+          <thead><tr style={{ textAlign: "left", color: "#475569" }}>
+            {podeLote && <th style={th}><input type="checkbox" checked={todasSel} onChange={() => setSel(todasSel ? [] : linhas.map(l => l.id))} title="Selecionar todas as ações visíveis" /></th>}
+            <th style={th}>Meta</th><th style={th}>Diretriz / objetivo</th><th style={th}>Descrição da meta</th><th style={th}>Ação programada</th><th style={th}>Ano</th>
+            <th style={th}>Prazo</th><th style={th}>Responsável</th><th style={{ ...th, minWidth: 250 }}>Situação da execução{quad ? ` · ${quad}º quad.` : ""}</th>
+            <th style={th}>Resultado alcançado</th><th style={th}>Justificativa</th><th style={th}>Evidência</th></tr></thead>
+          <tbody>{linhas.map(l => {
+            const m0 = l.metas[0];
+            const noQ = quad ? l.quadrimestres[String(quad)] : null;
+            const bloqueada = !l.pode_atualizar || !!l.aguardando_validacao || l.situacao === "cancelada";
+            const detalhe = EXIGE_DETALHE.includes(l.situacao);
+            return [
+              <tr key={l.id} style={{ borderTop: "1px solid #eee", verticalAlign: "top", background: marcando?.id === l.id ? "#f8fafc" : sel.includes(l.id) ? "#eff6ff" : undefined }}>
+                {podeLote && <td style={{ padding: "6px 4px" }}><input type="checkbox" checked={sel.includes(l.id)} onChange={() => setSel(sel.includes(l.id) ? sel.filter(x => x !== l.id) : [...sel, l.id])} /></td>}
+                <td style={{ padding: "6px 4px", whiteSpace: "nowrap" }}><b>{l.metas.map(m => m.codigo).join(", ") || "—"}</b></td>
+                <td style={{ maxWidth: 190, color: "#475569" }} title={m0 ? `${m0.diretriz}\n${m0.objetivo}` : ""}>{m0 ? <>D{m0.diretriz_codigo} — {curto(m0.diretriz, 45)}<div style={{ color: "#64748b" }}>Obj. {m0.objetivo_codigo} — {curto(m0.objetivo, 45)}</div></> : "—"}</td>
+                <td style={{ maxWidth: 220 }} title={m0?.descricao}>{curto(m0?.descricao, 110)}</td>
+                <td style={{ maxWidth: 240 }}><a href="#" onClick={e => { e.preventDefault(); abrir(l.id); }} title="Abrir detalhe e histórico"><b>{l.codigo}</b></a> {l.descricao}</td>
+                <td>{ano}</td>
+                <td style={{ whiteSpace: "nowrap", color: l.atrasada ? "#dc2626" : undefined }}>{l.prazo ? dataBr(l.prazo) : <span style={{ color: "#d97706" }}>sem prazo</span>}{l.atrasada && <div>atrasada</div>}</td>
+                <td style={{ maxWidth: 150 }}>{l.responsavel_nome ?? <span style={{ color: "#d97706" }}>sem responsável</span>}{l.setor_responsavel && <div style={{ color: "#64748b" }}>{l.setor_responsavel}</div>}</td>
+                <td>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {OPCOES_SIT.map(([k, t]) => { const atual = l.situacao === k; const ativo = marcando?.id === l.id && marcando.sit === k;
+                      return <button key={k} disabled={bloqueada} onClick={() => setMarcando(ativo ? null : { id: l.id, sit: k })}
+                        title={bloqueada ? (l.aguardando_validacao ? "Aguardando validação" : "Sem permissão para atualizar esta ação") : `Marcar como ${t}`}
+                        style={{ display: "flex", alignItems: "center", gap: 6, background: ativo ? COR_SIT[k] + "22" : "none", border: "none", padding: "1px 4px", borderRadius: 4,
+                          cursor: bloqueada ? "default" : "pointer", fontSize: 12, color: atual ? COR_SIT[k] : bloqueada ? "#94a3b8" : "#334155", fontWeight: atual ? 700 : 400, textAlign: "left" }}>
+                        <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${atual || ativo ? COR_SIT[k] : "#94a3b8"}`, background: atual ? COR_SIT[k] : "#fff", flex: "none" }} />{t}</button>; })}
+                    {l.situacao === "cancelada" && <Selo t="Cancelada" cor={COR_SIT.cancelada} />}
+                    {l.aguardando_validacao && l.ultima && <div style={{ color: "#7c3aed" }}>⏳ Informado “{l.ultima.situacao_rotulo}” por {l.ultima.informado_por} em {dataBr(l.ultima.informado_em)} — aguardando validação</div>}
+                    {l.devolvida && <div style={{ color: "#b45309" }}>Devolvida{l.ultima?.parecer ? `: ${l.ultima.parecer}` : ""} — marque de novo.</div>}
+                    {quad && <div style={{ color: "#475569", marginTop: 2 }}>{quad}º quad.: {noQ ? `${noQ.situacao_rotulo} (${noQ.status === "validada" ? "validada" : noQ.status === "pendente" ? "aguardando validação" : "devolvida"})` : "sem registro"}</div>}
+                  </div>
+                </td>
+                <td style={{ maxWidth: 200 }}>{curto(l.resultado_alcancado, 120)}</td>
+                <td style={{ maxWidth: 220 }}>{detalhe ? <>{l.justificativa ? curto(l.justificativa, 120) : <span style={{ color: "#dc2626" }}>ausente</span>}
+                  {l.motivo && <div style={{ color: "#9a3412" }}>Motivo: {curto(l.motivo, 60)}</div>}
+                  {l.novo_prazo && <div style={{ color: "#475569" }}>Novo prazo: {dataBr(l.novo_prazo)}</div>}
+                  {!l.justificativa_completa && <div style={{ color: "#dc2626" }}>detalhamento incompleto</div>}</> : "—"}</td>
+                <td style={{ whiteSpace: "nowrap" }}>{l.tem_evidencia ? <span style={{ color: "#059669" }}><Paperclip size={12} /> anexada</span>
+                  : l.evidencia_esperada ? <span style={{ color: "#d97706" }} title={l.evidencia_esperada}>esperada</span> : "—"}
+                  {l.pode_atualizar && <label style={{ display: "block", color: "#1d4ed8", cursor: "pointer", marginTop: 2 }}><Upload size={12} /> anexar
+                    <input type="file" style={{ display: "none" }} onChange={e => { const a = e.target.files?.[0]; if (a) evid.mutate({ id: l.id, arq: a }); e.target.value = ""; }} /></label>}</td>
+              </tr>,
+              marcando?.id === l.id ? <tr key={`m${l.id}`}><td colSpan={podeLote ? 12 : 11} style={{ padding: "0 4px" }}>
+                <div style={{ position: "sticky", left: 0, width: "min(1150px, calc(100vw - 340px))" }}>
+                  <MarcarSituacao l={l} sit={marcando.sit} quadInicial={quad ?? qAtual} ano={ano} onFechar={() => setMarcando(null)} /></div></td></tr> : null];
+          })}</tbody></table></div>
+        {d && linhas.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 8 }}>Nenhuma ação com estes filtros.</div>}
+        <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, display: "flex", gap: 6 }}><Info size={14} />
+          Clique numa situação para registrar. “Parcialmente executada” e “Não executada” abrem o formulário de justificativa obrigatória; “Executada” exige o resultado alcançado.
+          Cada registro guarda usuário, data, hora e quadrimestre, e o histórico anterior é preservado (clique no código da ação). {d?.nota}</div>
+      </div>
     </>);
 }
 
@@ -447,29 +683,50 @@ function Kpi({ t, v, cor }: { t: string; v: number | string | null; cor: string 
 function PainelGestor({ planoId, ano }: { planoId: number; ano: number }) {
   const resp = useQuery({ queryKey: ["pms", "resp"], queryFn: () => api.get("/api/pms-vivo/responsaveis").then(r => r.data as { id: number; nome: string }[]) });
   const plano = useQuery({ queryKey: ["pms", "plano", planoId], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}`).then(r => r.data as PlanoDet) });
-  const [f, setF] = useState({ diretriz_id: "", setor: "", responsavel_usuario_id: "", situacao: "" });
+  const [f, setF] = useState({ quadrimestre: "", diretriz_id: "", objetivo_id: "", setor: "", responsavel_usuario_id: "", situacao: "" });
   const q = useQuery({ queryKey: ["pms", "painel", planoId, ano, f], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/painel`, {
     params: { ano, ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)) } }).then(r => r.data) });
   const p = q.data;
+  const objetivos = (plano.data?.diretrizes ?? []).filter(d => !f.diretriz_id || String(d.id) === f.diretriz_id).flatMap(d => d.objetivos);
+  const ex = p?.execucao as Record<string, number | null> | undefined;
   return (
     <>
       <div style={{ ...card, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <select style={{ ...inp, width: 260 }} value={f.diretriz_id} onChange={e => setF({ ...f, diretriz_id: e.target.value })}>
+        <select style={{ ...inp, width: 190 }} value={f.quadrimestre} onChange={e => setF({ ...f, quadrimestre: e.target.value })}>
+          <option value="">Ano {ano} (situação oficial)</option>{QUADS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+        <select style={{ ...inp, width: 240 }} value={f.diretriz_id} onChange={e => setF({ ...f, diretriz_id: e.target.value, objetivo_id: "" })}>
           <option value="">Todas as diretrizes</option>{(plano.data?.diretrizes ?? []).map(d => <option key={d.id} value={d.id}>{d.codigo} — {d.descricao.slice(0, 50)}</option>)}</select>
+        <select style={{ ...inp, width: 240 }} value={f.objetivo_id} onChange={e => setF({ ...f, objetivo_id: e.target.value })}>
+          <option value="">Todos os objetivos</option>{objetivos.map(o => <option key={o.id} value={o.id}>{o.codigo} — {o.descricao.slice(0, 50)}</option>)}</select>
         <select style={{ ...inp, width: 200 }} value={f.setor} onChange={e => setF({ ...f, setor: e.target.value })}>
           <option value="">Todos os setores</option>{(p?.setores ?? []).map((s: string) => <option key={s}>{s}</option>)}</select>
         <select style={{ ...inp, width: 200 }} value={f.responsavel_usuario_id} onChange={e => setF({ ...f, responsavel_usuario_id: e.target.value })}>
           <option value="">Todos os responsáveis</option>{(resp.data ?? []).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}</select>
         <select style={{ ...inp, width: 200 }} value={f.situacao} onChange={e => setF({ ...f, situacao: e.target.value })}>
           <option value="">Todas as situações</option><option value="atrasada">Atrasadas</option><option value="aguardando_validacao">Aguardando validação</option>
-          <option value="concluida">Concluídas</option><option value="nao_executada">Não executadas</option><option value="em_andamento">Em andamento</option></select>
+          <option value="concluida">Executadas</option><option value="nao_executada">Não executadas</option><option value="em_andamento">Em andamento</option></select>
       </div>
       {p && <>
+        {ex && <div style={card}>
+          <h3 style={h3}>Execução das ações da PAS {ano}{f.quadrimestre ? ` — ${f.quadrimestre}º quadrimestre` : ""}</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 8 }}>
+            <Kpi t="Ações previstas" v={ex.total} cor="#1d4ed8" /><Kpi t="Executadas" v={ex.executadas} cor="#059669" />
+            <Kpi t="Parcialmente executadas" v={ex.parciais} cor="#d97706" /><Kpi t="Não executadas" v={ex.nao_executadas} cor="#dc2626" />
+            <Kpi t="Atrasadas" v={ex.atrasadas} cor="#b91c1c" />
+            <Kpi t="% de execução" v={ex.percentual_execucao == null ? "—" : `${String(ex.percentual_execucao).replace(".", ",")}%`} cor="#0f766e" />
+            <Kpi t="Metas em risco" v={p.metas.em_risco + p.metas.nao_alcancada} cor="#d97706" />
+            <Kpi t="Ações sem justificativa" v={ex.sem_justificativa} cor="#9a3412" />
+            {f.quadrimestre && <Kpi t="Sem registro no quadrimestre" v={ex.sem_registro_no_quadrimestre} cor="#94a3b8" />}
+          </div>
+          {ex.total === 0 && <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>Nenhuma ação na PAS {ano} com estes filtros.</div>}
+          {!!ex.sem_responsavel && <div style={{ fontSize: 12, color: "#9a3412", marginTop: 6 }}>{ex.sem_responsavel} ação(ões) sem responsável e {ex.sem_prazo} sem prazo: o filtro por responsável e os alertas de atraso dependem desse cadastro (aba “PAS e ações”).</div>}
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 6 }}>Só execuções validadas entram na contagem. “Metas em risco” soma metas em risco e não alcançadas com resultado registrado.</div>
+        </div>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, marginBottom: 12 }}>
           <Kpi t="Metas do PMS" v={p.metas.total} cor="#1d4ed8" /><Kpi t="Metas alcançadas" v={p.metas.alcancada} cor="#059669" />
           <Kpi t="Metas em risco" v={p.metas.em_risco} cor="#d97706" /><Kpi t="Não alcançadas" v={p.metas.nao_alcancada} cor="#dc2626" />
           <Kpi t="Sem resultado" v={p.metas.sem_resultado + p.metas.em_acompanhamento} cor="#94a3b8" />
-          <Kpi t="Ações concluídas" v={`${p.acoes.concluidas}/${p.acoes.total}`} cor="#059669" /><Kpi t="Ações atrasadas" v={p.acoes.atrasadas} cor="#dc2626" />
+          <Kpi t="Ações executadas" v={`${p.acoes.concluidas}/${p.acoes.total}`} cor="#059669" /><Kpi t="Ações atrasadas" v={p.acoes.atrasadas} cor="#dc2626" />
           <Kpi t="Não executadas" v={p.acoes.nao_executadas} cor="#b91c1c" /><Kpi t="Aguardando validação" v={p.acoes.aguardando_validacao} cor="#7c3aed" />
           <Kpi t="Reprogramação proposta" v={p.acoes.reprogramacao_proposta ?? "entrega 3"} cor="#64748b" />
         </div>
@@ -854,7 +1111,7 @@ function CruzamentoDiagnostico({ planoId, ano, ref_ }: { planoId: number; ano: n
     </>);
 }
 
-const RELATORIOS: [string, string][] = [["execucao_pas", "Execução da PAS"], ["metas_pms", "Metas do PMS"], ["pendencias", "Pendências"],
+const RELATORIOS: [string, string][] = [["execucao_acoes", "Execução das Ações do PMS/PAS (RDQA/RAG)"], ["execucao_pas", "Execução da PAS"], ["metas_pms", "Metas do PMS"], ["pendencias", "Pendências"],
   ["por_responsavel", "Por responsável"], ["quadrimestral", "Quadrimestral (RDQA)"], ["anual", "Anual (RAG)"], ["reprogramacoes", "Reprogramações"],
   ["plano_acao", "Plano de ação 5W2H"], ["checklist", "Checklist feito / não feito"]];
 
@@ -874,13 +1131,14 @@ function LinhaChecklist({ i, marcacoes, podeMarcar }: { i: ItemChecklist; marcac
   const qc = useQueryClient();
   const [marca, setMarca] = useState<string | null>(null);
   const [texto, setTexto] = useState("");
+  const [d, setD] = useState<Detalhe>({ ...DETALHE_VAZIO });
   const enviar = useMutation({
     mutationFn: () => api.post(`/api/pms-vivo/acoes/${i.id}/atualizacoes`, {
       situacao: marcacoes[marca!],
-      resultado_alcancado: marca === "feito" ? texto : null,
-      justificativa: marca === "feito" ? null : texto,
+      resultado_alcancado: marca === "feito" || (marca === "parcial" && texto) ? texto : null,
+      ...(marca === "feito" ? {} : d),
       percentual_execucao: marca === "feito" ? 100 : null }),
-    onSuccess: () => { setMarca(null); setTexto(""); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+    onSuccess: () => { setMarca(null); setTexto(""); setD({ ...DETALHE_VAZIO }); qc.invalidateQueries({ queryKey: ["pms"] }); } });
   const travada = i.status === "aguardando_validacao" || i.status === "cancelada";
   const cor = COR_CHK[i.status] ?? "#64748b";
   return (
@@ -908,11 +1166,12 @@ function LinhaChecklist({ i, marcacoes, podeMarcar }: { i: ItemChecklist; marcac
         </div>
       </div>
       {marca && <div style={{ marginTop: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10 }}>
-        <label style={lbl}>{marca === "feito" ? "O que foi feito? *" : "Justificativa — por que não foi feito (ou só em parte)? *"}
+        {marca !== "nao_feito" && <label style={lbl}>{marca === "feito" ? "O que foi feito? *" : "O que foi feito em parte"}
           <textarea style={{ ...inp, minHeight: 56 }} value={texto} onChange={e => setTexto(e.target.value)}
-            placeholder={marca === "feito" ? "Ex.: reforma concluída na UBS JK em 10/09/2026" : "Ex.: recurso da emenda não foi liberado em 2026"} /></label>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button style={btn()} disabled={texto.trim().length < 5 || enviar.isPending} onClick={() => enviar.mutate()}>
+            placeholder={marca === "feito" ? "Ex.: reforma concluída na UBS JK em 10/09/2026" : "Ex.: 1 de 2 UBS reformada"} /></label>}
+        {marca !== "feito" && <FormDetalhe d={d} setD={setD} situacao={marca === "parcial" ? "parcial" : "nao_executada"} />}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+          <button style={btn()} disabled={(marca === "feito" ? texto.trim().length < 5 : !detalheOk(d)) || enviar.isPending} onClick={() => enviar.mutate()}>
             {enviar.isPending ? "Enviando…" : "Enviar para validação"}</button>
           <button style={btn("#64748b")} onClick={() => { setMarca(null); setTexto(""); }}>Cancelar</button>
           <span style={{ fontSize: 12, color: "#64748b" }}>A marcação passa a valer depois que outra pessoa validar.</span>
@@ -964,18 +1223,79 @@ function ChecklistPas({ planoId, ano, ref_ }: { planoId: number; ano: number; re
     </>);
 }
 function Relatorios({ planoId, ano }: { planoId: number; ano: number }) {
-  const [quad, setQuad] = useState("1");
+  const [quad, setQuad] = useState("");
+  const url = (k: string, f: string) => {
+    const q = k === "quadrimestral" ? (quad || "1") : quad;
+    return `/api/pms-vivo/planos/${planoId}/relatorios/${k}?formato=${f}&ano=${ano}${q ? `&quadrimestre=${q}` : ""}`;
+  };
   return (
     <div style={card}><h3 style={h3}>Relatórios e exportações ({ano})</h3>
-      <label style={{ fontSize: 12, color: "#475569" }}>Quadrimestre (para o relatório quadrimestral) <select style={{ ...inp, width: 80, display: "inline-block" }} value={quad} onChange={e => setQuad(e.target.value)}><option>1</option><option>2</option><option>3</option></select></label>
+      <label style={{ fontSize: 12, color: "#475569" }}>Período <select style={{ ...inp, width: 260, display: "inline-block" }} value={quad} onChange={e => setQuad(e.target.value)}>
+        <option value="">Ano todo (situação oficial)</option>{QUADS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+      <span style={{ fontSize: 11, color: "#64748b", marginLeft: 8 }}>Vale para a Execução das Ações e o Quadrimestral (sem escolha, o quadrimestral usa o 1º).</span>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 8, marginTop: 10 }}>
-        {RELATORIOS.map(([k, t]) => <div key={k} style={{ ...card, marginBottom: 0, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 13 }}>{t}</span><span style={{ display: "flex", gap: 4 }}>
+        {RELATORIOS.map(([k, t]) => <div key={k} style={{ ...card, marginBottom: 0, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6,
+          ...(k === "execucao_acoes" ? { borderColor: "#1d4ed8", background: "#eff6ff" } : {}) }}>
+          <span style={{ fontSize: 13, fontWeight: k === "execucao_acoes" ? 700 : 400 }}>{t}</span><span style={{ display: "flex", gap: 4 }}>
             {(["pdf", "xlsx"] as const).map(f => <button key={f} style={{ ...btn("#475569"), padding: "3px 8px", fontSize: 11 }}
-              onClick={() => baixar(`/api/pms-vivo/planos/${planoId}/relatorios/${k}?formato=${f}&ano=${ano}&quadrimestre=${quad}`, `pms_${k}_${ano}.${f}`)}>{f === "pdf" ? "PDF" : "Excel"}</button>)}</span></div>)}
+              onClick={() => baixar(url(k, f), `pms_${k}_${ano}${quad ? `_q${quad}` : ""}.${f}`)}>{f === "pdf" ? "PDF" : "Excel"}</button>)}</span></div>)}
       </div>
+      <div style={{ fontSize: 12, color: "#475569", marginTop: 8 }}><b>Execução das Ações do PMS/PAS</b>: para cada ação, o que foi planejado, o que foi executado, o que não foi, a justificativa, as providências, o responsável e o prazo para regularização.</div>
       <div style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>A pauta e o registro de cada reunião são baixados na aba "Reuniões". Relatórios do RDQA e do RAG são de apoio e não substituem os instrumentos oficiais do DGMP/DigiSUS.</div>
     </div>);
+}
+
+// ── Agente de Monitoramento PMS ──────────────────────────────────────────────
+interface AchadoAgente { severidade: string; texto: string; acao_id: number | null; meta_id: number | null; codigo: string | null }
+interface CategoriaAgente { id: string; titulo: string; total: number; criticos: number; recomendacao: string | null; itens: AchadoAgente[] }
+interface Agente { ano: number; gerado_em: string; quadrimestre_atual: number; pas: { exercicio: number; situacao: string } | null;
+  resumo: Record<string, number | null>; categorias: CategoriaAgente[]; total_achados: number; aviso: string }
+const IR_PARA: Record<string, [string, string]> = { pendente_atualizacao: ["pas", "Ir para PAS e ações"], nao_executada: ["fca", "Abrir FCA"],
+  meta_baixo_desempenho: ["metas", "Ver metas"], justificativa_ausente: ["pas", "Completar na PAS e ações"], prazo_vencido: ["pas", "Ir para PAS e ações"],
+  divergencia_pms_pas: ["pms", "Ver o PMS"], providencia_gestao: ["pas", "Ir para PAS e ações"] };
+
+function AgenteMonitoramento({ planoId, ano, ref_, irPara }: { planoId: number; ano: number; ref_: Ref; irPara: (aba: string) => void }) {
+  const q = useQuery({ queryKey: ["pms", "agente", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/agente`, { params: { ano } }).then(r => r.data as Agente) });
+  const [aberta, setAberta] = useState<Record<string, boolean>>({});
+  const [msg, setMsg] = useState<string | null>(null);
+  const enviar = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/planos/${planoId}/agente/alertas`, null, { params: { ano } }).then(r => r.data as { novos: number }),
+    onSuccess: r => setMsg(r.novos ? `${r.novos} alerta(s) enviado(s) à Central de Alertas.` : "Nenhum alerta novo: os mesmos achados já estão abertos na Central de Alertas.") });
+  const d = q.data;
+  const r = d?.resumo ?? {};
+  return (
+    <>
+      <div style={{ ...card, borderLeft: "4px solid #7c3aed" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <div><h3 style={{ ...h3, marginBottom: 2 }}>Agente de Monitoramento PMS — {ano}</h3>
+            <div style={{ fontSize: 12, color: "#475569" }}>Analisa as ações e metas cadastradas e aponta o que precisa de atenção, com recomendações. {d?.aviso}</div></div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button style={btn("#7c3aed")} disabled={q.isFetching} onClick={() => q.refetch()}>{q.isFetching ? "Analisando…" : "Analisar agora"}</button>
+            {ref_.pode_validar && <button style={btn("#475569")} disabled={enviar.isPending || !d?.total_achados} onClick={() => enviar.mutate()}>Enviar alertas à Central</button>}
+          </div>
+        </div>
+        {msg && <div style={{ fontSize: 12, color: "#065f46", marginTop: 6 }}>{msg}</div>}<Erro e={enviar.error} /><Erro e={q.error} />
+        {d && <div style={{ fontSize: 12, color: "#475569", marginTop: 8 }}>
+          Análise de {new Date(d.gerado_em + "Z").toLocaleString("pt-BR")} · PAS {d.pas ? `${d.pas.exercicio} (${d.pas.situacao})` : "não cadastrada"} · {r.total ?? 0} ações ·
+          executadas {r.executadas ?? 0} · parciais {r.parciais ?? 0} · não executadas {r.nao_executadas ?? 0} · referência: {d.quadrimestre_atual}º quadrimestre · <b>{d.total_achados} achado(s)</b>. Também roda sozinho toda manhã (07:30) e envia o resumo semanal à Central.</div>}
+      </div>
+      {d?.categorias.map(c => {
+        const cor = c.criticos ? "#dc2626" : c.total ? "#d97706" : "#059669";
+        const lista = aberta[c.id] ? c.itens : c.itens.slice(0, 8);
+        return <div key={c.id} style={{ ...card, borderTop: `3px solid ${cor}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
+            <b style={{ fontSize: 14, color: "#1f2937" }}>{c.titulo}</b>
+            <span style={{ display: "flex", gap: 6, alignItems: "center" }}>{c.total === 0 ? <Selo t="Nenhum achado" cor="#059669" /> : <>
+              <Selo t={`${c.total} achado(s)`} cor={cor} />{c.criticos > 0 && <Selo t={`${c.criticos} crítico(s)`} cor="#dc2626" />}
+              <button style={{ ...btn("#e2e8f0"), color: "#1f2937", padding: "3px 8px", fontSize: 11 }} onClick={() => irPara(IR_PARA[c.id][0])}>{IR_PARA[c.id][1]}</button></>}</span>
+          </div>
+          {c.recomendacao && <div style={{ fontSize: 12, color: "#5b21b6", margin: "6px 0", background: "#f5f3ff", borderRadius: 6, padding: "6px 8px" }}>💡 Recomendação: {c.recomendacao}</div>}
+          {lista.map((i, k) => <div key={k} style={{ fontSize: 12, padding: "3px 0", borderTop: k ? "1px solid #f1f5f9" : undefined, display: "flex", gap: 6, alignItems: "baseline" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: COR_SEV[i.severidade], flex: "none", marginTop: 3 }} title={i.severidade} />{i.texto}</div>)}
+          {c.itens.length > 8 && <a href="#" style={{ fontSize: 12 }} onClick={e => { e.preventDefault(); setAberta({ ...aberta, [c.id]: !aberta[c.id] }); }}>
+            {aberta[c.id] ? "Mostrar menos" : `Mostrar todos (${c.itens.length})`}</a>}
+        </div>;
+      })}
+    </>);
 }
 
 // ── Dashboard (visão consolidada) ────────────────────────────────────────────
@@ -1166,17 +1486,17 @@ export default function PmsVivo() {
   const planos = useQuery({ queryKey: ["pms", "planos"], queryFn: () => api.get("/api/pms-vivo/planos").then(r => r.data as Plano[]) });
   const [planoId, setPlanoId] = useState<number | null>(null);
   useEffect(() => { if (!planoId && planos.data?.length) setPlanoId((planos.data.find(p => p.situacao === "aprovado") ?? planos.data[0]).id); }, [planos.data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [aba, setAba] = useState<"dashboard" | "checklist" | "painel" |"metas" | "kanban" | "cronograma" | "alertas" | "fca" | "reprogramacao" | "rdqa" | "reunioes" | "diagnostico" | "relatorios" | "pms" | "pas" | "minhas" | "validacoes">("dashboard");
+  const [aba, setAba] = useState<"dashboard" | "checklist" | "painel" |"metas" | "kanban" | "cronograma" | "alertas" | "fca" | "reprogramacao" | "rdqa" | "reunioes" | "diagnostico" | "relatorios" | "agente" | "pms" | "pas" | "minhas" | "validacoes">("dashboard");
   // Quem só executa ações (sem perfil de planejamento/validação) abre direto em "Minhas Ações".
   useEffect(() => { if (ref_.data && !ref_.data.pode_planejar && !ref_.data.pode_validar) setAba("minhas"); }, [ref_.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ano, setAno] = useState(ANO_ATUAL);
   const plano = planos.data?.find(p => p.id === planoId);
   useEffect(() => { if (plano && (ano < plano.vigencia_inicio || ano > plano.vigencia_fim)) setAno(plano.vigencia_inicio); }, [plano]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ref_.data) return <div style={{ padding: 20 }}>Carregando…</div>;
-  const abas = [["dashboard", "Dashboard"], ["minhas", "Minhas Ações"], ["checklist", "Checklist da PAS"], ["painel", "Painel do gestor"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
+  const abas = [["dashboard", "Dashboard"], ["minhas", "Minhas Ações"], ["checklist", "Checklist da PAS"], ["painel", "Painel do gestor"], ["agente", "Agente PMS"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
     ["alertas", "Alertas"], ["fca", "FCA"], ["reprogramacao", "Reprogramação"], ["rdqa", "RDQA / RAG"], ["reunioes", "Reuniões"],
     ["diagnostico", "Diagnóstico"], ["relatorios", "Relatórios"], ["pms", "Plano (PMS)"], ["pas", "PAS e ações"], ["validacoes", "Validações"]] as const;
-  const precisaPlano = ["dashboard", "checklist", "painel", "metas", "kanban", "cronograma", "alertas", "fca", "reprogramacao", "rdqa", "reunioes", "diagnostico", "relatorios"].includes(aba);
+  const precisaPlano = ["dashboard", "checklist", "painel", "agente", "metas", "kanban", "cronograma", "alertas", "fca", "reprogramacao", "rdqa", "reunioes", "diagnostico", "relatorios"].includes(aba);
   return (
     <div style={{ padding: 20, maxWidth: 1300, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -1189,14 +1509,16 @@ export default function PmsVivo() {
       </div>
       {precisaPlano && (planoId && plano ? <div style={{ ...card, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", padding: 10 }}>
         <span style={{ fontSize: 13 }}><b>{plano.titulo}</b> · v{plano.versao} · {ROT_PLANO[plano.situacao]}</span>
-        <label style={{ fontSize: 12, color: "#475569" }}>Ano <select style={{ ...inp, width: 100, display: "inline-block" }} value={ano} onChange={e => setAno(Number(e.target.value))}>
-          {Array.from({ length: plano.vigencia_fim - plano.vigencia_inicio + 1 }, (_, i) => plano.vigencia_inicio + i).map(a => <option key={a} value={a}>{a}</option>)}</select></label>
+        <span style={{ display: "flex", gap: 4, alignItems: "center" }}><span style={{ fontSize: 12, color: "#475569" }}>Exercício</span>
+          {Array.from({ length: plano.vigencia_fim - plano.vigencia_inicio + 1 }, (_, i) => plano.vigencia_inicio + i).map(a =>
+            <button key={a} onClick={() => setAno(a)} style={{ ...btn(a === ano ? "#1d4ed8" : "#fff"), color: a === ano ? "#fff" : "#1f2937", border: `1px solid ${a === ano ? "#1d4ed8" : "#cbd5e1"}`, padding: "4px 12px" }}>{a}</button>)}</span>
         <span style={{ fontSize: 12, color: "#64748b" }}>Troque a versão do PMS na aba "Plano (PMS)".</span>
       </div> : <div style={card}>Cadastre ou selecione um PMS na aba "Plano (PMS)".</div>)}
       {precisaPlano && planoId && plano && <>
         {aba === "dashboard" && <Dashboard planoId={planoId} ano={ano} irPara={k => setAba(k as typeof aba)} />}
         {aba === "checklist" && <ChecklistPas planoId={planoId} ano={ano} ref_={ref_.data} />}
         {aba === "painel" && <PainelGestor planoId={planoId} ano={ano} />}
+        {aba === "agente" && <AgenteMonitoramento planoId={planoId} ano={ano} ref_={ref_.data} irPara={k => setAba(k as typeof aba)} />}
         {aba === "metas" && <Metas planoId={planoId} ano={ano} ref_={ref_.data} />}
         {aba === "kanban" && <Kanban planoId={planoId} ano={ano} ref_={ref_.data} />}
         {aba === "cronograma" && <Cronograma planoId={planoId} ano={ano} />}
