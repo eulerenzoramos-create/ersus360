@@ -44,7 +44,8 @@ async def test_ciclo_reprogramacao_rdqa_rag_reunioes_diagnostico_relatorios(ambi
     a1 = (await c.post(f"{URL}/pas/{pas['id']}/acoes", headers=_h(tok), json={**base, "codigo": "A1", "descricao": "Capacitar ACS"})).json()
     a2 = (await c.post(f"{URL}/pas/{pas['id']}/acoes", headers=_h(tok), json={**base, "codigo": "A2", "descricao": "Mapear microáreas"})).json()
     a3 = (await c.post(f"{URL}/pas/{pas['id']}/acoes", headers=_h(tok), json={**base, "codigo": "A3", "descricao": "Comprar tablets"})).json()
-    await _executar(c, tok_exec, tok_coord, a1["id"], "nao_executada", justificativa="Instrutor não disponível")
+    await _executar(c, tok_exec, tok_coord, a1["id"], "nao_executada", justificativa="Instrutor não disponível",
+                    **{"motivo": "Sem recurso", "dificuldades": "Atraso no repasse", "providencias": "Pedir suplementação", "responsavel_solucao": "Coordenação APS", "novo_prazo": "2027-03-31"})
     await _executar(c, tok_exec, tok_coord, a3["id"], "concluida", resultado_alcancado="10 tablets entregues")
 
     # ── Reprogramação ──

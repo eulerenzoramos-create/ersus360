@@ -158,6 +158,11 @@ async def _migrar_pms_vivo() -> None:
         async with engine.begin() as conn:
             if "pms_meta" in await _tabelas_existentes(conn):
                 await _adicionar_colunas(conn, "pms_meta", [("fonte_automatica", "VARCHAR(40)")])
+                detalhe = [("motivo", "VARCHAR(300)"), ("dificuldades", "TEXT"), ("providencias", "TEXT"),
+                           ("responsavel_solucao", "VARCHAR(150)"), ("novo_prazo", "DATE")]
+                await _adicionar_colunas(conn, "pms_acao", detalhe)
+                await _adicionar_colunas(conn, "pms_atualizacao",
+                                         detalhe + [("ano_referencia", "INTEGER"), ("quadrimestre", "INTEGER")])
     except Exception as exc:
         import logging
         logging.getLogger(__name__).error("Migração PMS Vivo falhou: %s", exc)

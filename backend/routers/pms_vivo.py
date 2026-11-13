@@ -48,6 +48,10 @@ Atualizar a execução: o responsável indicado na ação ou quem valida. Ver se
   GET    /reunioes/{id}/relatorio.pdf         pauta e registro
   GET    /planos/{id}/diagnostico · POST /planos/{id}/diagnostico/vinculos · DELETE /diagnostico/vinculos/{id}
   GET    /planos/{id}/relatorios/{tipo}?formato=pdf|xlsx   relatórios (ver services/pms_relatorios.TIPOS)
+  — acompanhamento da execução —
+  PUT    /pas/{id}/acoes/lote                 setor, responsável e prazo de várias ações de uma vez
+  GET    /planos/{id}/acompanhamento?ano=&quadrimestre=&filtros   tabela de acompanhamento das ações
+  GET    /planos/{id}/agente?ano= · POST /planos/{id}/agente/alertas   Agente de Monitoramento PMS
 """
 from __future__ import annotations
 
@@ -739,6 +743,43 @@ async def excluir_acao(acao_id: int, request: Request, current: SessaoMunicipal,
     return {"ok": True}
 
 
+class LoteIn(BaseModel):
+    acao_ids: list[int] = Field(min_length=1, max_length=500)
+    setor_responsavel: Optional[str] = Field(None, max_length=150)
+    responsavel_usuario_id: Optional[int] = None
+    responsavel_nome: Optional[str] = Field(None, max_length=150)
+    prazo: Optional[date] = None
+
+
+@router.put("/pas/{pas_id}/acoes/lote")
+async def atribuir_em_lote(pas_id: int, body: LoteIn, request: Request, current: SessaoMunicipal,
+                           db: AsyncSession = Depends(get_db)):
+    """Define setor, responsável e/ou prazo de várias ações da PAS de uma vez. Só os campos enviados mudam."""
+    _planejador(current)
+    x = await _get(db, current, PmsPas, pas_id, "pms_pas")
+    mud = body.model_dump(exclude_unset=True, exclude={"acao_ids"})
+    if not mud:
+        raise HTTPException(422, "Informe ao menos um campo: setor, responsável ou prazo.")
+    if "responsavel_usuario_id" in mud:
+        nome = await _responsavel(db, current, mud["responsavel_usuario_id"])
+        if nome and not mud.get("responsavel_nome"):
+            mud["responsavel_nome"] = nome
+    acoes = (await db.execute(select(PmsAcao).where(
+        PmsAcao.id.in_(body.acao_ids), PmsAcao.pas_id == x.id, PmsAcao.municipio_id == current.municipio_id,
+        PmsAcao.excluido_em.is_(None)))).scalars().all()
+    if len(acoes) != len(set(body.acao_ids)):
+        raise HTTPException(422, "Há ações que não pertencem a esta PAS.")
+    for a in acoes:
+        for k, v in mud.items():
+            setattr(a, k, v)
+        a.atualizado_em = datetime.utcnow()
+        svc.historico(db, a.municipio_id, "acao", a.id, "editada", "Atribuição em lote: " + ", ".join(sorted(mud)),
+                      current.username)
+    await db.commit()
+    await _audit(db, current, request, "PAS_ACAO_LOTE", "pms_pas", x.id, f"{len(acoes)} ações: {', '.join(sorted(mud))}")
+    return {"atualizadas": len(acoes), "campos": sorted(mud)}
+
+
 # ── Execução e validação ─────────────────────────────────────────────────────
 
 def _pode_atualizar(u: UserOut, a: PmsAcao, levantar: bool = True) -> bool:
@@ -754,6 +795,12 @@ class AtualizacaoIn(BaseModel):
     quantidade_realizada: Optional[float] = Field(None, ge=0)
     resultado_alcancado: Optional[str] = Field(None, max_length=8000)
     justificativa: Optional[str] = Field(None, max_length=8000)
+    motivo: Optional[str] = Field(None, max_length=300)
+    dificuldades: Optional[str] = Field(None, max_length=8000)
+    providencias: Optional[str] = Field(None, max_length=8000)
+    responsavel_solucao: Optional[str] = Field(None, max_length=150)
+    novo_prazo: Optional[date] = None
+    quadrimestre: Optional[int] = Field(None, ge=1, le=3)
 
 
 @router.post("/acoes/{acao_id}/atualizacoes", status_code=201)
@@ -765,17 +812,25 @@ async def informar_execucao(acao_id: int, body: AtualizacaoIn, request: Request,
         raise HTTPException(409, "Ação cancelada.")
     try:
         svc.validar_atualizacao_informada(body.situacao, body.justificativa, body.resultado_alcancado,
-                                          body.percentual_execucao)
+                                          body.percentual_execucao, body.model_dump(include=set(svc.CAMPOS_DETALHE)))
     except ValueError as e:
         raise HTTPException(422, str(e))
+    pas = await db.get(PmsPas, a.pas_id)
     if (await db.execute(select(PmsAtualizacao.id).where(
             PmsAtualizacao.acao_id == a.id, PmsAtualizacao.status == "pendente"))).first():
         raise HTTPException(409, "Já existe atualização aguardando validação para esta ação.")
-    u = PmsAtualizacao(acao_id=a.id, municipio_id=a.municipio_id, informado_por=current.username, **body.model_dump())
+    dados = body.model_dump(exclude={"quadrimestre"})
+    if body.situacao not in svc.EXIGE_DETALHE:   # detalhamento só vale para parcial / não executada
+        for k in ("motivo", "dificuldades", "providencias", "responsavel_solucao", "novo_prazo"):
+            dados[k] = None
+    quad = body.quadrimestre or svc.quadrimestre_padrao(pas.exercicio)
+    u = PmsAtualizacao(acao_id=a.id, municipio_id=a.municipio_id, informado_por=current.username,
+                       ano_referencia=pas.exercicio, quadrimestre=quad, **dados)
     db.add(u)
     await db.flush()
     svc.historico(db, a.municipio_id, "acao", a.id, "execucao_informada",
-                  f"Informado: {svc.SITUACOES_ACAO[body.situacao]} (aguardando validação).", current.username)
+                  f"Informado ({quad}º quadrimestre/{pas.exercicio}): {svc.SITUACOES_ACAO[body.situacao]} "
+                  "(aguardando validação).", current.username)
     await db.commit()
     await _audit(db, current, request, "PAS_EXECUCAO_INFORMADA", "pms_atualizacao", u.id, f"{a.codigo}: {body.situacao}")
     return svc.dict_atualizacao(u)
@@ -827,6 +882,8 @@ async def validar_execucao(upd_id: int, body: ValidarIn, request: Request, curre
         u.status = "validada"
         a.situacao, a.percentual_execucao = u.situacao, u.percentual_execucao
         a.quantidade_realizada, a.resultado_alcancado, a.justificativa = u.quantidade_realizada, u.resultado_alcancado, u.justificativa
+        a.motivo, a.dificuldades, a.providencias = u.motivo, u.dificuldades, u.providencias
+        a.responsavel_solucao, a.novo_prazo = u.responsavel_solucao, u.novo_prazo
         a.situacao_validada_por, a.situacao_validada_em, a.atualizado_em = current.username, datetime.utcnow(), datetime.utcnow()
     u.validado_por, u.validado_em, u.parecer = current.username, datetime.utcnow(), parecer or None
     svc.historico(db, a.municipio_id, "acao", a.id, "execucao_" + u.status,
@@ -1020,15 +1077,63 @@ async def _dados_painel(db, current, plano_id, ano, f: dict):
 @router.get("/planos/{plano_id}/painel")
 async def painel(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None, setor: Optional[str] = None,
                  responsavel_usuario_id: Optional[int] = None, situacao: Optional[str] = None,
-                 diretriz_id: Optional[int] = None, objetivo_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
-    p, ano, metas, acoes, als = await _dados_painel(
-        db, current, plano_id, ano, _filtros(setor, responsavel_usuario_id, situacao, diretriz_id, objetivo_id))
+                 diretriz_id: Optional[int] = None, objetivo_id: Optional[int] = None,
+                 quadrimestre: Optional[int] = Query(None, ge=1, le=3), db: AsyncSession = Depends(get_db)):
+    from services import pms_execucao as exe
+    filtros = _filtros(setor, responsavel_usuario_id, situacao, diretriz_id, objetivo_id)
+    p, ano, metas, acoes, als = await _dados_painel(db, current, plano_id, ano, filtros)
     resumo = mon.painel(metas, acoes, als)
+    acomp = await exe.acompanhamento(db, p, ano, {**filtros, "situacao": None}, quadrimestre, current)
+    resumo["execucao"] = acomp["resumo"]
+    resumo["quadrimestre"] = quadrimestre
     resumo["acoes"]["reprogramacao_proposta"] = sum(1 for a in als if a["tipo"] == "reprogramacao_pendente")
     return {"plano": svc.dict_plano(p), "ano": ano, **resumo,
             "metas_em_risco": [m for m in metas if m["situacao"] in {"em_risco", "nao_alcancada"}],
             "setores": sorted({a["setor_responsavel"] for a in acoes if a["setor_responsavel"]}),
             "nota": "A situação das metas depende de resultados registrados com fonte."}
+
+
+@router.get("/planos/{plano_id}/acompanhamento")
+async def acompanhamento(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                         quadrimestre: Optional[int] = Query(None, ge=1, le=3), setor: Optional[str] = None,
+                         responsavel_usuario_id: Optional[int] = None, diretriz_id: Optional[int] = None,
+                         objetivo_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
+    """Tabela de acompanhamento das ações da PAS do ano (meta, diretriz/objetivo, prazo, responsável, situação,
+    resultado, justificativa e evidência), com a situação de cada quadrimestre e o histórico preservado."""
+    from services import pms_execucao as exe
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    ano = ano or date.today().year
+    if ano not in svc.anos_do(p):
+        raise HTTPException(422, f"Exercício fora da vigência do PMS ({p.vigencia_inicio}–{p.vigencia_fim}).")
+    return await exe.acompanhamento(db, p, ano, _filtros(setor, responsavel_usuario_id, None, diretriz_id, objetivo_id),
+                                    quadrimestre, current)
+
+
+@router.get("/planos/{plano_id}/agente")
+async def agente_monitoramento(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                               db: AsyncSession = Depends(get_db)):
+    """Agente de Monitoramento PMS: analisa os registros e devolve achados e recomendações. Não altera nada."""
+    from services import pms_execucao as exe
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    ano = ano or date.today().year
+    if ano not in svc.anos_do(p):
+        raise HTTPException(422, f"Exercício fora da vigência do PMS ({p.vigencia_inicio}–{p.vigencia_fim}).")
+    return await exe.agente(db, p, ano)
+
+
+@router.post("/planos/{plano_id}/agente/alertas")
+async def agente_enviar_alertas(plano_id: int, request: Request, current: SessaoMunicipal, ano: Optional[int] = None,
+                                db: AsyncSession = Depends(get_db)):
+    """Envia os achados críticos e de atenção do agente para a Central de Alertas (sem duplicar alerta aberto)."""
+    from services import pms_execucao as exe
+    _validador(current)
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    ano = ano or date.today().year
+    if ano not in svc.anos_do(p):
+        raise HTTPException(422, f"Exercício fora da vigência do PMS ({p.vigencia_inicio}–{p.vigencia_fim}).")
+    novos = await exe.enviar_alertas(db, p, ano)
+    await _audit(db, current, request, "PMS_AGENTE_ALERTAS", "pms_plano", p.id, f"{ano}: {novos} alerta(s)")
+    return {"novos": novos}
 
 
 @router.get("/planos/{plano_id}/dashboard")

@@ -159,7 +159,7 @@ async def coletar_fonte_automatica(codigo: str, ano: int) -> dict:
 # ── Ações: Kanban, cronograma, painel e alertas ──────────────────────────────
 
 COLUNAS_KANBAN = {"nao_iniciada": "Não iniciadas", "em_andamento": "Em andamento", "atrasada": "Atrasadas",
-                  "aguardando_validacao": "Aguardando validação", "concluida": "Concluídas",
+                  "aguardando_validacao": "Aguardando validação", "concluida": "Executadas",
                   "encerrada": "Parciais, não executadas ou canceladas"}
 
 
