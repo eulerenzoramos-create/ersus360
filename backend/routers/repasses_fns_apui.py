@@ -722,9 +722,8 @@ _NORM_GRUPO: dict[str, str] = {
 }
 
 def _normalizar_grupo(g: str | None) -> str:
-    if not g:
-        return "Não classificado"
-    return _NORM_GRUPO.get(g.strip().upper(), g.strip())
+    from services.fns_grupos import grupo_canonico
+    return grupo_canonico(g)
 
 
 @router.get("/matriz-tabela")
@@ -748,7 +747,14 @@ async def matriz_tabela(
         TransferenciaFns.mes <= mes_fim,
     ]
     if grupo:
-        filtros.append(TransferenciaFns.grupo.ilike(f"%{grupo}%"))
+        from services.fns_grupos import grupos_brutos
+        brutos = grupos_brutos(grupo)
+        cond = TransferenciaFns.grupo.ilike(f"%{grupo}%")
+        if brutos:
+            cond = cond | TransferenciaFns.grupo.in_(brutos)
+        # sem grupo, a tela usa o tipo de incentivo como grupo
+        cond = cond | (TransferenciaFns.grupo.is_(None) & (TransferenciaFns.tipo_incentivo == grupo))
+        filtros.append(cond)
     if acao:
         filtros.append(TransferenciaFns.acao.ilike(f"%{acao}%"))
     if componente:
