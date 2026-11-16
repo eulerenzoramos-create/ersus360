@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from models.fns_portaria_analise import FnsPortariaAnalise
+from models.fns_portaria_analise import FnsNormaVerificacao, FnsPortariaAnalise, FnsPortariaAnaliseVersao
 from models.transferencia_fns import TransferenciaFns
 from services import fns_portarias_agente as ag
 from services import fns_portarias_normas as N
@@ -83,6 +83,15 @@ async def _popular(S):
         await db.commit()
 
 
+async def _normas_conferidas(S):
+    from datetime import datetime
+    async with S() as db:
+        for k in N.DISPOSITIVOS:
+            db.add(FnsNormaVerificacao(dispositivo=k, confere=True, detalhe="Trecho encontrado.",
+                                       verificado_em=datetime(2026, 11, 16)))
+        await db.commit()
+
+
 async def test_painel_consolida_sem_dupla_contagem_e_isola_municipio(ambiente):
     c, S = ambiente["client"], ambiente["Session"]
     await _popular(S)
@@ -121,15 +130,33 @@ async def test_detalhe_validacao_e_reanalise_quando_dados_mudam(ambiente):
     assert len(r["orientacao"].splitlines()) <= 5
     assert any(f["chave"] == "PRC6_5_P1_V" for f in r["fundamentacao"])
 
+    # programa APS vinculado à norma de origem, mas a conferência automática ainda não rodou
+    assert r["estado_validacao"] == ag.EST_NORMA
+    assert r["programas_vinculados"][0]["nome"] == "Piso da Atenção Primária à Saúde"
+    assert any(n["dispositivo"].startswith("art. 12-R") for n in r["programas_vinculados"][0]["normas"])
+
     tok_consulta = await _token(c, "ana.consulta@apui.gov.br")
     assert (await c.post("/api/fns-portarias-ia/validar", json={"numero": "3493", "exercicio": 2026},
                          headers=_h(tok_consulta))).status_code == 403
+    # sem fundamentação conferida a validação é recusada
+    assert (await c.post("/api/fns-portarias-ia/validar", json={"numero": "3493", "exercicio": 2026},
+                         headers=_h(tok))).status_code == 422
+
+    await _normas_conferidas(S)
+    d = (await c.get("/api/fns-portarias-ia/painel?exercicio=2026", headers=_h(tok))).json()
+    p = {p["numero_portaria"]: p for p in d["portarias"]}["3493"]
+    assert p["estado"] == ag.EST_CONFERIDA            # falta só o link oficial da portaria de repasse
+    assert d["consolidado"]["por_estado"][ag.EST_CONFERIDA] >= 1
     assert (await c.post("/api/fns-portarias-ia/validar", json={"numero": "3493", "exercicio": 2026, "nota": "ok"},
                          headers=_h(tok))).status_code == 200
     d = (await c.get("/api/fns-portarias-ia/painel?exercicio=2026", headers=_h(tok))).json()
-    assert {p["numero_portaria"]: p["situacao"] for p in d["portarias"]}["3493"] == "validada"
+    p = {p["numero_portaria"]: p for p in d["portarias"]}["3493"]
+    assert p["situacao"] == "validada" and p["estado"] == ag.EST_VALIDADA
+    r = (await c.get("/api/fns-portarias-ia/portaria?exercicio=2026&numero=3493", headers=_h(tok))).json()
+    reg = r["registro_validacao"]
+    assert reg["responsavel"] and reg["fontes"] and reg["estado_na_validacao"] == ag.EST_CONFERIDA
 
-    # chega transferência nova da mesma portaria → reanalisa e a validação cai
+    # chega transferência nova da mesma portaria: reanalisa, a validação cai e a versão anterior fica no histórico
     async with S() as db:
         db.add(_t(numero_portaria="3493", numero_ob="7", mes=7, bloco=MANUT, grupo="ATENÇÃO PRIMÁRIA",
                   acao_detalhada="INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF",
@@ -137,11 +164,15 @@ async def test_detalhe_validacao_e_reanalise_quando_dados_mudam(ambiente):
         await db.commit()
     d = (await c.get("/api/fns-portarias-ia/painel?exercicio=2026", headers=_h(tok))).json()
     p = {p["numero_portaria"]: p for p in d["portarias"]}["3493"]
-    assert p["situacao"] == "preliminar" and p["qtd_transferencias"] == 3
+    assert p["situacao"] == "preliminar" and p["estado"] == ag.EST_CONFERIDA and p["qtd_transferencias"] == 3
     async with S() as db:
         a = (await db.execute(select(FnsPortariaAnalise).where(FnsPortariaAnalise.numero_portaria == "3493",
                                                                FnsPortariaAnalise.municipio_ibge == "1300144"))).scalar_one()
         assert a.resultado["validacao_anterior"]["nota"] == "ok"
+        assert any("Valor transferido" in x for x in a.resultado["alteracoes"])
+        versoes = (await db.execute(select(FnsPortariaAnaliseVersao)
+                                    .where(FnsPortariaAnaliseVersao.analise_id == a.id))).scalars().all()
+        assert any(v.estado == ag.EST_VALIDADA for v in versoes)   # a versão validada foi preservada
 
 
 async def test_consulta_sem_chave_da_ia_responde_503(ambiente, monkeypatch):
@@ -211,11 +242,12 @@ def test_portaria_com_finalidades_diferentes_tem_uma_matriz_para_cada():
     r = ag.analisar("3493", ts, exercicio=2026, documentos={}, propostas_ob={}, propostas_is={}, execucao={},
                     estado_normas={})
     assert len(r["despesas"]) == 2
-    acs = next(v for k, v in r["despesas"].items() if "ACS" in k)
-    regular = next(v for k, v in r["despesas"].items() if "regular" in k)
+    acs = next(v for k, v in r["despesas"].items() if "Agentes Comunitários" in k)
+    regular = next(v for k, v in r["despesas"].items() if "Piso da Atenção Primária" in k)
     assert {c["categoria"]: c["classificacao"] for c in acs}["consumo"] == N.ANALISE
     assert {c["categoria"]: c["classificacao"] for c in regular}["consumo"] == N.PERMITIDO
     assert [t["finalidade"] for t in r["transferencias"]][1].startswith("Assistência financeira complementar")
+    assert {v["chave"] for v in r["programas_vinculados"]} == {"aps_piso", "acs_afc"}
 
 
 def test_link_oficial_so_aceita_dominios_oficiais():
@@ -281,7 +313,7 @@ async def test_pdf_da_analise_tecnica(ambiente):
         assert r.status_code == 200, r.text
         assert r.headers["content-type"] == "application/pdf"
         assert r.content.startswith(b"%PDF") and len(r.content) > 3000
-    assert 'analise-tecnica-portaria-3493-2026.pdf' in (await c.get(
+    assert 'relatorio-tecnico-portaria-3493-2026.pdf' in (await c.get(
         "/api/fns-portarias-ia/portaria/pdf", params={"exercicio": 2026, "numero": "3493"},
         headers=_h(tok))).headers["content-disposition"]
     # outro município não gera PDF das portarias de Apuí
@@ -329,6 +361,66 @@ async def test_enviar_pdf_por_email(ambiente, monkeypatch):
     msg = enviados[0]
     assert msg["to"] == ["secretaria@apui.am.gov.br"]
     assert "Portaria nº 3.493" in msg["subject"]
-    assert msg["attachments"][0]["filename"] == "analise-tecnica-portaria-3493-2026.pdf"
+    assert msg["attachments"][0]["filename"] == "relatorio-tecnico-portaria-3493-2026.pdf"
     import base64
     assert base64.b64decode(msg["attachments"][0]["content"]).startswith(b"%PDF")
+
+
+
+def _uma(numero, **kw):
+    t = TransferenciaFns(id=1, bloco=MANUT, valor_liquido=Decimal(kw.pop("valor", "6000")), **kw)
+    return ag.analisar(numero, [t], exercicio=2026, documentos={}, propostas_ob={}, propostas_is={}, execucao={},
+                       estado_normas={k: {"confere": True, "verificado_em": "2026-11-16T00:00:00"}
+                                      for k in N.DISPOSITIVOS})
+
+
+def test_qualifar_usa_a_portaria_de_origem_e_nao_so_o_bloco():
+    """Exemplo do pedido: Portaria de repasse GM/MS 10.486/2026, Qualifar-SUS Eixo Estrutura, R$ 6.000,00."""
+    r = _uma("10486", grupo="ASSISTÊNCIA FARMACÊUTICA",
+             acao="ORGANIZAÇÃO DOS SERVIÇOS DE ASSISTÊNCIA FARMACÊUTICA NO SUS",
+             acao_detalhada="RECURSOS FINANC. A TRANSFERIR AS SECRETARIAS DE SAUDE MUN. EST. E DO DF PARA A QUALIF. "
+                            "DA ASSIST. FARMACEUTICA - QUALIFAR-SUS")
+    assert r["naturezas"] == ["CUSTEIO"]
+    v = r["programas_vinculados"][0]
+    assert v["chave"] == "qualifar_estrutura"
+    assert {n["norma"] for n in v["normas"]} >= {"Portaria GM/MS nº 4.986/2024",
+                                                "Portaria de Consolidação GM/MS nº 5/2017"}
+    m = {c["categoria"]: c for c in r["despesas"]["CUSTEIO"]}
+    # pelo bloco (custeio) medicamentos seriam permitidos; a norma de origem veda
+    assert m["medicamentos"]["classificacao"] == N.VEDADO
+    assert m["medicamentos"]["fundamentacao"][0]["dispositivo"] == "art. 2º, parágrafo único"
+    assert m["terceiros"]["classificacao"] == N.COM_CONDICOES
+    assert m["equipamentos"]["classificacao"] == N.VEDADO
+    assert r["portaria_repasse"]["numero_formatado"] == "10.486"
+    assert r["estado_validacao"] == ag.EST_CONFERIDA      # normas conferidas; falta o link da portaria de repasse
+    assert any("Hórus" in c for c in r["condicoes_execucao"])
+    assert "Qualifar" in r["orientacao"]
+
+
+def test_cbaf_federal_so_compra_medicamentos_da_rename():
+    r = _uma("9887", grupo="ASSISTÊNCIA FARMACÊUTICA",
+             acao="PROMOÇÃO DA ASSISTÊNCIA FARMACÊUTICA E INSUMOS ESTRATÉGICOS NA ATENÇÃO PRIMÁRIA EM SAÚDE",
+             acao_detalhada="CBAF - RECURSOS FINANCEIROS A TRANSFERIR PARA AQUISICAO")
+    m = {c["categoria"]: c["classificacao"] for c in r["despesas"]["CUSTEIO"]}
+    assert m["medicamentos"] == N.COM_CONDICOES
+    assert {v for k, v in m.items() if k != "medicamentos"} == {N.VEDADO}
+
+
+def test_programa_sem_norma_conferida_fica_pendente():
+    r = _uma("S", grupo="ATENÇÃO PRIMÁRIA",
+             acao="INCREMENTO TEMPORÁRIO AO CUSTEIO DOS SERVIÇOS DE ATENÇÃO PRIMÁRIA EM SAÚDE",
+             acao_detalhada="EMENDA - INCREMENTO TEMPORÁRIO AO CUSTEIO DOS SERVIÇOS DE ATENÇÃO PRIMÁRIA EM SAÚDE")
+    assert r["estado_validacao"] == ag.EST_PENDENTE
+    m = {c["categoria"]: c["classificacao"] for c in r["despesas"]["CUSTEIO"]}
+    assert N.PERMITIDO not in m.values() and N.COM_CONDICOES not in m.values()
+    assert r["como_utilizar"] == []
+    # programa que o FNS não identifica (ex.: COVID sem ação) também fica pendente
+    r = _uma("S", grupo="CORONAVÍRUS (COVID-19)")
+    assert r["estado_validacao"] == ag.EST_PENDENTE and r["programas_sem_norma"]
+
+
+def test_todo_dispositivo_das_normas_de_origem_existe_na_base():
+    for p in N.PROGRAMAS:
+        for k, papel in p["origem"]:
+            assert k in N.DISPOSITIVOS and papel in N.PAPEL_ROTULO
+        assert p.get("pendente") or p["origem"], p["chave"]

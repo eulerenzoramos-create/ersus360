@@ -88,4 +88,4 @@ from models.investsus_execucao import (  # noqa: E402
     FichaExecucao, AcaoExecucao, LancamentoExecucao, MovimentoFinanceiro, DocumentoExecucao, AuditoriaExecucao,
 )
 from models.vigilancia_alerta import VigAlertaAcompanhamento  # noqa: E402,F401
-from models.fns_portaria_analise import FnsPortariaAnalise, FnsNormaVerificacao  # noqa: E402,F401
+from models.fns_portaria_analise import FnsPortariaAnalise, FnsNormaVerificacao, FnsPortariaAnaliseVersao  # noqa: E402,F401

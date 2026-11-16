@@ -25,6 +25,7 @@ export interface PortariaIAResumo {
   programas: string[]; grupos: string[]; blocos: string[]; finalidade: string;
   valor_transferido: number; qtd_transferencias: number; pendencias: number;
   verificado_em: string | null; validado_por: string | null;
+  estado?: string; estado_motivo?: string; programas_vinculados?: string[];
 }
 export interface PainelIA {
   exercicio: number;
@@ -32,7 +33,9 @@ export interface PainelIA {
     total_custeio: number; total_investimento: number; total_outra_natureza: number; total_pendente: number;
     total_geral: number; portarias_analisadas: number; portarias_validadas: number; portarias_pendentes: number;
     transferencias_analisadas: number; transferencias_sem_identificacao: number;
+    por_estado?: Record<string, number>;
   };
+  estados?: string[];
   ultima_verificacao: string; normas_verificadas_em: string | null; normas_com_alerta: string[];
   portarias: PortariaIAResumo[]; aviso: string;
 }
@@ -54,8 +57,24 @@ interface AnaliseIA {
     natureza: string; despesa: string; valor_liquido: number; finalidade: string; propostas: string[]; parcela_fns: string | null }[];
   verificado_em: string | null; validacao: { por: string; em: string; nota: string | null } | null; aviso: string;
   links?: LinksPortaria;
+  estado_validacao?: string; estado_motivo?: string;
+  portaria_repasse?: { numero: string; numero_formatado: string | null; ano: number | null; data_publicacao: string | null; link: string | null; papel: string };
+  programas_vinculados?: ProgramaVinculado[];
+  programas_sem_norma?: { nome: string; valor: number; qtd: number }[];
+  como_utilizar?: { programa: string; limite: string; exemplos: string[] }[];
+  despesas_vedadas?: { despesa: string; recurso: string; justificativa: string; fundamentacao: string[] }[];
+  condicoes_execucao?: string[];
+  registro_validacao?: { responsavel: string; em: string; nota: string | null; estado_na_validacao: string; fontes: { norma: string; dispositivo: string; url: string }[] };
+  alteracoes?: string[];
+  historico?: { versao_arquivada_em: string | null; estado: string | null; validado_por: string | null; motivo: string | null }[];
+}
+interface NormaOrigem extends Citacao { papel: string; conferido: boolean | null; verificado_em: string | null }
+interface ProgramaVinculado {
+  chave: string; nome: string; valor: number; qtd: number; normas: NormaOrigem[]; limite: string;
+  exemplos: string[]; condicoes: string[]; pendente: string | null;
 }
 interface RespostaConsulta {
+  norma_origem?: string;
   classificacao: string; categoria: string; justificativa: string; base_legal: Citacao[];
   condicoes: string[]; falta_confirmar: string[]; orientacao: string; aviso: string; citacoes_descartadas: string[];
 }
@@ -81,13 +100,28 @@ export function EtiquetasNatureza({ resumo }: { resumo?: PortariaIAResumo }) {
         <span style={{ background: NAT_COR["EM ANÁLISE"].bg, color: C.amber, borderRadius: 4, padding: "1px 6px",
           fontSize: 10, fontWeight: 800 }}>EM ANÁLISE</span>
       )}
-      {resumo?.situacao === "validada" && (
-        <span title={`Validada por ${resumo.validado_por ?? ""}`} style={{ background: C.greenL, color: C.green,
-          borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>✓ VALIDADA</span>
-      )}
+      {resumo?.estado
+        ? <EtiquetaEstado estado={resumo.estado} titulo={resumo.estado_motivo} />
+        : resumo?.situacao === "validada" && (
+          <span title={`Validada por ${resumo.validado_por ?? ""}`} style={{ background: C.greenL, color: C.green,
+            borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>✓ VALIDADA</span>
+        )}
     </span>
   );
 }
+
+const ESTADO_COR: Record<string, { bg: string; txt: string }> = {
+  "ANÁLISE PENDENTE": { bg: C.redL, txt: C.red },
+  "NORMA LOCALIZADA": { bg: C.amberL, txt: C.amber },
+  "FUNDAMENTAÇÃO CONFERIDA": { bg: C.blueL, txt: C.blue },
+  "AGUARDANDO VALIDAÇÃO TÉCNICA": { bg: C.indigoL, txt: C.indigo },
+  "VALIDADA PELO RESPONSÁVEL": { bg: C.greenL, txt: C.green },
+};
+export const EtiquetaEstado = ({ estado, titulo }: { estado?: string; titulo?: string }) => !estado ? null : (
+  <span title={titulo} style={{ background: ESTADO_COR[estado]?.bg ?? C.grayL, color: ESTADO_COR[estado]?.txt ?? C.gray,
+    border: `1px solid ${(ESTADO_COR[estado]?.txt ?? C.gray)}55`, borderRadius: 999, padding: "1px 8px", fontSize: 10,
+    fontWeight: 800, whiteSpace: "nowrap" }}>{estado}</span>
+);
 
 const CLS_COR: Record<string, { bg: string; txt: string }> = {
   "PERMITIDO": { bg: C.greenL, txt: C.green },
@@ -120,7 +154,7 @@ export function passaFiltro(p: { numero_portaria: string }, r: PortariaIAResumo 
   if (f.programa && !r.grupos.includes(f.programa)) return false;
   if (f.bloco && !r.blocos.includes(f.bloco)) return false;
   if (f.natureza && !(r.naturezas.length ? r.naturezas : ["EM ANÁLISE"]).includes(f.natureza)) return false;
-  if (f.situacao && r.situacao !== f.situacao) return false;
+  if (f.situacao && (r.estado ?? r.situacao) !== f.situacao) return false;
   return true;
 }
 
@@ -201,6 +235,17 @@ export function PainelConsolidadoIA({ painel, filtros, setFiltros, exercicio }: 
         {card("Portarias analisadas", k.portarias_analisadas, C.indigo, `${k.portarias_validadas} validadas · ${k.portarias_pendentes} pendentes`)}
         {card("Transferências sem identificação normativa", k.transferencias_sem_identificacao, C.red, `de ${k.transferencias_analisadas} analisadas (sem dupla contagem)`)}
       </div>
+      {k.por_estado && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: C.sec, fontWeight: 600 }}>Validação das análises:</span>
+          {Object.entries(k.por_estado).map(([e, n]) => (
+            <button key={e} onClick={() => setFiltros({ ...filtros, situacao: filtros.situacao === e ? "" : e })}
+              style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, opacity: n ? 1 : 0.5 }}>
+              <EtiquetaEstado estado={`${e}`} /> <b style={{ fontSize: 11, color: C.txt }}>{n}</b>
+            </button>
+          ))}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 10, fontWeight: 600, color: C.sec, flex: "1 1 140px" }}>
           Portaria
@@ -210,7 +255,7 @@ export function PainelConsolidadoIA({ painel, filtros, setFiltros, exercicio }: 
         {sel("Programa", "programa", programas.map(p => [p, p]))}
         {sel("Bloco de financiamento", "bloco", blocos.map(b => [b, b]))}
         {sel("Natureza", "natureza", ["CUSTEIO", "INVESTIMENTO", "OUTRA NATUREZA", "EM ANÁLISE"].map(n => [n, n]))}
-        {sel("Situação da análise", "situacao", [["preliminar", "Preliminar (validar)"], ["pendente_confirmacao", "Pendente de confirmação"], ["validada", "Validada"]])}
+        {sel("Situação da análise", "situacao", (painel.estados ?? []).map(e => [e, e]))}
         <button onClick={() => setFiltros(FILTROS_VAZIOS)} style={btn(false)}>Limpar</button>
       </div>
       <div style={{ fontSize: 10.5, color: C.sec, marginTop: 8 }}>{painel.aviso}</div>
@@ -311,7 +356,16 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
 
         {r && aba === "analise" && (
           <div>
+            {r.estado_validacao && (
+              <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
+                background: ESTADO_COR[r.estado_validacao]?.bg ?? C.grayL, borderRadius: 8, padding: "8px 12px" }}>
+                <EtiquetaEstado estado={r.estado_validacao} />
+                <span style={{ fontSize: 12, color: C.txt }}>{r.validacao ? `Validada por ${r.validacao.por} em ${dataBR(r.validacao.em)}` : r.estado_motivo}</span>
+              </div>
+            )}
+            {sec("Identificação do recurso")}
             <DocumentoOficial numero={numero} exercicio={exercicio} links={r.links} />
+            <NormasOrigem r={r} />
             {r.pendencias.length > 0 && (
               <div style={{ background: C.amberL, borderRadius: 8, padding: "8px 12px", marginTop: 12, fontSize: 12, color: C.amber }}>
                 <b>Pendências:</b>
@@ -327,12 +381,50 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
             {linha("Finalidade", r.identificacao.finalidade)}
             {linha("Valor transferido", <b style={{ color: C.green }}>{BRL(r.identificacao.valor_transferido)}</b>)}
             {linha("Município / fundo", `${r.identificacao.municipio ?? "—"} · FMS ${r.identificacao.fundo_cnpj ?? "—"}`)}
+            {(r.como_utilizar?.length ?? 0) > 0 && <>
+              {sec("Como utilizar o recurso")}
+              {r.como_utilizar!.map(cu => (
+                <div key={cu.programa} style={{ fontSize: 12.5, marginBottom: 8 }}>
+                  <b>{cu.programa}:</b> {cu.limite}
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>{cu.exemplos.map((e, i) => <li key={i}>{e}</li>)}</ul>
+                </div>
+              ))}
+            </>}
+            {(r.despesas_vedadas?.length ?? 0) > 0 && <>
+              {sec("Despesas vedadas")}
+              {[...new Map(r.despesas_vedadas!.map(d => [`${d.despesa}|${d.recurso}`, d])).values()].map(d => (
+                <div key={`${d.despesa}|${d.recurso}`} style={{ fontSize: 12, padding: "3px 0", borderBottom: `1px dashed ${C.bdr}` }}>
+                  <b style={{ color: C.red }}>{d.despesa}</b> <span style={{ color: C.sec }}>({d.recurso})</span> — {d.justificativa}
+                  <div style={{ color: C.sec, fontSize: 11 }}>{d.fundamentacao.join("; ")}</div>
+                </div>
+              ))}
+            </>}
+            {(r.condicoes_execucao?.length ?? 0) > 0 && <>
+              {sec("Condições para execução")}
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5 }}>{r.condicoes_execucao!.map((c, i) => <li key={i}>{c}</li>)}</ul>
+            </>}
             {sec("Aplicação")}
             <div style={{ fontSize: 12.5 }}>{r.aplicacao.length ? r.aplicacao.join(" · ") : "Nenhuma despesa confirmada — análise complementar."}</div>
             {sec("Restrições")}
             <div style={{ fontSize: 12.5, color: C.red }}>{r.restricoes.length ? r.restricoes.join(" · ") : "Nenhuma vedação expressa identificada; ver categorias que exigem análise."}</div>
             {sec("Orientação ao gestor")}
             <div style={{ fontSize: 13, background: C.indigoL, borderRadius: 8, padding: "10px 12px", color: C.txt, lineHeight: 1.5 }}>{r.orientacao}</div>
+            {r.registro_validacao && (
+              <div style={{ fontSize: 11.5, color: C.sec, marginTop: 10 }}>
+                Validação registrada por <b>{r.registro_validacao.responsavel}</b> em {dataBR(r.registro_validacao.em)}
+                {r.registro_validacao.nota ? ` — “${r.registro_validacao.nota}”` : ""} · {r.registro_validacao.fontes.length} fonte(s) conferida(s).
+              </div>
+            )}
+            {(r.alteracoes?.length ?? 0) > 0 && <>
+              {sec("Alterações desde a análise anterior")}
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>{r.alteracoes!.map((a, i) => <li key={i}>{a}</li>)}</ul>
+            </>}
+            {(r.historico?.length ?? 0) > 0 && (
+              <div style={{ fontSize: 11, color: C.sec, marginTop: 6 }}>
+                Histórico: {r.historico!.length} versão(ões) anterior(es) preservada(s) para auditoria
+                {r.historico![0].versao_arquivada_em ? ` — última em ${dataBR(r.historico![0].versao_arquivada_em)}` : ""}.
+              </div>
+            )}
             {sec("Transferências classificadas")}
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
@@ -352,12 +444,15 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
               </table>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center", flexWrap: "wrap" }}>
-              {!r.validacao && r.situacao !== "pendente_confirmacao" && (
+              {!r.validacao && (r.estado_validacao === "FUNDAMENTAÇÃO CONFERIDA" || r.estado_validacao === "AGUARDANDO VALIDAÇÃO TÉCNICA") && (
                 <button onClick={validar} disabled={validando} style={btn(true)}>
-                  <CheckCircle size={13} /> {validando ? "Validando…" : "Validar classificação"}
+                  <CheckCircle size={13} /> {validando ? "Validando…" : "Validar análise técnica (responsável)"}
                 </button>
               )}
               <span style={{ fontSize: 11, color: C.sec }}>Última verificação: {dataBR(r.verificado_em)}</span>
+              {!r.validacao && r.estado_validacao && !(r.estado_validacao === "FUNDAMENTAÇÃO CONFERIDA" || r.estado_validacao === "AGUARDANDO VALIDAÇÃO TÉCNICA") && (
+                <span style={{ fontSize: 11, color: C.amber }}>A validação técnica fica disponível quando a fundamentação estiver conferida.</span>
+              )}
             </div>
           </div>
         )}
@@ -412,7 +507,7 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
               placeholder="Ex.: Posso adquirir um veículo com este recurso?"
               style={{ width: "100%", boxSizing: "border-box", borderRadius: 8, border: `1px solid ${C.bdr}`, padding: 10, fontSize: 13, fontFamily: "inherit" }} />
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0 10px" }}>
-              {["Posso adquirir um veículo com este recurso?", "Posso pagar salário de profissional da equipe?", "Posso reformar a UBS?", "Posso comprar combustível para o transporte sanitário?"].map(s => (
+              {["Posso comprar medicamentos?", "Posso pagar profissionais?", "Posso contratar serviços?", "Posso adquirir equipamentos?", "Posso realizar manutenção predial?", "Posso comprar combustível?", "Posso reformar uma unidade de saúde?", "Posso utilizar saldo remanescente?"].map(s => (
                 <button key={s} onClick={() => setPergunta(s)} style={{ ...btn(false), fontWeight: 500, fontSize: 11 }}>{s}</button>
               ))}
             </div>
@@ -424,6 +519,7 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
               <div style={{ border: `1px solid ${C.bdr}`, borderRadius: 10, padding: 14, marginTop: 12 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}><Classe c={resp.classificacao} /></div>
                 <div style={{ fontSize: 13, marginTop: 8, whiteSpace: "pre-wrap" }}>{resp.justificativa}</div>
+                {resp.norma_origem && <div style={{ fontSize: 12.5, marginTop: 8 }}><b>Portaria de origem e regulamentação:</b> {resp.norma_origem}</div>}
                 {resp.condicoes.length > 0 && <>{sec("Condições")}<ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5 }}>{resp.condicoes.map((c, i) => <li key={i}>{c}</li>)}</ul></>}
                 {resp.falta_confirmar.length > 0 && <>{sec("Falta confirmar")}<ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: C.amber }}>{resp.falta_confirmar.map((c, i) => <li key={i}>{c}</li>)}</ul></>}
                 {sec("Base legal")}
@@ -550,7 +646,7 @@ async function obterPdf(numero: string, exercicio: number): Promise<{ blob: Blob
     params: { numero, exercicio }, responseType: "blob",
   });
   const disp = String(r.headers["content-disposition"] ?? "");
-  const nome = /filename="([^"]+)"/.exec(disp)?.[1] ?? `analise-tecnica-portaria-${numero}-${exercicio}.pdf`;
+  const nome = /filename="([^"]+)"/.exec(disp)?.[1] ?? `relatorio-tecnico-portaria-${numero}-${exercicio}.pdf`;
   return { blob: new Blob([r.data], { type: "application/pdf" }), nome };
 }
 
@@ -605,7 +701,7 @@ function AcoesPdf({ numero, exercicio }: { numero: string; exercicio: number }) 
   return (
     <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-        <button onClick={baixar} disabled={!!ocupado} style={b}><Download size={13} /> {ocupado === "baixar" ? "Gerando…" : "Baixar PDF"}</button>
+        <button onClick={baixar} disabled={!!ocupado} style={b}><Download size={13} /> {ocupado === "baixar" ? "Gerando…" : "Emitir Relatório Técnico da Portaria"}</button>
         <button onClick={imprimir} disabled={!!ocupado} style={b}><Printer size={13} /> {ocupado === "imprimir" ? "Gerando…" : "Imprimir"}</button>
         <button onClick={() => { setEmailAberto(!emailAberto); setMsg(null); }} disabled={!!ocupado}
           style={{ ...b, background: C.indigo, color: C.white, border: "none" }}><Mail size={13} /> Enviar por e-mail</button>
@@ -630,6 +726,48 @@ function AcoesPdf({ numero, exercicio }: { numero: string; exercicio: number }) 
         </div>
       )}
       {msg && !emailAberto && <div style={{ fontSize: 11.5, color: msg.ok ? C.green : C.red, maxWidth: 360, textAlign: "right" }}>{msg.txt}</div>}
+    </div>
+  );
+}
+
+// ─── Normas de origem e regulamentação ────────────────────────────────────────
+function NormasOrigem({ r }: { r: AnaliseIA }) {
+  const vinc = r.programas_vinculados ?? [];
+  const sem = r.programas_sem_norma ?? [];
+  if (!vinc.length && !sem.length) return null;
+  return (
+    <div style={{ border: `1px solid ${C.bdr}`, borderRadius: 10, padding: "10px 12px", marginTop: 10 }}>
+      <div style={{ fontWeight: 800, fontSize: 12.5, color: C.indigo, textTransform: "uppercase", letterSpacing: 0.4 }}>
+        Normas de origem e regulamentação
+      </div>
+      <div style={{ fontSize: 11.5, color: C.sec, margin: "2px 0 6px" }}>
+        {r.portaria_repasse?.papel ?? "A portaria de repasse autoriza a transferência; as regras de aplicação estão nas normas abaixo."}
+      </div>
+      {vinc.map(v => (
+        <div key={v.chave} style={{ padding: "6px 0", borderTop: `1px dashed ${C.bdr}` }}>
+          <div style={{ fontSize: 12.5 }}><b>{v.nome}</b> <span style={{ color: C.sec }}>· {BRL(v.valor)} · {v.qtd} transf.</span></div>
+          {v.pendente
+            ? <div style={{ fontSize: 12, color: C.red }}>{v.pendente}</div>
+            : v.normas.map(n => (
+              <div key={n.chave} style={{ display: "flex", gap: 8, fontSize: 12, padding: "2px 0", alignItems: "baseline", flexWrap: "wrap" }}>
+                <span style={{ minWidth: 150, color: C.sec, fontSize: 11 }}>{n.papel}</span>
+                <span style={{ flex: 1, minWidth: 240 }}>
+                  <a href={n.url} target="_blank" rel="noopener noreferrer" style={{ color: C.blue, fontWeight: 700 }}>
+                    {n.norma}, {n.dispositivo} <ExternalLink size={10} style={{ verticalAlign: "-1px" }} />
+                  </a> — {n.resumo}
+                </span>
+                <span style={{ fontSize: 10.5, color: n.conferido ? C.green : C.amber, whiteSpace: "nowrap" }}>
+                  {n.conferido ? `✓ conferido ${dataBR(n.verificado_em)}` : "não conferido ainda"}
+                </span>
+              </div>
+            ))}
+        </div>
+      ))}
+      {sem.map(s => (
+        <div key={s.nome} style={{ fontSize: 12, color: C.red, padding: "4px 0", borderTop: `1px dashed ${C.bdr}` }}>
+          <b>Sem norma conferida:</b> {s.nome} — {BRL(s.valor)} ({s.qtd} transf.). Análise pendente.
+        </div>
+      ))}
     </div>
   );
 }

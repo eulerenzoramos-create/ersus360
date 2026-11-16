@@ -171,8 +171,13 @@ class ValidarIn(BaseModel):
 
 @router.post("/validar")
 async def validar(body: ValidarIn, request: Request, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    """Validação técnica pelo responsável (manifestação expressa). Exige fundamentação conferida."""
     _pode_editar(current)
-    ok = await ag.validar(db, current.municipio_ibge, body.exercicio, body.numero, current.username, body.nota)
+    responsavel = f"{current.nome} ({current.username})" if current.nome else current.username
+    try:
+        ok = await ag.validar(db, current.municipio_ibge, body.exercicio, body.numero, responsavel, body.nota)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     if not ok:
         raise HTTPException(404, "Análise não encontrada.")
     await registrar_auditoria(db, "FNS_PORTARIAS_VALIDACAO", usuario=current, ip=ip_de(request),
