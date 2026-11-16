@@ -456,6 +456,8 @@ app.include_router(egestor_pagamento_router)
 from routers.siaps_publico import router as siaps_publico_router, router_ia as siaps_ia_router
 app.include_router(siaps_publico_router)
 app.include_router(siaps_ia_router)
+from routers.fns_portarias_ia import router as fns_portarias_ia_router  # noqa: E402
+app.include_router(fns_portarias_ia_router)
 from routers.vigilancia_fvs import router as vigilancia_fvs_router
 app.include_router(vigilancia_fvs_router)   # Vigilância em Saúde — dados públicos da FVS-RCP/AM
 from routers.diagnostico_situacional import router as diagnostico_situacional_router

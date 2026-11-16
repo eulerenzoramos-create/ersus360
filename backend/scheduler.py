@@ -555,6 +555,36 @@ async def _job_investsus_federal() -> None:
         logger.error("[Scheduler] Erro no job INVESTSUS 360: %s", exc, exc_info=True)
 
 
+async def _job_fns_portarias_ia() -> None:
+    """Agente das Portarias FNS: confere a vigência dos dispositivos no texto oficial e reanalisa as portarias
+    do exercício atual e do anterior de cada município ativo (só regrava o que mudou)."""
+    logger.info("[Scheduler] Portarias FNS: verificação normativa e análise em lote...")
+    try:
+        from datetime import date as _date
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from services import fns_portarias_agente as ag
+        async with AsyncSessionLocal() as db:
+            r = await ag.verificar_normas(db)
+            logger.info("[Scheduler] Portarias FNS: %s dispositivos conferem, divergem %s, indisponíveis %s",
+                        r["conferem"], r["nao_conferem"], len(r["indisponiveis"]))
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+        ano = _date.today().year
+        for mun in municipios:
+            for exercicio in (ano, ano - 1):
+                try:
+                    async with AsyncSessionLocal() as db:
+                        r = await ag.analisar_lote(db, mun.id, mun.codigo_ibge, exercicio)
+                    if r["novas"] or r["atualizadas"]:
+                        logger.info("[Scheduler] Portarias FNS %s/%s: %s novas, %s atualizadas", mun.codigo_ibge,
+                                    exercicio, r["novas"], r["atualizadas"])
+                except Exception as exc:  # um município com erro não para os demais
+                    logger.error("[Scheduler] Portarias FNS %s/%s: %s", mun.codigo_ibge, exercicio, exc, exc_info=True)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job Portarias FNS: %s", exc, exc_info=True)
+
+
 def start_scheduler() -> None:
     """Registra e inicia o scheduler."""
     hora_str = settings.FNS_SYNC_HORA  # "06:00"
@@ -711,6 +741,9 @@ def start_scheduler() -> None:
     # Monitoramento SIAPS: lista de ausência e evidências do diagnóstico (SISAB/e-Gestor) — todo dia às 06:40
     scheduler.add_job(_job_egestor_ausencia_diagnostico, CronTrigger(hour=6, minute=40, timezone="America/Manaus"),
                       id="egestor_ausencia_diagnostico_diario", replace_existing=True, misfire_grace_time=3600)
+    # Agente das Portarias FNS: depois da sincronização do FNS (06:00) — vigência das normas + análise em lote
+    scheduler.add_job(_job_fns_portarias_ia, CronTrigger(hour=7, minute=10, timezone="America/Manaus"),
+                      id="fns_portarias_ia_diario", replace_existing=True, misfire_grace_time=3600)
 
     # SIAPS público: o MS publica o quadrimestre sem data fixa — confere todo dia às 05:30 e após o deploy
     scheduler.add_job(_job_siaps_publico_oficial, CronTrigger(hour=5, minute=30, timezone="America/Manaus"),

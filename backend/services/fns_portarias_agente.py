@@ -1,0 +1,770 @@
+"""
+Agente de Análise das Portarias do FNS (aba Repasses Mensais — FNS › Portarias).
+
+Como decide:
+  • Natureza do recurso (CUSTEIO / INVESTIMENTO / OUTRA / EM ANÁLISE) vem do BLOCO OFICIAL que o FNS informa em
+    cada transferência (blocoPacto do consultafns) — nunca do título da portaria. Cada transferência é classificada
+    sozinha; uma portaria com blocos diferentes recebe as duas etiquetas.
+  • As 12 categorias de despesa saem da base normativa conferida (services/fns_portarias_normas.py), ajustada pela
+    finalidade oficial do repasse (grupo/ação/componente do FNS). Na dúvida, "EXIGE ANÁLISE COMPLEMENTAR".
+  • A IA só entra na consulta do gestor ("Posso adquirir um veículo com este recurso?") e só pode citar
+    dispositivos da base conferida. A análise em lote é determinística e não gasta IA.
+
+Consultivo: nada aqui autoriza despesa, empenho, pagamento ou alteração orçamentária, e nada altera
+transferencias_fns — as classificações ficam em fns_portaria_analise.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import re
+from collections import defaultdict
+from datetime import date, datetime
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.fns_origem import FnsPagamentoDetalhe
+from models.fns_portaria_analise import FnsNormaVerificacao, FnsPortariaAnalise
+from models.transferencia_fns import TransferenciaFns
+from services import fns_portarias_normas as N
+
+logger = logging.getLogger(__name__)
+
+VERSAO_REGRAS = "2026-11-16.3"   # mudar quando as regras mudarem → todas as análises são refeitas
+SEM_PORTARIA = "Sem portaria"
+PENDENTE_TXT = "Classificação pendente de confirmação"
+AVISO = ("Análise consultiva do ERSUS360. Não autoriza despesa, empenho, pagamento nem alteração orçamentária. "
+         "Confirme com a contabilidade, o controle interno e a portaria original antes de executar.")
+
+NATUREZAS = ("CUSTEIO", "INVESTIMENTO", "OUTRA NATUREZA", "EM ANÁLISE")
+
+
+# ── Classificação por transferência ───────────────────────────────────────────────
+
+def classificar_natureza(bloco: str | None) -> dict:
+    """Natureza pelo bloco de financiamento oficial informado pelo FNS."""
+    b = N.normalizar(bloco)
+    if not b:
+        return {"natureza": "EM ANÁLISE", "fundamento": [],
+                "motivo": "O FNS não informou o bloco de financiamento desta transferência. " + PENDENTE_TXT + "."}
+    if "MANUTENCAO" in b or "CUSTEIO" in b:
+        return {"natureza": "CUSTEIO", "fundamento": ["PRC6_3_I_II", "PRC6_5_CAPUT"],
+                "motivo": f"Bloco oficial do FNS: “{bloco}” (Bloco de Manutenção das ASPS — despesas correntes)."}
+    if "ESTRUTURACAO" in b or "INVESTIMENTO" in b:
+        return {"natureza": "INVESTIMENTO", "fundamento": ["PRC6_3_I_II", "PRC6_6_CAPUT"],
+                "motivo": f"Bloco oficial do FNS: “{bloco}” (Bloco de Estruturação — despesas de capital)."}
+    return {"natureza": "OUTRA NATUREZA", "fundamento": [],
+            "motivo": f"Bloco “{bloco}” não corresponde aos blocos da PRC 6/2017, art. 3º. " + PENDENTE_TXT + "."}
+
+
+_PERFIS = [
+    # (chave, rótulo, palavras procuradas na finalidade oficial do FNS)
+    ("piso_enfermagem", "Assistência financeira complementar — piso salarial da enfermagem",
+     ["PISO SALARIAL", "ENFERMAGEM"]),
+    ("acs_ace", "Assistência financeira complementar — vencimento de ACS/ACE",
+     ["AGENTES COMUNITARIOS", "AGENTES DE COMBATE", "PAGAMENTO DOS VENCIMENTOS"]),
+    ("emenda", "Emenda parlamentar (conferir portaria e proposta)",
+     ["EMENDA", "INCREMENTO TEMPORARIO"]),
+    ("assist_farm", "Assistência Farmacêutica", ["ASSISTENCIA FARMACEUTICA", "CBAF"]),
+    ("extraordinario", "Apoio extraordinário / emergência", ["CORONAVIRUS", "COVID", "APOIO FINANCEIRO EXTRAORDINARIO",
+                                                             "EMERGENCIA"]),
+    ("contrato_gestao", "Contrato de gestão", ["CONTRATO DE GESTAO"]),
+]
+
+
+def perfil_finalidade(grupo: str | None, acao: str | None, acao_det: str | None) -> dict:
+    texto = N.normalizar(" ".join(filter(None, [grupo, acao, acao_det])))
+    for chave, rotulo, palavras in _PERFIS:
+        if any(p in texto for p in palavras):
+            return {"chave": chave, "rotulo": rotulo}
+    return {"chave": "regular", "rotulo": "Repasse regular do bloco"}
+
+
+def matriz_despesas(natureza: str, perfil: str) -> list[dict]:
+    """As 12 categorias com classificação, justificativa e fundamentação."""
+    base = N.matriz_base(natureza)
+    out = []
+    for chave, rotulo in N.CATEGORIAS:
+        if base is None:
+            status, just, disp = (N.ANALISE, "Natureza do recurso não confirmada pelo bloco oficial do FNS. "
+                                  + PENDENTE_TXT + ".", [])
+        else:
+            status, just, disp = base[chave]
+            disp = list(disp)
+        if natureza == "CUSTEIO" and perfil in ("piso_enfermagem", "acs_ace"):
+            if chave == "pessoal":
+                status = N.COM_CONDICOES
+                just = ("Finalidade específica do repasse: pagamento da categoria indicada pelo FNS, em conta "
+                        "segregada, conforme a norma do programa.")
+                disp = ["PRC6_5_P2", "PRC6_3_P2_I"]
+            elif status != N.VEDADO:
+                status = N.ANALISE
+                just = ("Repasse com finalidade específica de pagamento de pessoal; outro uso depende da norma do "
+                        "programa e do programa de trabalho. " + just)
+                disp = ["PRC6_3_P2_I", *disp]
+        elif natureza == "CUSTEIO" and perfil == "emenda" and chave == "pessoal":
+            status = N.ANALISE
+            just = ("Emenda de incremento temporário: o uso para pessoal depende da portaria de incremento do "
+                    "exercício e das regras da LDO — não confirmado na base normativa do ERSUS360. " + just)
+        elif natureza == "CUSTEIO" and perfil == "assist_farm" and chave not in ("medicamentos", "obras"):
+            status = N.ANALISE
+            just = ("Recurso da Assistência Farmacêutica: finalidade vinculada à aquisição de medicamentos e "
+                    "insumos do componente. " + just)
+            disp = ["PRC6_3_P2_I", *disp]
+        elif perfil in ("extraordinario", "contrato_gestao") and status in (N.PERMITIDO, N.COM_CONDICOES):
+            status = N.ANALISE
+            just = ("Repasse extraordinário ou de contrato de gestão: conferir a norma específica antes de aplicar. "
+                    + just)
+        out.append({"categoria": chave, "rotulo": rotulo, "classificacao": status, "justificativa": just,
+                    "fundamentacao": [N.citar(d) for d in dict.fromkeys(disp)]})
+    return out
+
+
+def _so_digitos(s: str | None) -> str:
+    return re.sub(r"\D", "", s or "").lstrip("0")
+
+
+# ── Coleta de dados ─────────────────────────────────────────────────────────────
+
+async def _transferencias(db: AsyncSession, ibge: str, exercicio: int) -> list[TransferenciaFns]:
+    ibge7 = ibge if len(ibge) == 7 else None
+    filtros = [TransferenciaFns.exercicio == exercicio, TransferenciaFns.ativo == True]  # noqa: E712
+    alvo = [ibge, ibge[:6]] + ([ibge7] if ibge7 else [])
+    filtros.append(TransferenciaFns.municipio_ibge.in_(list(dict.fromkeys(alvo))))
+    stmt = select(TransferenciaFns).where(*filtros).order_by(TransferenciaFns.mes, TransferenciaFns.id)
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def _propostas_por_ob(db: AsyncSession, ibge: str, exercicio: int) -> dict[str, set[str]]:
+    rows = (await db.execute(select(FnsPagamentoDetalhe.numero_ob, FnsPagamentoDetalhe.numero_proposta)
+                             .where(FnsPagamentoDetalhe.municipio_ibge.in_([ibge, ibge[:6]]),
+                                    FnsPagamentoDetalhe.exercicio == exercicio))).all()
+    out: dict[str, set[str]] = defaultdict(set)
+    for ob, prop in rows:
+        if ob and prop:
+            out[ob].add(prop)
+    return out
+
+
+async def _documentos(db: AsyncSession, municipio_id: int | None, numeros: set[str], exercicio: int) -> dict[str, dict]:
+    """Portaria cadastrada no catálogo do ERSUS360 (portarias) + valor previsto para o município."""
+    from models.portaria import Portaria, PortariaMunicipio
+    alvo = {_so_digitos(n) for n in numeros if _so_digitos(n)}
+    if not alvo:
+        return {}
+    out: dict[str, dict] = {}
+    for p in (await db.execute(select(Portaria))).scalars():
+        k = _so_digitos(p.numero)
+        if k not in alvo or (p.ano and p.ano > exercicio):
+            continue
+        out.setdefault(k, {"candidatos": []})["candidatos"].append({
+            "id": p.id, "numero": p.numero, "ano": p.ano, "orgao": p.orgao_emissor, "programa": p.programa,
+            "objeto": p.objeto, "natureza_cadastrada": p.natureza,
+            "data_publicacao": p.data_publicacao.isoformat() if p.data_publicacao else None,
+            "link": p.link_diario})
+    if municipio_id and out:
+        ids = [c["id"] for d in out.values() for c in d["candidatos"]]
+        for pm in (await db.execute(select(PortariaMunicipio).where(PortariaMunicipio.municipio_id == municipio_id,
+                                                                    PortariaMunicipio.portaria_id.in_(ids),
+                                                                    PortariaMunicipio.excluido_em.is_(None)))).scalars():
+            for d in out.values():
+                for c in d["candidatos"]:
+                    if c["id"] == pm.portaria_id:
+                        c["valor_previsto_municipio"] = round(float(pm.valor_municipio or 0), 2)
+    return out
+
+
+async def _propostas_investsus(db: AsyncSession, municipio_id: int | None, numeros: set[str]) -> dict[str, dict]:
+    if not municipio_id or not numeros:
+        return {}
+    from models.investsus import PlanoTrabalho, PropostaInvestSUS
+    out = {}
+    for p in (await db.execute(select(PropostaInvestSUS).where(PropostaInvestSUS.municipio_id == municipio_id,
+                                                               PropostaInvestSUS.numero_proposta.in_(list(numeros))))).scalars():
+        planos = (await db.execute(select(PlanoTrabalho).where(PlanoTrabalho.proposta_id == p.id))).scalars().all()
+        out[p.numero_proposta] = {
+            "numero_proposta": p.numero_proposta, "objeto": p.objeto, "finalidade": p.finalidade,
+            "tipo_financiamento": p.tipo_financiamento, "componente": p.componente,
+            "prazo_previsto": p.prazo_previsto,
+            "planos_trabalho": [{"versao": pl.versao, "situacao": pl.situacao, "objeto": pl.objeto,
+                                 "valor_indicado": pl.valor_indicado,
+                                 "data_aprovacao": pl.data_aprovacao.isoformat() if pl.data_aprovacao else None}
+                                for pl in planos]}
+    return out
+
+
+async def _execucao(db: AsyncSession, municipio_id: int | None, exercicio: int) -> dict[str, dict]:
+    """Empenhado/liquidado/pago lançados na Execução Financeira, por nº de portaria."""
+    if not municipio_id:
+        return {}
+    from models.execucao_fns import ExecucaoFns
+    out: dict[str, dict] = defaultdict(lambda: {"empenhado": 0.0, "liquidado": 0.0, "pago": 0.0, "lancamentos": 0})
+    for e in (await db.execute(select(ExecucaoFns).where(ExecucaoFns.municipio_id == municipio_id,
+                                                         ExecucaoFns.exercicio == exercicio,
+                                                         ExecucaoFns.ativo == True))).scalars():  # noqa: E712
+        k = _so_digitos(e.portaria)
+        if not k:
+            continue
+        o = out[k]
+        o["empenhado"] += float(e.empenhado or 0)
+        o["liquidado"] += float(e.liquidado or 0)
+        o["pago"] += float(e.pago or 0)
+        o["lancamentos"] += 1
+    return dict(out)
+
+
+async def _estado_normas(db: AsyncSession) -> dict[str, dict]:
+    return {v.dispositivo: {"confere": v.confere, "detalhe": v.detalhe,
+                            "verificado_em": v.verificado_em.isoformat() if v.verificado_em else None}
+            for v in (await db.execute(select(FnsNormaVerificacao))).scalars()}
+
+
+# ── Análise de uma portaria ──────────────────────────────────────────────────────
+
+def _fundamentacao_completa(chaves: set[str], estado_normas: dict, datas_repasse: list[str]) -> list[dict]:
+    hoje = date.today().isoformat()
+    out = []
+    for k in sorted(chaves):
+        c = N.citar(k)
+        v = estado_normas.get(k)
+        if v is None:
+            c["vigencia"] = "Texto conferido manualmente em 16/11/2026; a rotina automática ainda não rodou."
+        elif v["confere"] is True:
+            c["vigencia"] = f"Texto oficial conferido em {v['verificado_em'][:10]}: dispositivo presente."
+        elif v["confere"] is False:
+            c["vigencia"] = f"ATENÇÃO: trecho não encontrado no texto oficial em {v['verificado_em'][:10]} — " \
+                            "possível alteração ou revogação. " + PENDENTE_TXT + "."
+        else:
+            c["vigencia"] = f"Página oficial indisponível na última verificação ({v['verificado_em'][:10]})."
+        prazo = N.DISPOSITIVOS[k].get("prazo_ate")
+        if prazo:
+            na_data = [d for d in datas_repasse if d and d <= prazo]
+            c["vigencia"] += (f" Prazo da redação conferida: até {prazo[8:]}/{prazo[5:7]}/{prazo[:4]}. "
+                              + ("Aplicável hoje." if hoje <= prazo else
+                                 "Encerrado hoje — não há nova autorização no texto conferido.")
+                              + (" Vigente na data de parte dos repasses." if na_data else ""))
+        out.append(c)
+    return out
+
+
+def _orientacao(naturezas: set[str], perfil: str, pendente: bool, numero: str) -> str:
+    if pendente or not naturezas or naturezas & {"EM ANÁLISE", "OUTRA NATUREZA"}:
+        return ("Natureza ou norma do recurso ainda sem confirmação suficiente. Não empenhe com base nesta "
+                "classificação: confira o bloco no extrato do FNS e a portaria original"
+                + (f" nº {numero}" if numero != SEM_PORTARIA else "") + " e registre a portaria no catálogo do ERSUS360.")
+    linhas = []
+    if "CUSTEIO" in naturezas:
+        linhas.append("Recurso de custeio (Bloco de Manutenção): use em despesas correntes das ações e serviços da "
+                      "finalidade do repasse; obra nova e ampliação são vedadas.")
+    if "INVESTIMENTO" in naturezas:
+        linhas.append("Recurso de investimento (Bloco de Estruturação): use somente em equipamentos e obras do "
+                      "objeto aprovado; não paga custeio nem pessoal.")
+    if perfil in ("piso_enfermagem", "acs_ace"):
+        linhas.append("Finalidade específica de pagamento de pessoal da categoria indicada pelo FNS.")
+    if perfil == "emenda":
+        linhas.append("Emenda de incremento temporário: siga a portaria e a proposta aprovada.")
+    linhas.append("Comprove a aplicação no RAG e mantenha o recurso na conta específica do bloco.")
+    return " ".join(linhas[:5])
+
+
+def analisar(numero: str, transfs: list[TransferenciaFns], *, exercicio: int, documentos: dict,
+             propostas_ob: dict[str, set[str]], propostas_is: dict[str, dict], execucao: dict,
+             estado_normas: dict) -> dict:
+    itens = []
+    naturezas: dict[str, float] = defaultdict(float)
+    perfis: dict[str, str] = {}
+    combos: dict[tuple[str, str], str] = {}
+    programas, grupos, blocos, propostas = set(), set(), set(), set()
+    fund_chaves: set[str] = {"PRC6_3_I_II", "PRC6_3_P1", "PRC6_3_P2_I", "PRC6_3_P3", "PRC6_3_P5_I", "LC141_13_P2",
+                             "LC141_36", "L8080_36", "LC172_2", "LC172_5"}
+    for t in transfs:
+        nat = classificar_natureza(t.bloco)
+        pf = perfil_finalidade(t.grupo, t.acao, t.acao_detalhada)
+        vl = round(float(t.valor_liquido or 0), 2)
+        naturezas[nat["natureza"]] += vl
+        perfis[pf["chave"]] = pf["rotulo"]
+        combos[(nat["natureza"], pf["chave"])] = pf["rotulo"]
+        fund_chaves.update(nat["fundamento"])
+        if t.bloco:
+            blocos.add(t.bloco)
+        if t.grupo:
+            grupos.add(t.grupo)
+        programas.add(" — ".join(x for x in [t.acao, t.acao_detalhada] if x) or (t.grupo or "—"))
+        props = set(propostas_ob.get(t.numero_ob or "", set()))
+        if t.numero_proposta:
+            props.add(t.numero_proposta)
+        propostas |= props
+        itens.append({"id": t.id, "mes": t.mes, "data_pagamento": t.data_pagamento.isoformat() if t.data_pagamento else None,
+                      "numero_ob": t.numero_ob, "bloco": t.bloco, "grupo": t.grupo,
+                      "programa": t.acao_detalhada or t.acao, "parcela_fns": t.parcela_fns,
+                      "valor_liquido": vl, "natureza": nat["natureza"], "motivo_natureza": nat["motivo"],
+                      "finalidade": pf["rotulo"], "propostas": sorted(props),
+                      "despesa": {"CUSTEIO": "Correntes", "INVESTIMENTO": "Capital"}.get(nat["natureza"], "A confirmar")})
+
+    total = round(sum(i["valor_liquido"] for i in itens), 2)
+    nats = {k for k, v in naturezas.items() if v or len(naturezas) == 1}
+    perfil_principal = next(iter(perfis)) if len(perfis) == 1 else ("misto" if perfis else "regular")
+
+    # despesas permitidas — uma matriz por (natureza, finalidade) presente: uma portaria que mistura, por
+    # exemplo, Piso APS e vencimento de ACS recebe as duas análises, cada transferência na sua
+    por_nat: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for (nat_, pf_), rot in sorted(combos.items()):
+        if nat_ in nats:
+            por_nat[nat_].append((pf_, rot))
+    matrizes = {}
+    for nat_, lst in por_nat.items():
+        for pf_, rot in lst:
+            matrizes[nat_ if len(lst) == 1 else f"{nat_} — {rot}"] = matriz_despesas(nat_, pf_)
+    if not matrizes:
+        matrizes = {"EM ANÁLISE": matriz_despesas("EM ANÁLISE", "regular")}
+    for m in matrizes.values():
+        for c in m:
+            fund_chaves.update(f["chave"] for f in c["fundamentacao"])
+
+    # documento oficial
+    doc = documentos.get(_so_digitos(numero)) if numero != SEM_PORTARIA else None
+    candidatos = (doc or {}).get("candidatos", [])
+    documento = candidatos[0] if len(candidatos) == 1 else None
+    pendencias = []
+    if numero == SEM_PORTARIA:
+        pendencias.append("Transferências sem número de portaria informado pelo FNS — vincular a portaria.")
+    elif not candidatos:
+        pendencias.append(f"Portaria nº {numero} não cadastrada no catálogo do ERSUS360: ano, data de publicação e "
+                          "texto não confirmados.")
+    elif len(candidatos) > 1:
+        pendencias.append(f"Há {len(candidatos)} portarias nº {numero} no catálogo (anos "
+                          f"{', '.join(str(c['ano']) for c in candidatos)}): confirmar qual fundamenta o repasse.")
+    if nats & {"EM ANÁLISE", "OUTRA NATUREZA"}:
+        pendencias.append("Há transferência sem bloco de financiamento reconhecido.")
+    normas_alteradas = [k for k in fund_chaves if (estado_normas.get(k) or {}).get("confere") is False]
+    if normas_alteradas:
+        pendencias.append("Dispositivo usado não foi reencontrado no texto oficial: "
+                          + ", ".join(N.DISPOSITIVOS[k]["dispositivo"] + " (" + N.NORMAS[N.DISPOSITIVOS[k]['norma']]['nome'] + ")"
+                                      for k in sorted(normas_alteradas)) + ".")
+    insuficiente = bool(nats & {"EM ANÁLISE", "OUTRA NATUREZA"}) or numero == SEM_PORTARIA or bool(normas_alteradas)
+
+    # plano de trabalho / proposta
+    props_info = [propostas_is[p] for p in sorted(propostas) if p in propostas_is]
+    if props_info:
+        plano = {"exigido": "Sim — repasse vinculado a proposta", "propostas": props_info,
+                 "texto": "Execução deve seguir o objeto e o plano de trabalho da proposta no InvestSUS."}
+    elif propostas:
+        plano = {"exigido": "Sim — repasse vinculado a proposta", "propostas": [{"numero_proposta": p} for p in sorted(propostas)],
+                 "texto": "Proposta informada pelo FNS, mas ainda não sincronizada do InvestSUS: conferir objeto e plano."}
+    elif "INVESTIMENTO" in nats:
+        plano = {"exigido": "Sim — investimento", "propostas": [],
+                 "texto": "Investimento exige objeto aprovado (proposta/portaria). Proposta não identificada no ERSUS360."}
+    else:
+        plano = {"exigido": "Não identificado", "propostas": [],
+                 "texto": "Nenhum plano de trabalho específico identificado; a aplicação segue o Plano de Saúde e a PAS."}
+
+    prazos_prop = [p.get("prazo_previsto") for p in props_info if p.get("prazo_previsto")]
+    ex = execucao.get(_so_digitos(numero)) if numero != SEM_PORTARIA else None
+    if ex:
+        comprometido = round(ex["empenhado"] - ex["pago"], 2)
+        disponivel = round(total - ex["empenhado"], 2)
+    saldos = {
+        "transferido": total,
+        "autorizado": (documento or {}).get("valor_previsto_municipio"),
+        "bancario": None, "bancario_nota": "Não disponível: o extrato da conta específica não está integrado ao ERSUS360.",
+        "contabil": None, "contabil_nota": "Não disponível: a contabilidade municipal não está integrada ao ERSUS360.",
+        "empenhado": round(ex["empenhado"], 2) if ex else None,
+        "pago": round(ex["pago"], 2) if ex else None,
+        "comprometido": comprometido if ex else None,
+        "comprometido_nota": "Empenhado − pago, lançados na Execução Financeira com o nº desta portaria." if ex else
+                             "Sem lançamentos na Execução Financeira com o nº desta portaria.",
+        "disponivel_estimado": disponivel if ex else None,
+        "disponivel_nota": ("Estimativa: transferido no exercício − empenhado. Não inclui saldo de exercícios "
+                            "anteriores nem rendimentos; o saldo efetivo depende do extrato e da contabilidade.") if ex else
+                           "Não calculado: sem empenhos registrados para esta portaria.",
+    }
+
+    datas = [i["data_pagamento"] for i in itens if i["data_pagamento"]]
+    prazos = {
+        "prazo_execucao": ("Prazo informado na proposta: " + "; ".join(prazos_prop) + " (conferir na portaria).") if prazos_prop
+        else "Nenhum prazo legal de execução identificado nas fontes do ERSUS360 — consultar a portaria específica.",
+        "saldos_remanescentes": "O saldo continua vinculado à finalidade original até a aplicação integral "
+                                "(PRC 6/2017, art. 3º, §§ 2º e 3º). A autorização de transposição da LC 172/2020 "
+                                "vigorou até 31/12/2025 na redação conferida; não há nova autorização no texto conferido.",
+        "plano_trabalho": plano,
+        "planejamento": "Incluir a aplicação no Plano de Saúde, na PAS e na LOA municipal (Lei 8.080/1990, art. 36).",
+        "monitoramento": "Comprovar no RAG apreciado pelo Conselho de Saúde (PRC 6/2017, art. 3º, § 5º, I) e nos "
+                         "relatórios quadrimestrais (LC 141/2012, art. 36).",
+        "reprogramacao_devolucao": "Regras de reprogramação ou devolução não identificadas nas normas gerais "
+                                   "conferidas — dependem da portaria específica. " + N.ANALISE + ".",
+    }
+
+    municipio = next((f"{t.municipio_nome or ''}/{t.uf or ''}".strip("/") for t in transfs if t.municipio_nome), None)
+    fundo = next((t.cnpj_fundo for t in transfs if t.cnpj_fundo), None)
+    identificacao = {
+        "numero": numero,
+        "ano": (documento or {}).get("ano"),
+        "data_publicacao": (documento or {}).get("data_publicacao"),
+        "orgao": (documento or {}).get("orgao"),
+        "link": (documento or {}).get("link"),
+        "objeto_documento": (documento or {}).get("objeto"),
+        "programas": sorted(programas),
+        "grupos": sorted(grupos),
+        "blocos": sorted(blocos),
+        "finalidade": " / ".join(sorted(set(perfis.values()))) or "—",
+        "naturezas": {k: round(v, 2) for k, v in naturezas.items()},
+        "valor_transferido": total,
+        "municipio": municipio, "fundo_cnpj": fundo,
+        "candidatos_catalogo": candidatos if len(candidatos) > 1 else [],
+    }
+
+    situacao = "pendente_confirmacao" if insuficiente else "preliminar"
+    vedadas = sorted({f"{c['rotulo']} ({nat.split(' — ')[0].lower()})"
+                      for nat, m in matrizes.items() for c in m if c["classificacao"] == N.VEDADO})
+    aplicacao = list(dict.fromkeys(c["rotulo"] for m in matrizes.values() for c in m
+                                   if c["classificacao"] in (N.PERMITIDO, N.COM_CONDICOES)))
+    return {
+        "versao_regras": VERSAO_REGRAS,
+        "numero_portaria": numero, "exercicio": exercicio,
+        "naturezas": sorted(nats), "situacao": situacao,
+        "classificacao_texto": PENDENTE_TXT if insuficiente else "Classificação preliminar por regras — validar",
+        "identificacao": identificacao,
+        "despesas": matrizes,
+        "aplicacao": aplicacao,
+        "restricoes": vedadas,
+        "prazos": prazos, "saldos": saldos,
+        "fundamentacao": _fundamentacao_completa(fund_chaves, estado_normas, datas),
+        "orientacao": _orientacao(nats, perfil_principal, insuficiente, numero),
+        "pendencias": pendencias,
+        "transferencias": itens,
+        "aviso": AVISO,
+    }
+
+
+def _hash(numero: str, transfs: list[TransferenciaFns], extra: dict) -> str:
+    base = [VERSAO_REGRAS, numero] + [
+        f"{t.id}|{t.valor_liquido}|{t.bloco}|{t.grupo}|{t.acao}|{t.acao_detalhada}|{t.numero_ob}|{t.numero_proposta}"
+        for t in transfs]
+    base.append(json.dumps(extra, sort_keys=True, default=str))
+    return hashlib.sha256("\n".join(base).encode()).hexdigest()
+
+
+# ── Lote ───────────────────────────────────────────────────────────────────────
+
+async def analisar_lote(db: AsyncSession, municipio_id: int | None, ibge: str, exercicio: int,
+                        forcar: bool = False) -> dict:
+    """Analisa todas as portarias do exercício. Só regrava o que mudou (transferências, catálogo, normas)."""
+    transfs = await _transferencias(db, ibge, exercicio)
+    grupos: dict[str, list[TransferenciaFns]] = defaultdict(list)
+    for t in transfs:
+        grupos[(t.numero_portaria or "").strip() or SEM_PORTARIA].append(t)
+
+    documentos = await _documentos(db, municipio_id, set(grupos), exercicio)
+    propostas_ob = await _propostas_por_ob(db, ibge, exercicio)
+    todas_props = {p for s in propostas_ob.values() for p in s} | {t.numero_proposta for t in transfs if t.numero_proposta}
+    propostas_is = await _propostas_investsus(db, municipio_id, todas_props)
+    execucao = await _execucao(db, municipio_id, exercicio)
+    estado_normas = await _estado_normas(db)
+
+    existentes = {a.numero_portaria: a for a in (await db.execute(
+        select(FnsPortariaAnalise).where(FnsPortariaAnalise.municipio_ibge == ibge,
+                                         FnsPortariaAnalise.exercicio == exercicio))).scalars()}
+    agora = datetime.utcnow()
+    novas = atualizadas = mantidas = 0
+    for numero, ts in grupos.items():
+        extra = {"doc": documentos.get(_so_digitos(numero)), "ex": execucao.get(_so_digitos(numero)),
+                 "normas": {k: v["confere"] for k, v in estado_normas.items()},
+                 "props": {p: propostas_is.get(p) for p in sorted(todas_props)}}
+        h = _hash(numero, ts, extra)
+        a = existentes.get(numero)
+        if a and a.hash_entrada == h and not forcar:
+            a.verificado_em = agora
+            mantidas += 1
+            continue
+        r = analisar(numero, ts, exercicio=exercicio, documentos=documentos, propostas_ob=propostas_ob,
+                     propostas_is=propostas_is, execucao=execucao, estado_normas=estado_normas)
+        if a is None:
+            a = FnsPortariaAnalise(municipio_ibge=ibge, exercicio=exercicio, numero_portaria=numero)
+            db.add(a)
+            novas += 1
+        else:
+            atualizadas += 1
+            if a.validado_em:   # dados mudaram: a validação anterior deixa de valer
+                r["validacao_anterior"] = {"por": a.validado_por, "em": a.validado_em.isoformat(),
+                                           "nota": a.nota_validacao}
+                a.validado_por = a.validado_em = a.nota_validacao = None
+        a.resultado = r
+        a.naturezas = ",".join(r["naturezas"])
+        a.situacao = r["situacao"]
+        a.total_liquido = r["identificacao"]["valor_transferido"]
+        a.qtd_transferencias = len(ts)
+        a.hash_entrada = h
+        a.verificado_em = agora
+    await db.commit()
+    return {"exercicio": exercicio, "portarias": len(grupos), "novas": novas, "atualizadas": atualizadas,
+            "sem_alteracao": mantidas, "transferencias": len(transfs), "verificado_em": agora.isoformat()}
+
+
+async def painel(db: AsyncSession, municipio_id: int | None, ibge: str, exercicio: int) -> dict:
+    """Consolidado + lista resumida. Reanalisa antes (só o que mudou) para incluir transferências novas."""
+    lote = await analisar_lote(db, municipio_id, ibge, exercicio)
+    analises = (await db.execute(select(FnsPortariaAnalise).where(FnsPortariaAnalise.municipio_ibge == ibge,
+                                                                  FnsPortariaAnalise.exercicio == exercicio))).scalars().all()
+    totais = {n: 0.0 for n in NATUREZAS}
+    ids_vistos: set[int] = set()
+    sem_identificacao = 0
+    lista = []
+    for a in analises:
+        r = a.resultado or {}
+        if not r.get("transferencias") and not a.qtd_transferencias:
+            continue
+        for t in r.get("transferencias", []):
+            if t["id"] in ids_vistos:     # cada transferência conta uma vez só
+                continue
+            ids_vistos.add(t["id"])
+            totais[t["natureza"]] = totais.get(t["natureza"], 0.0) + t["valor_liquido"]
+            if a.numero_portaria == SEM_PORTARIA or t["natureza"] in ("EM ANÁLISE", "OUTRA NATUREZA"):
+                sem_identificacao += 1
+        situacao = "validada" if a.validado_em else a.situacao
+        lista.append({"numero_portaria": a.numero_portaria, "naturezas": r.get("naturezas", []),
+                      "situacao": situacao, "classificacao_texto": r.get("classificacao_texto"),
+                      "programas": r.get("identificacao", {}).get("programas", []),
+                      "grupos": r.get("identificacao", {}).get("grupos", []),
+                      "blocos": r.get("identificacao", {}).get("blocos", []),
+                      "finalidade": r.get("identificacao", {}).get("finalidade"),
+                      "valor_transferido": r.get("identificacao", {}).get("valor_transferido", 0),
+                      "qtd_transferencias": a.qtd_transferencias,
+                      "pendencias": len(r.get("pendencias", [])),
+                      "verificado_em": a.verificado_em.isoformat() if a.verificado_em else None,
+                      "validado_por": a.validado_por})
+    normas = await _estado_normas(db)
+    return {
+        "exercicio": exercicio,
+        "consolidado": {
+            "total_custeio": round(totais.get("CUSTEIO", 0), 2),
+            "total_investimento": round(totais.get("INVESTIMENTO", 0), 2),
+            "total_outra_natureza": round(totais.get("OUTRA NATUREZA", 0), 2),
+            "total_pendente": round(totais.get("EM ANÁLISE", 0) + totais.get("OUTRA NATUREZA", 0), 2),
+            "total_geral": round(sum(totais.values()), 2),
+            "portarias_analisadas": sum(1 for x in lista if x["numero_portaria"] != SEM_PORTARIA),
+            "portarias_validadas": sum(1 for x in lista if x["situacao"] == "validada"),
+            "portarias_pendentes": sum(1 for x in lista if x["situacao"] == "pendente_confirmacao"),
+            "transferencias_analisadas": len(ids_vistos),
+            "transferencias_sem_identificacao": sem_identificacao,
+        },
+        "ultima_verificacao": lote["verificado_em"],
+        "normas_verificadas_em": max((v["verificado_em"] for v in normas.values() if v["verificado_em"]), default=None),
+        "normas_com_alerta": sorted(k for k, v in normas.items() if v["confere"] is False),
+        "portarias": sorted(lista, key=lambda x: -(x["valor_transferido"] or 0)),
+        "aviso": AVISO,
+    }
+
+
+async def detalhe(db: AsyncSession, municipio_id: int | None, ibge: str, exercicio: int, numero: str) -> dict | None:
+    a = (await db.execute(select(FnsPortariaAnalise).where(FnsPortariaAnalise.municipio_ibge == ibge,
+                                                           FnsPortariaAnalise.exercicio == exercicio,
+                                                           FnsPortariaAnalise.numero_portaria == numero))).scalar_one_or_none()
+    if a is None:
+        await analisar_lote(db, municipio_id, ibge, exercicio)
+        a = (await db.execute(select(FnsPortariaAnalise).where(FnsPortariaAnalise.municipio_ibge == ibge,
+                                                               FnsPortariaAnalise.exercicio == exercicio,
+                                                               FnsPortariaAnalise.numero_portaria == numero))).scalar_one_or_none()
+    if a is None:
+        return None
+    r = dict(a.resultado)
+    r["verificado_em"] = a.verificado_em.isoformat() if a.verificado_em else None
+    r["validacao"] = ({"por": a.validado_por, "em": a.validado_em.isoformat(), "nota": a.nota_validacao}
+                      if a.validado_em else None)
+    if a.validado_em:
+        r["situacao"] = "validada"
+    return r
+
+
+async def validar(db: AsyncSession, ibge: str, exercicio: int, numero: str, usuario: str, nota: str | None) -> bool:
+    a = (await db.execute(select(FnsPortariaAnalise).where(FnsPortariaAnalise.municipio_ibge == ibge,
+                                                           FnsPortariaAnalise.exercicio == exercicio,
+                                                           FnsPortariaAnalise.numero_portaria == numero))).scalar_one_or_none()
+    if a is None:
+        return False
+    a.validado_por, a.validado_em, a.nota_validacao = usuario, datetime.utcnow(), (nota or None)
+    await db.commit()
+    return True
+
+
+# ── Verificação de vigência dos dispositivos ────────────────────────────────────
+
+def _texto_html(html: str) -> str:
+    import html as _html
+    sem_tags = re.sub(r"<[^>]+>", " ", html)
+    # Saúde Legis escreve acentos como entidades (espec&iacute;fica) e o Planalto usa &nbsp;
+    return N.normalizar(_html.unescape(sem_tags).replace(" ", " "))
+
+
+async def verificar_normas(db: AsyncSession) -> dict:
+    """Busca o texto oficial de cada norma e confere se cada dispositivo continua lá."""
+    import httpx
+    textos: dict[str, str | None] = {}
+    async with httpx.AsyncClient(timeout=60, follow_redirects=True,
+                                 headers={"User-Agent": "Mozilla/5.0 (compatible; ERSUS360/1.0)"}) as client:
+        for chave, n in N.NORMAS.items():
+            try:
+                r = await client.get(n["url"])
+                bruto = r.content
+                html = None
+                # o Saúde Legis declara UTF-8 mas entrega Windows-1252: tenta UTF-8 estrito antes
+                for enc in ("utf-8", "cp1252", "latin-1"):
+                    try:
+                        html = bruto.decode(enc or "utf-8")
+                        break
+                    except (LookupError, UnicodeDecodeError):
+                        continue
+                textos[chave] = _texto_html(html or "") if r.status_code == 200 else None
+            except Exception as exc:  # fonte fora do ar não derruba a rotina
+                logger.warning("Portarias IA: norma %s indisponível: %s", chave, exc)
+                textos[chave] = None
+    existentes = {v.dispositivo: v for v in (await db.execute(select(FnsNormaVerificacao))).scalars()}
+    agora = datetime.utcnow()
+    resumo = {"conferem": 0, "nao_conferem": [], "indisponiveis": []}
+    for k, d in N.DISPOSITIVOS.items():
+        texto = textos.get(d["norma"])
+        if texto is None:
+            confere, det = None, "Página oficial indisponível."
+            resumo["indisponiveis"].append(k)
+        else:
+            confere = N.normalizar(d["conferencia"]) in texto
+            det = "Trecho encontrado." if confere else f"Trecho “{d['conferencia']}” não encontrado."
+            if confere:
+                resumo["conferem"] += 1
+            else:
+                resumo["nao_conferem"].append(k)
+        v = existentes.get(k) or FnsNormaVerificacao(dispositivo=k)
+        v.confere, v.detalhe, v.verificado_em = confere, det, agora
+        db.add(v)
+    await db.commit()
+    resumo["verificado_em"] = agora.isoformat()
+    return resumo
+
+
+# ── Consulta do gestor (IA) ──────────────────────────────────────────────────────
+
+class IAIndisponivel(RuntimeError):
+    pass
+
+
+MODELO = "claude-opus-5-5"
+_CLASSES = [N.PERMITIDO, N.COM_CONDICOES, N.VEDADO, N.ANALISE, PENDENTE_TXT.upper()]
+_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "classificacao": {"type": "string", "enum": _CLASSES},
+        "categoria": {"type": "string", "enum": [c for c, _ in N.CATEGORIAS] + ["fora_das_categorias"]},
+        "justificativa": {"type": "string"},
+        "base_legal": {"type": "array", "items": {
+            "type": "object",
+            "properties": {"chave": {"type": "string"}, "como_se_aplica": {"type": "string"}},
+            "required": ["chave", "como_se_aplica"], "additionalProperties": False}},
+        "condicoes": {"type": "array", "items": {"type": "string"}},
+        "falta_confirmar": {"type": "array", "items": {"type": "string"}},
+        "orientacao": {"type": "string"},
+    },
+    "required": ["classificacao", "categoria", "justificativa", "base_legal", "condicoes", "falta_confirmar",
+                 "orientacao"],
+    "additionalProperties": False,
+}
+
+SYSTEM = """Você é o Agente de Análise das Portarias do FNS do ERSUS360, especialista em financiamento do SUS, e responde a gestores municipais de saúde.
+
+Responda à despesa pretendida considerando SOMENTE a portaria selecionada (em <analise_portaria>) e os dispositivos em <base_normativa>.
+
+Regras:
+- Classifique a despesa em: PERMITIDO, PERMITIDO COM CONDIÇÕES, VEDADO, EXIGE ANÁLISE COMPLEMENTAR ou CLASSIFICAÇÃO PENDENTE DE CONFIRMAÇÃO.
+- A natureza do recurso (custeio/investimento) é a que está na análise, tirada do bloco oficial do FNS. Não a deduza do título da portaria.
+- Em base_legal, use apenas chaves que existem em <base_normativa>. Não cite artigo, lei, prazo ou autorização que não esteja lá; se a resposta depender de norma que não está na base (a portaria específica, a LDO, uma nota técnica), diga isso em falta_confirmar e use EXIGE ANÁLISE COMPLEMENTAR.
+- Se a natureza estiver EM ANÁLISE ou OUTRA NATUREZA, ou a análise estiver pendente de confirmação, a classificação é CLASSIFICAÇÃO PENDENTE DE CONFIRMAÇÃO, salvo se a despesa for vedada em qualquer bloco.
+- Não invente prazos, valores, saldos nem planos de trabalho. Diferencie saldo bancário, contábil, comprometido e disponível só com os dados presentes.
+- Você é consultivo: nunca diga que a despesa está autorizada para empenho ou pagamento; oriente a confirmar com a contabilidade e o controle interno.
+- justificativa: até 6 linhas. orientacao: até 5 linhas, objetiva. Português do Brasil, linguagem de gestor."""
+
+
+def _contexto_ia(r: dict) -> dict:
+    enxuto = {k: v for k, v in r.items() if k not in ("transferencias", "fundamentacao")}
+    enxuto["transferencias_resumo"] = [
+        {k: t[k] for k in ("mes", "programa", "bloco", "natureza", "finalidade", "valor_liquido", "propostas")}
+        for t in r.get("transferencias", [])[:60]]
+    return enxuto
+
+
+async def consultar_aplicacao(db: AsyncSession, municipio_id: int | None, ibge: str, exercicio: int, numero: str,
+                              pergunta: str, api_key: str | None) -> dict:
+    if not api_key:
+        raise IAIndisponivel("A IA não está configurada no servidor (ANTHROPIC_API_KEY).")
+    r = await detalhe(db, municipio_id, ibge, exercicio, numero)
+    if r is None:
+        raise LookupError("Portaria não encontrada nas transferências do exercício.")
+    estado = await _estado_normas(db)
+    base = [{"chave": k, **N.citar(k), "conferido_no_texto_oficial": (estado.get(k) or {}).get("confere", "manual 16/11/2026")}
+            for k in N.DISPOSITIVOS]
+    texto = (f"<analise_portaria>\n{json.dumps(_contexto_ia(r), ensure_ascii=False, default=str)}\n</analise_portaria>\n\n"
+             f"<base_normativa>\n{json.dumps(base, ensure_ascii=False)}\n</base_normativa>\n\n"
+             f"Data de hoje: {date.today().strftime('%d/%m/%Y')}\n"
+             f"Despesa pretendida pelo gestor: {pergunta}")
+
+    import anthropic
+    client = anthropic.AsyncAnthropic(api_key=api_key)
+    try:
+        async with client.messages.stream(
+            model=MODELO,
+            max_tokens=16000,
+            system=SYSTEM,
+            messages=[{"role": "user", "content": texto}],
+            extra_headers={"anthropic-beta": "server-side-fallback-2026-07-01"},
+            extra_body={"output_config": {"effort": "high", "format": {"type": "json_schema", "schema": _SCHEMA}},
+                        "fallbacks": "default"},
+        ) as stream:
+            msg = await stream.get_final_message()
+    except anthropic.AuthenticationError as e:
+        raise IAIndisponivel("Chave da IA inválida no servidor.") from e
+    except anthropic.RateLimitError as e:
+        raise IAIndisponivel("Limite de uso da IA atingido. Tente de novo em alguns minutos.") from e
+    except anthropic.APIStatusError as e:
+        logger.error("Portarias IA: erro da API (%s): %s", e.status_code, e)
+        raise IAIndisponivel(f"A IA respondeu com erro ({e.status_code}).") from e
+    except anthropic.APIConnectionError as e:
+        raise IAIndisponivel("Sem conexão com o serviço de IA.") from e
+
+    if msg.stop_reason == "refusal":
+        raise IAIndisponivel("A IA não pôde responder a esta solicitação. Reformule a pergunta.")
+    if msg.stop_reason == "max_tokens":
+        raise IAIndisponivel("A resposta da IA ficou incompleta. Tente uma pergunta mais curta.")
+    bruto = "".join(b.text for b in msg.content if b.type == "text").strip()
+    try:
+        resp = json.loads(bruto)
+    except json.JSONDecodeError as e:
+        raise IAIndisponivel("A IA devolveu uma resposta em formato inesperado.") from e
+    return montar_resposta(resp, r, msg.model)
+
+
+def montar_resposta(resp: dict, analise: dict, modelo: str) -> dict:
+    """Valida a resposta da IA: só ficam citações da base conferida; sem base válida, vira análise complementar."""
+    base_ok, descartadas = [], []
+    for b in resp.get("base_legal", []):
+        if b.get("chave") in N.DISPOSITIVOS:
+            base_ok.append({**N.citar(b["chave"]), "como_se_aplica": b.get("como_se_aplica", "")})
+        else:
+            descartadas.append(b.get("chave"))
+    classificacao = resp.get("classificacao")
+    if not base_ok and classificacao in (N.PERMITIDO, N.COM_CONDICOES, N.VEDADO):
+        classificacao = N.ANALISE
+        resp.setdefault("falta_confirmar", []).append("A resposta não trouxe fundamentação da base conferida.")
+    if analise.get("situacao") == "pendente_confirmacao" and classificacao in (N.PERMITIDO, N.COM_CONDICOES):
+        classificacao = PENDENTE_TXT.upper()
+    return {
+        "classificacao": classificacao,
+        "categoria": resp.get("categoria"),
+        "justificativa": resp.get("justificativa", ""),
+        "base_legal": base_ok,
+        "citacoes_descartadas": [d for d in descartadas if d],
+        "condicoes": resp.get("condicoes", []),
+        "falta_confirmar": resp.get("falta_confirmar", []),
+        "orientacao": resp.get("orientacao", ""),
+        "modelo": modelo,
+        "gerado_em": datetime.utcnow().isoformat(),
+        "aviso": AVISO,
+    }
