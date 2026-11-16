@@ -37,7 +37,7 @@ def _txt(v) -> str:
 
 def nome_arquivo(numero: str, exercicio: int) -> str:
     base = "sem-portaria" if not any(ch.isdigit() for ch in numero) else "".join(ch for ch in numero if ch.isdigit())
-    return f"analise-tecnica-portaria-{base}-{exercicio}.pdf"
+    return f"relatorio-tecnico-portaria-{base}-{exercicio}.pdf"
 
 
 def gerar(r: dict, *, municipio: str | None, gerado_por: str | None) -> bytes:
@@ -93,16 +93,27 @@ def gerar(r: dict, *, municipio: str | None, gerado_por: str | None) -> bytes:
     def P(v, st=corpo):
         return Paragraph(_txt(v), st)
 
-    el = [Paragraph("ANÁLISE TÉCNICA DE PORTARIA — FUNDO NACIONAL DE SAÚDE", sub),
+    el = [Paragraph("RELATÓRIO TÉCNICO DA PORTARIA — FUNDO NACIONAL DE SAÚDE", sub),
           Paragraph(_txt(titulo_doc), h1),
           Paragraph(_txt(f"{municipio or ident.get('municipio') or ''} · Exercício {exercicio} · "
                          f"Natureza: {', '.join(r.get('naturezas') or ['EM ANÁLISE'])} · "
-                         f"{'Validada por ' + r['validacao']['por'] if r.get('validacao') else r.get('classificacao_texto') or ''}"),
-                    sub),
-          Spacer(1, 8)]
+                         f"Emitido em {datetime.now().strftime('%d/%m/%Y')}"), sub),
+          Spacer(1, 6)]
+
+    # Situação da validação (sempre no topo)
+    estado = r.get("estado_validacao") or "ANÁLISE PENDENTE"
+    cor_estado = {"VALIDADA PELO RESPONSÁVEL": "#2e7d32", "AGUARDANDO VALIDAÇÃO TÉCNICA": "#1565c0",
+                  "FUNDAMENTAÇÃO CONFERIDA": "#1565c0", "NORMA LOCALIZADA": "#b45309"}.get(estado, "#c62828")
+    txt_val = (f"Validada por {r['validacao']['por']} em {_data(r['validacao']['em'])}"
+               if r.get("validacao") else (r.get("estado_motivo") or ""))
+    el.append(Paragraph(f'<b>Situação da validação:</b> <font color="{cor_estado}"><b>{_txt(estado)}</b></font>'
+                        f' — {_txt(txt_val)}', caixa))
 
     # Documento oficial
-    el.append(Paragraph("Documento oficial", h2))
+    rep_ = r.get("portaria_repasse") or {}
+    el.append(Paragraph("Portaria de repasse", h2))
+    if rep_.get("papel"):
+        el.append(P(rep_["papel"] + ".", peq))
     cad = (links.get("cadastrado") or [None])[0]
     if cad:
         el.append(P(f"Portaria {cad.get('orgao') or 'GM/MS'} nº {links.get('numero_formatado') or numero}"
@@ -121,6 +132,53 @@ def gerar(r: dict, *, municipio: str | None, gerado_por: str | None) -> bytes:
         if links.get("busca_dou"):
             el.append(Paragraph(f'Busca no DOU: <link href="{escape(links["busca_dou"])}" color="#1565c0">'
                                 f'{_txt(links["busca_dou"])}</link>', peq))
+
+    # Portaria de repasse × normas de origem e regulamentação
+    vinc = r.get("programas_vinculados") or []
+    if vinc or r.get("programas_sem_norma"):
+        el.append(Paragraph("Normas de origem e regulamentação do recurso", h2))
+        el.append(P("A portaria de repasse autoriza a transferência; as regras de aplicação vêm das normas abaixo.", peq))
+        for v in vinc:
+            el.append(Paragraph(f"<b>{_txt(v['nome'])}</b> — {_txt(_brl(v.get('valor')))}", corpo))
+            if v.get("pendente"):
+                el.append(Paragraph(f'<font color="#c62828">{_txt(v["pendente"])}</font>', peq))
+                continue
+            linhas_n = [[P("Papel", peq), P("Norma e dispositivo", peq), P("O que diz", peq), P("Conferência", peq)]]
+            for n in v.get("normas") or []:
+                conf = ("Conferido no texto oficial" + (f" em {_data(n.get('verificado_em'))}" if n.get("verificado_em") else "")
+                        if n.get("conferido") is True else "Ainda não conferido automaticamente")
+                linhas_n.append([P(n.get("papel"), peq),
+                                 Paragraph(f'<link href="{escape(n["url"])}" color="#1565c0">{_txt(n["norma"])}, '
+                                           f'{_txt(n["dispositivo"])}</link>', peq),
+                                 P(n.get("resumo"), peq), P(conf, peq)])
+            el.append(tabela(linhas_n, [2.6 * cm, 4.4 * cm, larg - 10.4 * cm, 3.4 * cm]))
+        for sn in r.get("programas_sem_norma") or []:
+            el.append(Paragraph(f'<font color="#c62828"><b>Sem norma conferida:</b> {_txt(sn["nome"])} — '
+                                f'{_txt(_brl(sn.get("valor")))}. Análise pendente.</font>', peq))
+
+    if r.get("como_utilizar"):
+        el.append(Paragraph("Como utilizar o recurso", h2))
+        for cu in r["como_utilizar"]:
+            el.append(Paragraph(f"<b>{_txt(cu['programa'])}:</b> {_txt(cu['limite'])}", corpo))
+            for ex in cu.get("exemplos") or []:
+                el.append(P(f"• {ex}", peq))
+
+    if r.get("despesas_vedadas"):
+        el.append(Paragraph("Despesas vedadas", h2))
+        vistos = set()
+        for dv in r["despesas_vedadas"]:
+            chave = (dv["despesa"], dv["recurso"])
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            el.append(Paragraph(f'<font color="#c62828"><b>{_txt(dv["despesa"])}</b></font> ({_txt(dv["recurso"])}) — '
+                                f'{_txt(dv["justificativa"])} <font color="#6b7280">'
+                                f'[{_txt("; ".join(dv.get("fundamentacao") or []))}]</font>', peq))
+
+    if r.get("condicoes_execucao"):
+        el.append(Paragraph("Condições para execução", h2))
+        for c in r["condicoes_execucao"]:
+            el.append(P(f"• {c}", peq))
 
     if r.get("pendencias"):
         el.append(Paragraph("Pendências", h2))
@@ -229,7 +287,7 @@ def gerar(r: dict, *, municipio: str | None, gerado_por: str | None) -> bytes:
         canvas.saveState()
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(CINZA)
-        canvas.drawString(1.8 * cm, 1.0 * cm, f"ERSUS360 — Análise técnica — {titulo_doc} — Exercício {exercicio}")
+        canvas.drawString(1.8 * cm, 1.0 * cm, f"ERSUS360 — Relatório técnico — {titulo_doc} — Exercício {exercicio}")
         canvas.drawRightString(A4[0] - 1.8 * cm, 1.0 * cm, f"Página {doc_.page}")
         canvas.restoreState()
 

@@ -48,3 +48,22 @@ class FnsNormaVerificacao(Base):
     confere       = Column(Boolean, nullable=True)                # None = página indisponível
     detalhe       = Column(Text, nullable=True)
     verificado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class FnsPortariaAnaliseVersao(Base):
+    """Histórico: cada vez que a análise de uma portaria é refeita, a versão anterior fica guardada aqui
+    (com a validação que tinha), para auditoria. Nunca é apagada pelo sistema."""
+    __tablename__ = "fns_portaria_analise_versao"
+
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    analise_id      = Column(Integer, nullable=False, index=True)
+    municipio_ibge  = Column(String(7), nullable=False, index=True)
+    exercicio       = Column(Integer, nullable=False)
+    numero_portaria = Column(String(60), nullable=False)
+    resultado       = Column(JSON, nullable=False)
+    hash_entrada    = Column(String(64), nullable=True)
+    estado          = Column(String(40), nullable=True)
+    validado_por    = Column(String(200), nullable=True)
+    validado_em     = Column(DateTime, nullable=True)
+    motivo          = Column(Text, nullable=True)
+    arquivado_em    = Column(DateTime, default=datetime.utcnow, nullable=False)
