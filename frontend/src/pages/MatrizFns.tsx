@@ -8,6 +8,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import EvolucaoFnsGrafico from "./EvolucaoFnsGrafico";
 import PrevistoRecebidoFns, { ResumoPrevistoRelatorio } from "./PrevistoRecebidoFns";
 import {
+  usePortariasIA, PainelConsolidadoIA, EtiquetasNatureza, AnaliseTecnicaPortaria,
+  passaFiltro, FILTROS_VAZIOS, type FiltrosIA,
+} from "./PortariasAgenteIA";
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line, Legend,
 } from "recharts";
@@ -582,12 +586,23 @@ function AbaPortarias({ exercicio }: { exercicio: number }) {
     staleTime: 300_000,
   });
   const [expandida, setExpandida] = useState<string | null>(null);
+  const { data: ia } = usePortariasIA(exercicio);
+  const [filtrosIA, setFiltrosIA] = useState<FiltrosIA>(FILTROS_VAZIOS);
+  const [analise, setAnalise] = useState<{ numero: string; consulta: boolean } | null>(null);
+  const resumoIA = useMemo(
+    () => new Map((ia?.portarias ?? []).map(p => [p.numero_portaria, p])), [ia]);
 
   if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: C.gray }}>Carregando portarias…</div>;
   if (!data) return <div style={{ padding: 40, textAlign: "center", color: C.red }}>Erro ao carregar portarias.</div>;
+  const visiveis = data.portarias.filter(p => passaFiltro(p, resumoIA.get(p.numero_portaria), filtrosIA));
 
   return (
     <div>
+      <PainelConsolidadoIA painel={ia} filtros={filtrosIA} setFiltros={setFiltrosIA} exercicio={exercicio} />
+      {analise && (
+        <AnaliseTecnicaPortaria numero={analise.numero} exercicio={exercicio} abrirConsulta={analise.consulta}
+          onClose={() => setAnalise(null)} />
+      )}
       {/* Resumo */}
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" as const }}>
         {[
@@ -605,7 +620,10 @@ function AbaPortarias({ exercicio }: { exercicio: number }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
-        {data.portarias.map((p, i) => {
+        {visiveis.length === 0 && (
+          <div style={{ padding: 24, textAlign: "center", color: C.gray, fontSize: 13 }}>Nenhuma portaria com estes filtros.</div>
+        )}
+        {visiveis.map((p, i) => {
           const aberta = expandida === p.numero_portaria;
           const mesesComValor = Object.entries(p.meses_valores)
             .filter(([, v]) => v > 0)
@@ -628,6 +646,7 @@ function AbaPortarias({ exercicio }: { exercicio: number }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.textPri }}>
                     {p.numero_portaria === "Sem portaria" ? "Transferências sem portaria identificada" : `Portaria nº ${p.numero_portaria}`}
+                    {" "}<EtiquetasNatureza resumo={resumoIA.get(p.numero_portaria)} />
                   </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginTop: 4 }}>
                     {p.grupos.map(g => {
@@ -662,6 +681,18 @@ function AbaPortarias({ exercicio }: { exercicio: number }) {
                   </div>
                   <div style={{ fontSize: 11, color: C.textSec }}>
                     {p.qtd_transferencias} transf.
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 6, justifyContent: "flex-end", flexWrap: "wrap" as const }}>
+                    <button onClick={e => { e.stopPropagation(); setAnalise({ numero: p.numero_portaria, consulta: false }); }}
+                      style={{ fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 6, cursor: "pointer",
+                        border: `1px solid ${C.indigo}55`, background: C.white, color: C.indigo }}>
+                      Análise técnica
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); setAnalise({ numero: p.numero_portaria, consulta: true }); }}
+                      style={{ fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 6, cursor: "pointer",
+                        border: "none", background: C.indigo, color: C.white }}>
+                      Consultar Aplicação do Recurso
+                    </button>
                   </div>
                 </div>
                 <ChevronDown size={16} style={{ color: C.gray, transform: aberta ? "rotate(180deg)" : "none", transition: "0.2s" }} />
