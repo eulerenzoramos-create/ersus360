@@ -269,3 +269,66 @@ async def test_analise_tecnica_traz_link_da_portaria(ambiente):
     outro = await c.post("/api/fns-portarias-ia/documento", headers=_h(tok),
                          json={"numero": "3493", "exercicio": 2026, "ano": 2024, "link": "https://www.in.gov.br/web/dou/-/x"})
     assert outro.status_code == 422
+
+
+async def test_pdf_da_analise_tecnica(ambiente):
+    c, S = ambiente["client"], ambiente["Session"]
+    await _popular(S)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    for numero in ("3493", "900", "Sem portaria"):
+        r = await c.get("/api/fns-portarias-ia/portaria/pdf", params={"exercicio": 2026, "numero": numero},
+                        headers=_h(tok))
+        assert r.status_code == 200, r.text
+        assert r.headers["content-type"] == "application/pdf"
+        assert r.content.startswith(b"%PDF") and len(r.content) > 3000
+    assert 'analise-tecnica-portaria-3493-2026.pdf' in (await c.get(
+        "/api/fns-portarias-ia/portaria/pdf", params={"exercicio": 2026, "numero": "3493"},
+        headers=_h(tok))).headers["content-disposition"]
+    # outro município não gera PDF das portarias de Apuí
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    assert (await c.get("/api/fns-portarias-ia/portaria/pdf", params={"exercicio": 2026, "numero": "3493"},
+                        headers=_h(tok_b))).status_code == 404
+
+
+async def test_enviar_pdf_por_email(ambiente, monkeypatch):
+    c, S = ambiente["client"], ambiente["Session"]
+    await _popular(S)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    corpo = {"numero": "3493", "exercicio": 2026, "destinatarios": ["secretaria@apui.am.gov.br"]}
+
+    tok_consulta = await _token(c, "ana.consulta@apui.gov.br")
+    assert (await c.post("/api/fns-portarias-ia/portaria/enviar-email", json=corpo,
+                         headers=_h(tok_consulta))).status_code == 403
+    assert (await c.post("/api/fns-portarias-ia/portaria/enviar-email",
+                         json={**corpo, "destinatarios": ["nao-e-email"]}, headers=_h(tok))).status_code == 422
+
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    r = await c.post("/api/fns-portarias-ia/portaria/enviar-email", json=corpo, headers=_h(tok))
+    assert r.status_code == 503 and "Baixe o PDF" in r.json()["detail"]
+
+    enviados = []
+
+    class _Resp:
+        status_code = 200
+        text = "{}"
+
+    class _Cli:
+        def __init__(self, *a, **k): ...
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): ...
+        async def post(self, url, headers=None, json=None):
+            enviados.append(json)
+            return _Resp()
+
+    import httpx
+    monkeypatch.setenv("RESEND_API_KEY", "chave-ficticia-de-teste")
+    monkeypatch.setattr(httpx, "AsyncClient", _Cli)
+    r = await c.post("/api/fns-portarias-ia/portaria/enviar-email",
+                     json={**corpo, "mensagem": "Para conhecimento."}, headers=_h(tok))
+    assert r.status_code == 200, r.text
+    msg = enviados[0]
+    assert msg["to"] == ["secretaria@apui.am.gov.br"]
+    assert "Portaria nº 3.493" in msg["subject"]
+    assert msg["attachments"][0]["filename"] == "analise-tecnica-portaria-3493-2026.pdf"
+    import base64
+    assert base64.b64decode(msg["attachments"][0]["content"]).startswith(b"%PDF")
