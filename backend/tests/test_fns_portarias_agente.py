@@ -335,8 +335,9 @@ async def test_enviar_pdf_por_email(ambiente, monkeypatch):
                          json={**corpo, "destinatarios": ["nao-e-email"]}, headers=_h(tok))).status_code == 422
 
     monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    monkeypatch.delenv("BREVO_API_KEY", raising=False)
     r = await c.post("/api/fns-portarias-ia/portaria/enviar-email", json=corpo, headers=_h(tok))
-    assert r.status_code == 503 and "Baixe o PDF" in r.json()["detail"]
+    assert r.status_code == 503 and "Enviar pelo meu e-mail" in r.json()["detail"]
 
     enviados = []
 
@@ -424,3 +425,36 @@ def test_todo_dispositivo_das_normas_de_origem_existe_na_base():
         for k, papel in p["origem"]:
             assert k in N.DISPOSITIVOS and papel in N.PAPEL_ROTULO
         assert p.get("pendente") or p["origem"], p["chave"]
+
+
+async def test_enviar_pdf_por_brevo_para_qualquer_email(ambiente, monkeypatch):
+    """Com o Brevo (remetente verificado) o PDF vai para qualquer endereço, inclusive fora do gov.br."""
+    c, S = ambiente["client"], ambiente["Session"]
+    await _popular(S)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    enviados = []
+
+    class _Resp:
+        status_code = 201
+        text = "{}"
+
+    class _Cli:
+        def __init__(self, *a, **k): ...
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): ...
+        async def post(self, url, headers=None, json=None):
+            enviados.append((url, json))
+            return _Resp()
+
+    import httpx
+    monkeypatch.setenv("BREVO_API_KEY", "chave-ficticia-de-teste")
+    monkeypatch.setenv("BREVO_SENDER", "remetente@exemplo.com")
+    monkeypatch.setattr(httpx, "AsyncClient", _Cli)
+    r = await c.post("/api/fns-portarias-ia/portaria/enviar-email",
+                     json={"numero": "3493", "exercicio": 2026,
+                           "destinatarios": ["fulano@gmail.com", "ciclano@outlook.com"]}, headers=_h(tok))
+    assert r.status_code == 200, r.text
+    url, msg = enviados[0]
+    assert "brevo.com" in url
+    assert [d["email"] for d in msg["to"]] == ["fulano@gmail.com", "ciclano@outlook.com"]
+    assert msg["attachment"][0]["name"] == "relatorio-tecnico-portaria-3493-2026.pdf"
