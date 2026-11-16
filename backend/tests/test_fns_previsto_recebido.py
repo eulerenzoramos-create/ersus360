@@ -59,7 +59,8 @@ async def test_competencia_de_agosto_paga_em_setembro(ambiente):
     assert linha["datas_credito"] == ["2026-09-10"]          # data do crédito preservada
     assert linha["situacao"] == "PAGO" and linha["diferenca"] == 0.0
     assert linha["pago_em_mes_diferente"] is True
-    assert p["cards"] == {"previsto": 15486.2, "recebido": 15486.2, "a_receber": 0.0, "pct_recebido": 100.0}
+    assert p["cards"] == {"previsto": 15486.2, "recebido": 15486.2, "a_receber": 0.0, "pct_recebido": 100.0,
+                          "recebido_fns_periodo": 15486.2}
     assert any(a["tipo"] == "pago_em_outro_mes" for a in p["alertas"])
 
     async with S() as db:                                    # nenhum registro financeiro novo
@@ -144,7 +145,8 @@ async def test_previsao_nao_e_somada_como_receita(ambiente):
     tok = await _token(c, "gestor.apui@teste.gov.br")
     await c.post("/api/fns-previsao/previsoes", headers=_h(tok), json=_prev(valor_previsto=2000))
     cards = (await _painel(c, tok))["cards"]
-    assert cards == {"previsto": 2000.0, "recebido": 500.0, "a_receber": 1500.0, "pct_recebido": 25.0}
+    assert cards == {"previsto": 2000.0, "recebido": 500.0, "a_receber": 1500.0, "pct_recebido": 25.0,
+                     "recebido_fns_periodo": 500.0}
 
 
 async def test_multimunicipio_isolado(ambiente):
@@ -182,3 +184,102 @@ async def test_alertas_no_sistema_de_validacoes_existente(ambiente):
     await c.post("/api/fns-previsao/previsoes", headers=_h(tok), json=_prev(competencia_inicial="2026-01"))
     val = (await c.get("/api/repasses-fns/matriz-validacoes?exercicio=2026", headers=_h(tok))).json()
     assert any(a["tipo"] == "previsto_nao_identificado" for a in val["alertas"])
+
+
+MAC_GRUPO = "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR"
+MAC_COMP = "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC"
+
+
+async def _oficial(S, *, portaria, comp, n, valor, grupo="ATENÇÃO PRIMÁRIA", total=12):
+    """Pagamento com a referência oficial do FNS ("NN/12 em 2026")."""
+    pago = date(2026, n, 10)
+    async with S() as db:
+        t = TransferenciaFns(
+            chave_unica=f"t{next(_seq)}", municipio_ibge="130014", exercicio=2026, mes=n, data_pagamento=pago,
+            competencia=f"2026/{n:02d}", grupo=grupo, acao=comp, acao_detalhada=comp, tipo_incentivo="APS",
+            numero_portaria=portaria, valor_liquido=Decimal(valor), fonte="consultafns", ativo=True,
+            parcela_fns=f"{n:02d}/{total} em 2026", parcela_numero=n, parcela_total=total, parcela_ano=2026)
+        db.add(t)
+        await db.commit()
+        return t.id
+
+
+async def test_mesma_portaria_com_varios_componentes_concilia_cada_um(ambiente):
+    """Portaria 3493 paga ACS e ESF no mesmo dia: cada pagamento vai para a previsão do seu componente."""
+    c, S = ambiente["client"], ambiente["Session"]
+    acs, esf = "AGENTES COMUNITÁRIOS DE SAÚDE", "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF"
+    for n in (1, 2):
+        await _oficial(S, portaria="3493", comp=acs, n=n, valor="213972.00")
+        await _oficial(S, portaria="3493", comp=esf, n=n, valor="209826.00")
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    for comp, v in ((acs, 213972.0), (esf, 209826.0)):
+        await c.post("/api/fns-previsao/previsoes", headers=_h(tok), json=_prev(
+            grupo="ATENÇÃO PRIMÁRIA", componente=comp, valor_previsto=v * 12, periodicidade="mensal",
+            qtd_parcelas=12, competencia_inicial="2026-01"))
+    p = await _painel(c, tok, mes_inicio=1, mes_fim=2)
+    assert {l["situacao"] for l in p["linhas"]} == {"PAGO"}
+    assert p["cards"]["previsto"] == p["cards"]["recebido"] == 847596.0
+
+
+async def test_portaria_substituida_no_meio_do_ano_nao_duplica_o_previsto(ambiente):
+    """MAC: parcela 01 pela Portaria 6532 e 02 em diante pela 10146 — o previsto conta cada mês uma vez só."""
+    c, S = ambiente["client"], ambiente["Session"]
+    await _oficial(S, portaria="6532", comp=MAC_COMP, n=1, valor="312343.90", grupo=MAC_GRUPO)
+    for n in (2, 3):
+        await _oficial(S, portaria="10146", comp=MAC_COMP, n=n, valor="312343.90", grupo=MAC_GRUPO)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    r = await c.post("/api/fns-previsao/previsoes/gerar-do-fns?exercicio=2026", headers=_h(tok))
+    assert r.status_code == 200 and r.json()["criadas"] == 2
+    prevs = {x["numero_portaria"]: x for x in (await c.get("/api/fns-previsao/previsoes?exercicio=2026",
+                                                            headers=_h(tok))).json()}
+    assert prevs["6532"]["qtd_parcelas"] == 1 and prevs["6532"]["competencia_inicial"] == "2026-01"
+    assert prevs["10146"]["qtd_parcelas"] == 11 and prevs["10146"]["competencia_inicial"] == "2026-02"
+    p = await _painel(c, tok, mes_inicio=1, mes_fim=3)
+    assert p["cards"]["previsto"] == p["cards"]["recebido"] == round(312343.90 * 3, 2)
+    # o filtro da tela chega com o nome padronizado do grupo
+    p = await _painel(c, tok, mes_inicio=1, mes_fim=3, grupo="MAC — Média e Alta Complexidade")
+    assert p["cards"]["previsto"] == round(312343.90 * 3, 2)
+    assert p["por_grupo"][0]["grupo"] == "MAC — Média e Alta Complexidade"
+    assert p["por_grupo"][0]["recebido_fns_periodo"] == round(312343.90 * 3, 2)
+
+
+async def test_previsoes_antigas_sobrepostas_nao_somam_duas_vezes(ambiente):
+    """Previsões já geradas antes da correção (12 parcelas em cada portaria): o painel conta cada
+    competência uma vez, sem apagar nada do banco."""
+    c, S = ambiente["client"], ambiente["Session"]
+    await _oficial(S, portaria="6532", comp=MAC_COMP, n=1, valor="100.00", grupo=MAC_GRUPO)
+    await _oficial(S, portaria="10146", comp=MAC_COMP, n=2, valor="100.00", grupo=MAC_GRUPO)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    for port in ("6532", "10146"):
+        await c.post("/api/fns-previsao/previsoes", headers=_h(tok), json=_prev(
+            numero_portaria=port, ano_portaria=2026, grupo=MAC_GRUPO, componente=MAC_COMP, valor_previsto=1200,
+            periodicidade="mensal", qtd_parcelas=12, competencia_inicial="2026-01",
+            fundamento=f"Gerada a partir do FNS (Portaria nº {port})."))
+    await c.post("/api/fns-previsao/conciliar", headers=_h(tok))
+    p = await _painel(c, tok)
+    assert p["cards"]["previsto"] == 1200.0                       # 12 competências, não 24
+    assert len(p["parcelas_substituidas"]) == 12
+    linhas = {l["competencia"]: l["portaria"] for l in p["linhas"]}
+    assert "6532" in linhas["2026-01"] and "10146" in linhas["2026-02"] and "10146" in linhas["2026-12"]
+    assert len((await c.get("/api/fns-previsao/previsoes?exercicio=2026", headers=_h(tok))).json()) == 2
+
+
+async def test_vinculo_automatico_antigo_de_outro_componente_e_refeito(ambiente):
+    """Vínculo automático feito pela regra antiga (mesma Portaria, componente diferente) é desfeito e
+    reconciliado; o vínculo manual fica como está."""
+    c, S = ambiente["client"], ambiente["Session"]
+    bucal, acs = "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL", "AGENTES COMUNITÁRIOS DE SAÚDE"
+    tid = await _oficial(S, portaria="3493", comp=bucal, n=1, valor="92439.00")
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    prev = (await c.post("/api/fns-previsao/previsoes", headers=_h(tok), json=_prev(
+        grupo="ATENÇÃO PRIMÁRIA", componente=acs, valor_previsto=213972 * 12, periodicidade="mensal",
+        qtd_parcelas=12, competencia_inicial="2026-01"))).json()
+    async with S() as db:
+        t = await db.get(TransferenciaFns, tid)
+        t.previsao_id, t.competencia_referencia, t.vinculo_tipo = prev["id"], "2026-01", "automatico"
+        await db.commit()
+    r = (await c.post("/api/fns-previsao/conciliar", headers=_h(tok))).json()
+    assert r["desfeitos"] == 1
+    async with S() as db:
+        t = await db.get(TransferenciaFns, tid)
+        assert t.previsao_id is None and t.valor_liquido == Decimal("92439.00")   # valor intacto

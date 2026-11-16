@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -32,6 +33,7 @@ from sqlalchemy.orm import selectinload
 
 from models.portaria import PortariaMunicipio
 from models.transferencia_fns import TransferenciaFns
+from services.fns_grupos import grupo_canonico, grupo_confere
 from tenancy.contexto import ibge6, ibge7
 
 PAGO = "PAGO"
@@ -45,6 +47,7 @@ PASSO_MESES = {"unica": 0, "mensal": 1, "bimestral": 2, "trimestral": 3,
                "quadrimestral": 4, "semestral": 6, "anual": 12}
 JANELA_MESES = 3      # pagamento aceito até 3 meses após a competência
 TOLERANCIA = Decimal("0.01")
+GERADA_DO_FNS = "Gerada a partir do FNS"
 
 
 # ── Utilitários ──────────────────────────────────────────────────────────────
@@ -144,20 +147,26 @@ def identidade_confere(p: PortariaMunicipio, t: TransferenciaFns) -> bool:
     port = p.portaria
     dp = _digitos_portaria(port.numero if port else None)
     dt = _digitos_portaria(t.numero_portaria)
+    comp_p, comp_t = norm(p.componente), norm(t.acao_detalhada)
     if dp and dt:
         if dp[0] != dt[0]:
             return False
         if dt[1] and port and str(port.ano) != dt[1]:
             return False
-        return True
-    comp_p, comp_t = norm(p.componente), norm(t.acao_detalhada)
+        # a mesma Portaria costuma ter vários componentes (ex.: 3493 = ACS, ESF, Saúde Bucal, eMulti…):
+        # quando os dois lados informam o componente, ele também precisa conferir
+        return _componente_igual(comp_p, comp_t) if comp_p and comp_t else True
     if comp_p and comp_t:
-        curto, longo = sorted((comp_p, comp_t), key=len)
-        return comp_p == comp_t or (len(curto) >= 12 and curto in longo)
+        return _componente_igual(comp_p, comp_t)
     acao_p, acao_t = norm(p.acao), norm(t.acao)
     if acao_p and acao_p == acao_t:
         return not p.grupo or norm(p.grupo) == norm(t.grupo)
     return False
+
+
+def _componente_igual(a: str, b: str) -> bool:
+    curto, longo = sorted((a, b), key=len)
+    return a == b or (len(curto) >= 12 and curto in longo)
 
 
 def parcela_decide(pa: Parcela, t: TransferenciaFns, qtd: int) -> bool | None:
@@ -172,6 +181,11 @@ def parcela_decide(pa: Parcela, t: TransferenciaFns, qtd: int) -> bool | None:
         return True
     if t.parcela_total and qtd == t.parcela_total and t.parcela_numero:
         return pa.numero == t.parcela_numero
+    # série mensal de 12 parcelas: a parcela N do FNS é a competência N do exercício — vale também para a
+    # previsão que cobre só um trecho do ano (portaria substituída: parcelas 02 a 12)
+    if (t.parcela_total == 12 and t.parcela_numero and (p.periodicidade or "").lower() == "mensal"
+            and comp_de_idx(pa.idx)[0] == t.parcela_ano):
+        return comp_de_idx(pa.idx)[1] == t.parcela_numero
     return None
 
 
@@ -182,6 +196,19 @@ def candidato(pa: Parcela, t: TransferenciaFns, qtd: int) -> bool:
     if decide is not None:
         return decide          # referência oficial vale mais que a data do crédito
     return na_janela(pa, t)
+
+
+def candidatos_de(pa: Parcela, livres: list[TransferenciaFns], qtd: int) -> list[TransferenciaFns]:
+    """Candidatos da parcela: quando a parcela oficial do FNS ("05/12 em 2026") aponta esta competência, só
+    ela conta; sem essa referência, ficam os registros com valor. A data do crédito sozinha nunca decide
+    (pagamento de agosto creditado em setembro não pode virar a parcela de setembro)."""
+    cands = [t for t in livres if candidato(pa, t, qtd)]
+    if len(cands) <= 1:
+        return cands
+    oficiais = [t for t in cands if parcela_decide(pa, t, qtd) is True]
+    if oficiais:
+        return oficiais
+    return [t for t in cands if t.valor_liquido is not None] or cands
 
 
 def na_janela(parcela: Parcela, t: TransferenciaFns) -> bool:
@@ -237,6 +264,17 @@ async def conciliar(db: AsyncSession, municipio_id: int, usuario: str = "sistema
     transfs = await carregar_transferencias(db, _anos_relevantes(prevs))
     por_prev = {p.id: p for p in prevs}
 
+    # vínculo AUTOMÁTICO que não confere mais com a regra atual (ex.: pagamento de Saúde Bucal ligado à
+    # previsão de ACS só por ser a mesma Portaria) é desfeito para ser reconciliado; manual nunca é tocado
+    desfeitos = 0
+    for t in transfs:
+        if t.previsao_id and t.vinculo_tipo == "automatico":
+            p = por_prev.get(t.previsao_id)
+            if p is not None and not identidade_confere(p, t):
+                t.previsao_id = t.competencia_referencia = t.vinculo_tipo = None
+                t.vinculo_por, t.vinculo_em = usuario, datetime.utcnow()
+                desfeitos += 1
+
     # parcelas já atendidas (qualquer vínculo existente)
     atendidas = {(t.previsao_id, t.competencia_referencia) for t in transfs if t.previsao_id}
     livres = [t for t in transfs if not t.previsao_id and t.valor_liquido is not None]
@@ -248,7 +286,7 @@ async def conciliar(db: AsyncSession, municipio_id: int, usuario: str = "sistema
             chave = (p.id, pa.competencia)
             if chave in atendidas:
                 continue
-            candidatos[chave] = [t for t in livres if candidato(pa, t, len(pars))]
+            candidatos[chave] = candidatos_de(pa, livres, len(pars))
 
     vinculados = 0
     mudou = True
@@ -274,7 +312,7 @@ async def conciliar(db: AsyncSession, municipio_id: int, usuario: str = "sistema
                 mudou = True
                 break
     await db.commit()
-    return {"previsoes": len(por_prev), "vinculados": vinculados}
+    return {"previsoes": len(por_prev), "vinculados": vinculados, "desfeitos": desfeitos}
 
 
 # ── Painel Previsto × Recebido ───────────────────────────────────────────────
@@ -306,6 +344,61 @@ def _situacao(previsto: Decimal, recebido: Decimal, vinculadas: list, sem_valor:
     return PARCIAL if recebido < previsto else PAGO_A_MAIOR
 
 
+def substituidas(prevs: list[PortariaMunicipio], vinculadas_por: dict,
+                 livres: list[TransferenciaFns]) -> set[tuple[int, str]]:
+    """Parcelas (previsao_id, competência) que não entram no previsto porque outra previsão gerada do FNS,
+    do mesmo componente, cobre a mesma competência — acontece quando o FNS troca a portaria no meio do ano
+    (ex.: MAC: parcela 01 pela Portaria 6532 e 02 a 12 pela 10146). Fica a previsão que recebeu o pagamento;
+    sem pagamento, a da portaria vigente (a que pagou por último antes da competência). Só leitura: nada é
+    excluído do banco, e previsões cadastradas à mão nunca entram nesta regra."""
+    grupos: dict[tuple, list[PortariaMunicipio]] = defaultdict(list)
+    for p in prevs:
+        if (p.fundamento or "").startswith(GERADA_DO_FNS) and norm(p.componente):
+            grupos[(norm(p.componente), p.exercicio)].append(p)
+    fora: set[tuple[int, str]] = set()
+    for lista in grupos.values():
+        if len(lista) < 2:
+            continue
+        pagos: dict[int, list[int]] = {}
+        celulas: dict[str, list[tuple[PortariaMunicipio, Parcela]]] = defaultdict(list)
+        for p in lista:
+            pars = parcelas(p)
+            pagos[p.id] = sorted(pa.idx for pa in pars if vinculadas_por.get((p.id, pa.competencia))
+                                 or any(parcela_decide(pa, t, len(pars)) is True and identidade_confere(p, t)
+                                        for t in livres))
+            for pa in pars:
+                celulas[pa.competencia].append((p, pa))
+        for comp, itens in celulas.items():
+            if len(itens) < 2:
+                continue
+            idx = itens[0][1].idx
+            com_pagamento = [p for p, _ in itens if idx in pagos[p.id]]
+
+            def vigencia(p: PortariaMunicipio):
+                antes = [i for i in pagos[p.id] if i <= idx]
+                if antes:
+                    return (2, max(antes))
+                depois = [i for i in pagos[p.id] if i > idx]
+                return (1, -min(depois)) if depois else (0, p.id)
+
+            fica = com_pagamento[0] if com_pagamento else max((p for p, _ in itens), key=vigencia)
+            for p, _ in itens:
+                if p is not fica and idx not in pagos[p.id]:
+                    fora.add((p.id, comp))
+    return fora
+
+
+def _passa_filtros(f: "Filtros", t: TransferenciaFns, busca: str) -> bool:
+    if f.grupo and not grupo_confere(f.grupo, t.grupo or t.tipo_incentivo):
+        return False
+    if f.tipo_incentivo and t.tipo_incentivo != f.tipo_incentivo:
+        return False
+    if busca and busca not in norm(" ".join(filter(None, [t.grupo, t.acao, t.acao_detalhada,
+                                                            t.tipo_incentivo, t.numero_portaria]))):
+        return False
+    return True
+
+
 async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
     prevs = await carregar_previsoes(db, municipio_id)
     transfs = await carregar_transferencias(db, _anos_relevantes(prevs) | {f.exercicio})
@@ -317,6 +410,8 @@ async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
         if t.previsao_id:
             vinculadas_por.setdefault((t.previsao_id, t.competencia_referencia), []).append(t)
     livres = [t for t in transfs if not t.previsao_id]
+    fora = substituidas(prevs, vinculadas_por, livres)
+    substituidas_periodo: list[dict] = []
 
     busca = norm(f.busca)
     linhas, sugeridos = [], set()
@@ -328,10 +423,14 @@ async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
             if a != f.exercicio or not (f.mes_inicio <= m <= f.mes_fim):
                 continue
             vinc = vinculadas_por.get((p.id, pa.competencia), [])
-            cands = [] if vinc else [t for t in livres if candidato(pa, t, len(pars))]
+            cands = [] if vinc else candidatos_de(pa, livres, len(pars))
             relacionados = vinc or cands
-            if f.grupo and norm(f.grupo) not in norm(p.grupo) and not any(
-                    norm(f.grupo) in norm(t.grupo) for t in relacionados):
+            if f.grupo and not grupo_confere(f.grupo, p.grupo) and not any(
+                    grupo_confere(f.grupo, t.grupo) for t in relacionados):
+                continue
+            if (p.id, pa.competencia) in fora:
+                substituidas_periodo.append({"portaria": portaria_rotulo(p), "competencia": pa.competencia,
+                                             "componente": p.componente, "valor": _f(pa.valor)})
                 continue
             if f.tipo_incentivo and not any(t.tipo_incentivo == f.tipo_incentivo for t in relacionados):
                 continue
@@ -348,7 +447,8 @@ async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
             linha = {
                 "previsao_id": p.id, "parcela": pa.numero, "qtd_parcelas": len(pars),
                 "competencia": pa.competencia, "portaria": portaria_rotulo(p),
-                "grupo": p.grupo, "acao": p.acao, "componente": p.componente,
+                "grupo": p.grupo, "grupo_padrao": grupo_canonico(p.grupo),
+                "acao": p.acao, "componente": p.componente,
                 "previsto": _f(pa.valor), "recebido": _f(recebido) if vinc else 0.0,
                 "diferenca": _f(recebido - pa.valor) if vinc else _f(-pa.valor),
                 "datas_credito": datas, "situacao": situacao, "parcela_fns": parcelas_fns,
@@ -391,12 +491,21 @@ async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
     for l in linhas:
         cont[l["situacao"]] = cont.get(l["situacao"], 0) + 1
 
+    # Recebido do FNS no período (mesma regra do Relatório Mensal: mês do crédito, valor líquido)
+    no_periodo = [t for t in transfs if t.exercicio == f.exercicio and t.mes and f.mes_inicio <= t.mes <= f.mes_fim
+                  and t.valor_liquido is not None and _passa_filtros(f, t, busca)]
+    recebido_fns = sum((Decimal(str(t.valor_liquido)) for t in no_periodo), Decimal("0"))
+
     return {
         "exercicio": f.exercicio,
+        "periodo": {"mes_inicio": f.mes_inicio, "mes_fim": f.mes_fim},
         "cards": {
             "previsto": _f(previsto), "recebido": _f(recebido), "a_receber": _f(a_receber),
             "pct_recebido": round(float(recebido / previsto * 100), 2) if previsto else None,
+            "recebido_fns_periodo": _f(recebido_fns),
         },
+        "por_grupo": por_grupo_de(linhas, no_periodo, prevs),
+        "parcelas_substituidas": substituidas_periodo,
         "situacoes": cont,
         "linhas": linhas,
         "alertas": alertas_de(linhas),
@@ -412,6 +521,38 @@ async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
         "nota": "Previsão não é receita: os valores recebidos vêm só dos registros do FNS "
                 "(sem duplicar e sem somar com o e-Gestor APS).",
     }
+
+
+def por_grupo_de(linhas: list[dict], no_periodo: list[TransferenciaFns],
+                 prevs: list[PortariaMunicipio]) -> list[dict]:
+    """Previsto × recebido por grupo (nome padronizado da tela). "Recebido FNS no período" é tudo o que o FNS
+    creditou no período para o grupo; "Sem previsão" é a parte desse crédito que não corresponde a
+    nenhuma previsão cadastrada."""
+    g: dict[str, dict] = {}
+
+    def item(nome: str) -> dict:
+        return g.setdefault(nome, {"grupo": nome, "previsto": Decimal("0"), "recebido": Decimal("0"),
+                                   "a_receber": Decimal("0"), "recebido_fns_periodo": Decimal("0"),
+                                   "sem_previsao": Decimal("0"), "parcelas": 0})
+    for l in linhas:
+        x = item(l["grupo_padrao"])
+        prev, rec = Decimal(str(l["previsto"])), Decimal(str(l["recebido"]))
+        x["previsto"] += prev
+        x["recebido"] += rec
+        x["a_receber"] += max(prev - rec, Decimal("0"))
+        x["parcelas"] += 1
+    for t in no_periodo:
+        x = item(grupo_canonico(t.grupo or t.tipo_incentivo))
+        v = Decimal(str(t.valor_liquido))
+        x["recebido_fns_periodo"] += v
+        if not t.previsao_id and not any(identidade_confere(p, t) for p in prevs):
+            x["sem_previsao"] += v
+    saida = []
+    for x in g.values():
+        prev = x["previsto"]
+        saida.append({**{k: (_f(v) if isinstance(v, Decimal) else v) for k, v in x.items()},
+                      "pct_recebido": round(float(x["recebido"] / prev * 100), 2) if prev else None})
+    return sorted(saida, key=lambda x: (-x["previsto"], -x["recebido_fns_periodo"], x["grupo"]))
 
 
 def alertas_de(linhas: list[dict]) -> list[dict]:
@@ -488,8 +629,27 @@ async def propostas_do_fns(db: AsyncSession, municipio_id: int, exercicio: int) 
         dp = _digitos_portaria(t.numero_portaria)
         grupos.setdefault((dp[0] if dp else t.numero_portaria, norm(t.acao_detalhada or t.acao)), []).append(t)
 
+    # Mesmo componente pago por portarias diferentes ao longo do ano (portaria substituída): cada portaria
+    # prevê só as parcelas do seu trecho, para o previsto não contar o ano inteiro duas vezes.
+    trecho: dict[tuple, tuple[int, int]] = {}
+    por_comp: dict[str, list[tuple]] = defaultdict(list)
+    for chave in grupos:
+        por_comp[chave[1]].append(chave)
+    for comp, chaves in por_comp.items():
+        if len(chaves) < 2:
+            continue
+        inicios = sorted((min((t.parcela_numero for t in grupos[k] if t.parcela_numero), default=99), k)
+                         for k in chaves)
+        for i, (ini, k) in enumerate(inicios):
+            total = _moda([t.parcela_total for t in grupos[k]])
+            if ini == 99 or total != 12:
+                continue
+            fim = (inicios[i + 1][0] - 1) if i + 1 < len(inicios) and inicios[i + 1][0] != 99 else total
+            if fim >= ini:
+                trecho[k] = (ini, fim)
+
     propostas = []
-    for (numero, _), ts in sorted(grupos.items()):
+    for (numero, comp_k), ts in sorted(grupos.items()):
         total = _moda([t.parcela_total for t in ts])
         per = PERIODICIDADE_POR_TOTAL.get(total)
         if not per or any(identidade_confere(p, ts[0]) for p in prevs):
@@ -499,15 +659,19 @@ async def propostas_do_fns(db: AsyncSession, municipio_id: int, exercicio: int) 
         if valor is None:
             continue
         t0 = ts[0]
+        qtd = total
         if per == "unica":
             mp = mes_pagamento(t0)
             inicio = comp_fmt(exercicio, mp[1] if mp and mp[0] == exercicio else 12)
+        elif (numero, comp_k) in trecho:
+            ini, fim = trecho[(numero, comp_k)]
+            inicio, qtd = comp_fmt(exercicio, ini), fim - ini + 1
         else:
             inicio = comp_fmt(exercicio, 1)
         propostas.append({
             "numero_portaria": numero, "exercicio": exercicio, "grupo": t0.grupo, "acao": t0.acao,
-            "componente": t0.acao_detalhada or t0.acao, "periodicidade": per, "qtd_parcelas": total,
-            "valor_parcela": valor, "valor_previsto": valor * total, "competencia_inicial": inicio,
+            "componente": t0.acao_detalhada or t0.acao, "periodicidade": per, "qtd_parcelas": qtd,
+            "valor_parcela": valor, "valor_previsto": valor * qtd, "competencia_inicial": inicio,
             "parcelas_fns": sorted({t.parcela_fns for t in ts if t.parcela_fns}),
         })
     return propostas

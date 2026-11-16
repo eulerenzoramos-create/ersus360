@@ -67,14 +67,80 @@ function Card({ rotulo, valor, cor }: { rotulo: string; valor: string; cor: stri
   );
 }
 
-export function CardsPrevisto({ cards }: { cards: any }) {
+const pct = (v: number | null | undefined) =>
+  v == null ? "—" : `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+export function CardsPrevisto({ cards, periodo }: { cards: any; periodo?: { mes_inicio: number; mes_fim: number } }) {
+  const rotPer = periodo ? (periodo.mes_inicio === 1 && periodo.mes_fim === 12 ? "no exercício"
+    : `${MESES[periodo.mes_inicio - 1]}–${MESES[periodo.mes_fim - 1]}`) : "no período";
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 14 }}>
-      <Card rotulo="Previsto no exercício" valor={brl(cards.previsto)} cor={C.text} />
-      <Card rotulo="Recebido" valor={brl(cards.recebido)} cor={C.green} />
+      <Card rotulo={`Previsto ${rotPer.startsWith("no") ? rotPer : "(" + rotPer + ")"}`} valor={brl(cards.previsto)} cor={C.text} />
+      <Card rotulo="Recebido (conciliado)" valor={brl(cards.recebido)} cor={C.green} />
       <Card rotulo="A receber" valor={brl(cards.a_receber)} cor={cards.a_receber > 0 ? C.red : C.green} />
       <Card rotulo="% Recebido" valor={cards.pct_recebido == null ? "—" :
         `${cards.pct_recebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}%`} cor={C.blue} />
+    </div>
+  );
+}
+
+// ── Previsto × Recebido por grupo ─────────────────────────────────────────────
+export function PorGrupoPrevisto({ data }: { data: any }) {
+  const linhas: any[] = data?.por_grupo ?? [];
+  if (!linhas.length) return null;
+  const tot = linhas.reduce((a, l) => ({
+    previsto: a.previsto + l.previsto, recebido: a.recebido + l.recebido, a_receber: a.a_receber + l.a_receber,
+    fns: a.fns + l.recebido_fns_periodo, sem: a.sem + l.sem_previsao,
+  }), { previsto: 0, recebido: 0, a_receber: 0, fns: 0, sem: 0 });
+  const th: React.CSSProperties = { padding: "6px 8px", fontSize: 10.5, fontWeight: 700, color: C.gray, textAlign: "right",
+    textTransform: "uppercase", letterSpacing: 0.4, whiteSpace: "nowrap", borderBottom: `1px solid ${C.grayBdr}` };
+  const td: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, textAlign: "right", whiteSpace: "nowrap",
+    fontVariantNumeric: "tabular-nums", borderBottom: `1px solid ${C.grayBdr}` };
+  const subs: any[] = data?.parcelas_substituidas ?? [];
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.text, margin: "2px 0 6px" }}>Por grupo</div>
+      <div style={{ overflowX: "auto", border: `1px solid ${C.grayBdr}`, borderRadius: 8 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+          <thead style={{ background: C.grayL }}>
+            <tr>
+              <th style={{ ...th, textAlign: "left" }}>Grupo</th>
+              <th style={th}>Previsto</th>
+              <th style={th}>Recebido (conciliado)</th>
+              <th style={th}>A receber</th>
+              <th style={th}>% recebido</th>
+              <th style={th} title="Tudo o que o FNS creditou no período para o grupo (mesmo total do Relatório Mensal)">Recebido FNS no período</th>
+              <th style={th} title="Créditos do FNS sem previsão cadastrada (ex.: emendas, incrementos, pagamentos únicos)">Sem previsão</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map(l => (
+              <tr key={l.grupo}>
+                <td style={{ ...td, textAlign: "left", fontWeight: 600 }}>{l.grupo}</td>
+                <td style={td}>{l.previsto ? brl(l.previsto) : "—"}</td>
+                <td style={{ ...td, color: C.green }}>{l.previsto ? brl(l.recebido) : "—"}</td>
+                <td style={{ ...td, color: l.a_receber > 0 ? C.red : C.green }}>{l.previsto ? brl(l.a_receber) : "—"}</td>
+                <td style={{ ...td, color: C.blue }}>{pct(l.pct_recebido)}</td>
+                <td style={td}>{brl(l.recebido_fns_periodo)}</td>
+                <td style={{ ...td, color: l.sem_previsao > 0 ? C.amber : C.gray }}>{brl(l.sem_previsao)}</td>
+              </tr>
+            ))}
+            <tr style={{ background: C.grayL, fontWeight: 800 }}>
+              <td style={{ ...td, textAlign: "left", fontWeight: 800 }}>Total</td>
+              <td style={{ ...td, fontWeight: 800 }}>{brl(tot.previsto)}</td>
+              <td style={{ ...td, fontWeight: 800, color: C.green }}>{brl(tot.recebido)}</td>
+              <td style={{ ...td, fontWeight: 800, color: C.red }}>{brl(tot.a_receber)}</td>
+              <td style={{ ...td, fontWeight: 800, color: C.blue }}>{pct(tot.previsto ? tot.recebido / tot.previsto * 100 : null)}</td>
+              <td style={{ ...td, fontWeight: 800 }}>{brl(tot.fns)}</td>
+              <td style={{ ...td, fontWeight: 800, color: C.amber }}>{brl(tot.sem)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 11, color: C.gray, marginTop: 5 }}>
+        Previsto e recebido contam por competência da previsão; “Recebido FNS no período” soma todos os créditos pelo mês do pagamento.
+        {subs.length > 0 && <> {subs.length} parcela(s) de portaria substituída no meio do ano não entram no previsto (a mesma competência já está prevista pela portaria que pagou).</>}
+      </div>
     </div>
   );
 }
@@ -244,7 +310,8 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
 
   return (
     <div>
-      {data && <CardsPrevisto cards={data.cards} />}
+      {data && <CardsPrevisto cards={data.cards} periodo={data.periodo} />}
+      {data && <PorGrupoPrevisto data={data} />}
 
       {data?.alertas?.length > 0 && (
         <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
@@ -492,7 +559,8 @@ export function ResumoPrevistoRelatorio({ filtros, onAbrir }: { filtros: Filtros
         <button onClick={onAbrir} style={{ marginLeft: "auto", border: `1px solid ${C.blue}`, color: C.blue, background: C.white,
           borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Ver detalhes</button>
       </div>
-      <CardsPrevisto cards={data.cards} />
+      <CardsPrevisto cards={data.cards} periodo={data.periodo} />
+      <PorGrupoPrevisto data={data} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {Object.entries(cont).map(([s, n]) => <span key={s} style={{ fontSize: 11.5 }}><Situacao s={s} /> {n}</span>)}
       </div>
