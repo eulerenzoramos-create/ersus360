@@ -32,7 +32,7 @@ from services import fns_portarias_normas as N
 
 logger = logging.getLogger(__name__)
 
-VERSAO_REGRAS = "2026-11-16.3"   # mudar quando as regras mudarem → todas as análises são refeitas
+VERSAO_REGRAS = "2026-11-16.4"   # mudar quando as regras mudarem → todas as análises são refeitas
 SEM_PORTARIA = "Sem portaria"
 PENDENTE_TXT = "Classificação pendente de confirmação"
 AVISO = ("Análise consultiva do ERSUS360. Não autoriza despesa, empenho, pagamento nem alteração orçamentária. "
@@ -223,6 +223,10 @@ async def _estado_normas(db: AsyncSession) -> dict[str, dict]:
 
 # ── Análise de uma portaria ──────────────────────────────────────────────────────
 
+def _br(iso: str | None) -> str:
+    return f"{iso[8:10]}/{iso[5:7]}/{iso[:4]}" if iso and len(iso) >= 10 else "—"
+
+
 def _fundamentacao_completa(chaves: set[str], estado_normas: dict, datas_repasse: list[str]) -> list[dict]:
     hoje = date.today().isoformat()
     out = []
@@ -232,12 +236,12 @@ def _fundamentacao_completa(chaves: set[str], estado_normas: dict, datas_repasse
         if v is None:
             c["vigencia"] = "Texto conferido manualmente em 16/11/2026; a rotina automática ainda não rodou."
         elif v["confere"] is True:
-            c["vigencia"] = f"Texto oficial conferido em {v['verificado_em'][:10]}: dispositivo presente."
+            c["vigencia"] = f"Texto oficial conferido em {_br(v['verificado_em'])}: dispositivo presente."
         elif v["confere"] is False:
-            c["vigencia"] = f"ATENÇÃO: trecho não encontrado no texto oficial em {v['verificado_em'][:10]} — " \
+            c["vigencia"] = f"ATENÇÃO: trecho não encontrado no texto oficial em {_br(v['verificado_em'])} — " \
                             "possível alteração ou revogação. " + PENDENTE_TXT + "."
         else:
-            c["vigencia"] = f"Página oficial indisponível na última verificação ({v['verificado_em'][:10]})."
+            c["vigencia"] = f"Página oficial indisponível na última verificação ({_br(v['verificado_em'])})."
         prazo = N.DISPOSITIVOS[k].get("prazo_ate")
         if prazo:
             na_data = [d for d in datas_repasse if d and d <= prazo]
@@ -872,3 +876,77 @@ def montar_resposta(resp: dict, analise: dict, modelo: str) -> dict:
         "gerado_em": datetime.utcnow().isoformat(),
         "aviso": AVISO,
     }
+
+
+# ── Envio do PDF da análise técnica por e-mail ───────────────────────────────────
+
+_RE_EMAIL = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+
+def validar_emails(lista: list[str]) -> list[str]:
+    destinos = []
+    for e in lista:
+        e = (e or "").strip().lower()
+        if not e:
+            continue
+        if not _RE_EMAIL.match(e) or len(e) > 254:
+            raise ValueError(f"E-mail inválido: {e}")
+        if e not in destinos:
+            destinos.append(e)
+    if not destinos:
+        raise ValueError("Informe ao menos um e-mail.")
+    if len(destinos) > 5:
+        raise ValueError("Envie para no máximo 5 destinatários de cada vez.")
+    return destinos
+
+
+async def enviar_pdf_email(r: dict, pdf: bytes, nome_arquivo: str, destinos: list[str], mensagem: str | None, *,
+                           municipio: str | None, remetente_nome: str | None) -> dict:
+    """Envia pelo Resend (HTTPS — o Railway bloqueia SMTP), com o PDF anexado."""
+    import base64
+    import html as _html
+    import os
+
+    import httpx
+
+    chave = os.getenv("RESEND_API_KEY", "")
+    remetente = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
+    if not chave:
+        return {"ok": False, "erro": "Envio de e-mail não configurado no servidor (RESEND_API_KEY). "
+                                     "Baixe o PDF e anexe ao seu e-mail."}
+    links = r.get("links") or {}
+    titulo = ("Transferências sem portaria identificada" if r.get("numero_portaria") == SEM_PORTARIA
+              else f"Portaria nº {links.get('numero_formatado') or r.get('numero_portaria')}")
+    assunto = f"Análise técnica — {titulo} — Exercício {r.get('exercicio')}" + (f" — {municipio}" if municipio else "")
+    ident = r.get("identificacao") or {}
+    valor = "R$ " + f"{float(ident.get('valor_transferido') or 0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    corpo = (
+        f"<p>{_html.escape(mensagem).replace(chr(10), '<br>')}</p>" if mensagem else ""
+    ) + (
+        f"<p>Segue em anexo a análise técnica da <b>{_html.escape(titulo)}</b> (exercício {r.get('exercicio')}), "
+        f"gerada pelo ERSUS360{' para ' + _html.escape(municipio) if municipio else ''}.</p>"
+        f"<p>Natureza: <b>{_html.escape(', '.join(r.get('naturezas') or ['EM ANÁLISE']))}</b><br>"
+        f"Valor transferido: <b>{valor}</b><br>"
+        f"Orientação: {_html.escape(r.get('orientacao') or '')}</p>"
+        f"<p style='color:#6b7280;font-size:12px'>{_html.escape(AVISO)}</p>"
+        f"<p style='color:#6b7280;font-size:12px'>Enviado por {_html.escape(remetente_nome or 'usuário do ERSUS360')} "
+        f"pelo ERSUS360.</p>"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=30) as c:
+            resp = await c.post("https://api.resend.com/emails",
+                                headers={"Authorization": f"Bearer {chave}", "Content-Type": "application/json"},
+                                json={"from": remetente, "to": destinos, "subject": assunto, "html": corpo,
+                                      "attachments": [{"filename": nome_arquivo,
+                                                       "content": base64.b64encode(pdf).decode()}]})
+    except httpx.HTTPError as e:
+        logger.warning("Portarias IA: e-mail não enviado: %s", e)
+        return {"ok": False, "erro": "Serviço de e-mail indisponível agora. Baixe o PDF e anexe ao seu e-mail."}
+    if resp.status_code in (200, 201):
+        return {"ok": True}
+    logger.warning("Portarias IA: Resend HTTP %s: %s", resp.status_code, resp.text[:300])
+    if resp.status_code == 403 and remetente.endswith("@resend.dev"):
+        return {"ok": False, "erro": "O remetente de teste do servidor só entrega para o dono da conta de e-mail. "
+                                     "Configure um domínio verificado (EMAIL_FROM) ou baixe o PDF e anexe ao seu e-mail."}
+    return {"ok": False, "erro": f"O serviço de e-mail recusou o envio (HTTP {resp.status_code}). "
+                                 "Baixe o PDF e anexe ao seu e-mail."}

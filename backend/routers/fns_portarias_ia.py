@@ -37,6 +37,56 @@ async def painel(current: SessaoMunicipal, exercicio: int = Query(2026, ge=2015,
     return await ag.painel(db, current.municipio_id, current.municipio_ibge, exercicio)
 
 
+@router.get("/portaria/pdf")
+async def portaria_pdf(request: Request, current: SessaoMunicipal,
+                       numero: str = Query(..., min_length=1, max_length=60),
+                       exercicio: int = Query(2026, ge=2015, le=2100), db: AsyncSession = Depends(get_db)):
+    """PDF da análise técnica (A4) para imprimir ou anexar a um e-mail."""
+    from fastapi.responses import Response
+    from services import fns_portarias_pdf as pdfsvc
+    r = await ag.detalhe(db, current.municipio_id, current.municipio_ibge, exercicio, numero)
+    if r is None:
+        raise HTTPException(404, "Portaria não encontrada nas transferências do exercício.")
+    conteudo = pdfsvc.gerar(r, municipio=current.municipio, gerado_por=current.nome or current.username)
+    await registrar_auditoria(db, "FNS_PORTARIAS_PDF", usuario=current, ip=ip_de(request),
+                              tabela="fns_portaria_analise", detalhe=f"portaria {numero}/{exercicio}")
+    return Response(conteudo, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="{pdfsvc.nome_arquivo(numero, exercicio)}"'})
+
+
+class EmailIn(BaseModel):
+    numero: str = Field(min_length=1, max_length=60)
+    exercicio: int = Field(2026, ge=2015, le=2100)
+    destinatarios: list[str] = Field(min_length=1, max_length=5)
+    mensagem: Optional[str] = Field(None, max_length=2000)
+
+
+@router.post("/portaria/enviar-email")
+async def portaria_enviar_email(body: EmailIn, request: Request, current: SessaoMunicipal,
+                                db: AsyncSession = Depends(get_db)):
+    """Envia o PDF da análise técnica por e-mail (Resend, mesma configuração do e-mail diário de portarias)."""
+    from services import fns_portarias_pdf as pdfsvc
+    _pode_editar(current)
+    try:
+        destinos = ag.validar_emails(body.destinatarios)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    r = await ag.detalhe(db, current.municipio_id, current.municipio_ibge, body.exercicio, body.numero)
+    if r is None:
+        raise HTTPException(404, "Portaria não encontrada nas transferências do exercício.")
+    conteudo = pdfsvc.gerar(r, municipio=current.municipio, gerado_por=current.nome or current.username)
+    res = await ag.enviar_pdf_email(r, conteudo, pdfsvc.nome_arquivo(body.numero, body.exercicio), destinos,
+                                    body.mensagem, municipio=current.municipio,
+                                    remetente_nome=current.nome or current.username)
+    await registrar_auditoria(db, "FNS_PORTARIAS_EMAIL", usuario=current, ip=ip_de(request),
+                              tabela="fns_portaria_analise",
+                              detalhe=f"portaria {body.numero}/{body.exercicio} para {len(destinos)} destinatário(s): "
+                                      f"{'enviado' if res['ok'] else 'falhou'}")
+    if not res["ok"]:
+        raise HTTPException(503, res["erro"])
+    return {"ok": True, "destinatarios": destinos}
+
+
 @router.get("/portaria")
 async def portaria(current: SessaoMunicipal, numero: str = Query(..., min_length=1, max_length=60),
                    exercicio: int = Query(2026, ge=2015, le=2100), db: AsyncSession = Depends(get_db)):

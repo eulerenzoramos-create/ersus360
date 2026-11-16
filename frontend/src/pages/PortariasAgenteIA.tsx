@@ -5,8 +5,8 @@
  */
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, ExternalLink, RefreshCw, ShieldCheck, Sparkles, AlertTriangle, CheckCircle } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { X, ExternalLink, RefreshCw, ShieldCheck, Sparkles, AlertTriangle, CheckCircle, Download, Printer, Mail } from "lucide-react";
+import { api, apiGet, apiPost } from "../lib/api";
 
 const C = {
   indigo: "#283593", indigoL: "#e8eaf6", green: "#2e7d32", greenL: "#e8f5e9",
@@ -294,6 +294,7 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
               </span>
             </div>}
           </div>
+          {r && <AcoesPdf numero={numero} exercicio={exercicio} />}
           <button onClick={onClose} aria-label="Fechar" style={{ border: "none", background: "transparent", cursor: "pointer", color: C.gray }}><X size={20} /></button>
         </div>
 
@@ -539,6 +540,96 @@ function DocumentoOficial({ numero, exercicio, links }: { numero: string; exerci
         </div>
       )}
       {msg && <div style={{ fontSize: 12, marginTop: 6, color: msg.ok ? C.green : C.red }}>{msg.txt}</div>}
+    </div>
+  );
+}
+
+// ─── PDF da análise técnica: baixar, imprimir, enviar por e-mail ──────────────
+async function obterPdf(numero: string, exercicio: number): Promise<{ blob: Blob; nome: string }> {
+  const r = await api.get("/api/fns-portarias-ia/portaria/pdf", {
+    params: { numero, exercicio }, responseType: "blob",
+  });
+  const disp = String(r.headers["content-disposition"] ?? "");
+  const nome = /filename="([^"]+)"/.exec(disp)?.[1] ?? `analise-tecnica-portaria-${numero}-${exercicio}.pdf`;
+  return { blob: new Blob([r.data], { type: "application/pdf" }), nome };
+}
+
+function AcoesPdf({ numero, exercicio }: { numero: string; exercicio: number }) {
+  const [ocupado, setOcupado] = useState<"baixar" | "imprimir" | "email" | null>(null);
+  const [emailAberto, setEmailAberto] = useState(false);
+  const [destinos, setDestinos] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; txt: string } | null>(null);
+
+  const baixar = async () => {
+    setOcupado("baixar"); setMsg(null);
+    try {
+      const { blob, nome } = await obterPdf(numero, exercicio);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch { setMsg({ ok: false, txt: "Não foi possível gerar o PDF." }); }
+    finally { setOcupado(null); }
+  };
+  const imprimir = async () => {
+    setOcupado("imprimir"); setMsg(null);
+    try {
+      const { blob } = await obterPdf(numero, exercicio);
+      const url = URL.createObjectURL(blob);
+      const fr = document.createElement("iframe");
+      fr.style.position = "fixed"; fr.style.width = "0"; fr.style.height = "0"; fr.style.border = "0";
+      fr.src = url;
+      fr.onload = () => { try { fr.contentWindow?.focus(); fr.contentWindow?.print(); } catch { window.open(url, "_blank"); } };
+      document.body.appendChild(fr);
+      setTimeout(() => { fr.remove(); URL.revokeObjectURL(url); }, 120_000);
+    } catch { setMsg({ ok: false, txt: "Não foi possível gerar o PDF." }); }
+    finally { setOcupado(null); }
+  };
+  const enviar = async () => {
+    const lista = destinos.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+    if (!lista.length) return;
+    setOcupado("email"); setMsg(null);
+    try {
+      await apiPost("/api/fns-portarias-ia/portaria/enviar-email",
+        { numero, exercicio, destinatarios: lista, mensagem: mensagem.trim() || null });
+      setMsg({ ok: true, txt: `PDF enviado para ${lista.join(", ")}.` });
+      setEmailAberto(false); setDestinos(""); setMensagem("");
+    } catch (e: any) {
+      setMsg({ ok: false, txt: e?.response?.data?.detail ?? "Não foi possível enviar o e-mail." });
+    } finally { setOcupado(null); }
+  };
+
+  const b: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 10px", borderRadius: 7,
+    fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${C.indigo}55`, background: C.white, color: C.indigo };
+  return (
+    <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <button onClick={baixar} disabled={!!ocupado} style={b}><Download size={13} /> {ocupado === "baixar" ? "Gerando…" : "Baixar PDF"}</button>
+        <button onClick={imprimir} disabled={!!ocupado} style={b}><Printer size={13} /> {ocupado === "imprimir" ? "Gerando…" : "Imprimir"}</button>
+        <button onClick={() => { setEmailAberto(!emailAberto); setMsg(null); }} disabled={!!ocupado}
+          style={{ ...b, background: C.indigo, color: C.white, border: "none" }}><Mail size={13} /> Enviar por e-mail</button>
+      </div>
+      {emailAberto && (
+        <div style={{ position: "absolute", top: 36, right: 0, zIndex: 5, width: 340, background: C.white,
+          border: `1px solid ${C.bdr}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.15)", padding: 12 }}>
+          <div style={{ fontWeight: 800, fontSize: 12.5, color: C.indigo, marginBottom: 6 }}>Enviar PDF por e-mail</div>
+          <label style={{ fontSize: 11, color: C.sec, fontWeight: 600 }}>Para (até 5, separados por vírgula)</label>
+          <input value={destinos} onChange={e => setDestinos(e.target.value)} placeholder="secretaria@municipio.gov.br"
+            style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.bdr}`, fontSize: 12, marginBottom: 6 }} />
+          <label style={{ fontSize: 11, color: C.sec, fontWeight: 600 }}>Mensagem (opcional)</label>
+          <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} rows={3} maxLength={2000}
+            style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.bdr}`, fontSize: 12, fontFamily: "inherit" }} />
+          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 6 }}>
+            <button onClick={() => setEmailAberto(false)} style={b}>Cancelar</button>
+            <button onClick={enviar} disabled={ocupado === "email" || !destinos.trim()}
+              style={{ ...b, background: C.indigo, color: C.white, border: "none" }}>{ocupado === "email" ? "Enviando…" : "Enviar"}</button>
+          </div>
+          <div style={{ fontSize: 10.5, color: C.sec, marginTop: 6 }}>O PDF vai anexado. Se o envio não estiver configurado no servidor, baixe o PDF e anexe ao seu e-mail.</div>
+          {msg && <div style={{ fontSize: 11.5, color: msg.ok ? C.green : C.red, marginTop: 6 }}>{msg.txt}</div>}
+        </div>
+      )}
+      {msg && !emailAberto && <div style={{ fontSize: 11.5, color: msg.ok ? C.green : C.red, maxWidth: 360, textAlign: "right" }}>{msg.txt}</div>}
     </div>
   );
 }
