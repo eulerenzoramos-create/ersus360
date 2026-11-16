@@ -6,12 +6,14 @@ Router: Agente IA de análise das Portarias do FNS (aba Repasses Mensais — FNS
   POST /api/fns-portarias-ia/analisar-lote?exercicio=     reanalisa todas as portarias (forçado)
   POST /api/fns-portarias-ia/verificar-normas             confere os dispositivos no texto oficial
   POST /api/fns-portarias-ia/consultar                    "Consultar Aplicação do Recurso" (IA)
+  POST /api/fns-portarias-ia/documento                    cadastra o link oficial da portaria no catálogo
   POST /api/fns-portarias-ia/validar                      gestor marca a classificação como validada
 
 Consultivo: nada aqui autoriza despesa nem altera as transferências do FNS.
 """
 from __future__ import annotations
 
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -82,6 +84,32 @@ async def consultar(body: ConsultaIn, request: Request, current: SessaoMunicipal
     await registrar_auditoria(db, "FNS_PORTARIAS_CONSULTA_IA", usuario=current, ip=ip_de(request),
                               tabela="fns_portaria_analise",
                               detalhe=f"portaria {body.numero}/{body.exercicio}: {r['classificacao']}")
+    return r
+
+
+class DocumentoIn(BaseModel):
+    numero: str = Field(min_length=1, max_length=60)
+    exercicio: int = Field(2026, ge=2015, le=2100)
+    ano: int = Field(ge=1990, le=2100)
+    link: str = Field(min_length=12, max_length=1000)
+    data_publicacao: Optional[date] = None
+
+
+@router.post("/documento")
+async def registrar_documento(body: DocumentoIn, request: Request, current: SessaoMunicipal,
+                              db: AsyncSession = Depends(get_db)):
+    """Cadastra o link oficial da portaria no catálogo (só domínios oficiais; nunca sobrescreve link existente)."""
+    _pode_editar(current)
+    if body.ano > body.exercicio:
+        raise HTTPException(422, "O ano da portaria não pode ser posterior ao exercício do repasse.")
+    try:
+        r = await ag.registrar_documento(db, body.numero, body.ano, body.link, body.data_publicacao)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    await registrar_auditoria(db, "FNS_PORTARIAS_DOCUMENTO", usuario=current, ip=ip_de(request),
+                              tabela="portarias", detalhe=f"portaria {r['numero']}/{r['ano']} {r['acao']}")
+    # o catálogo mudou: a análise desta portaria passa a ter ano, data e link
+    await ag.analisar_lote(db, current.municipio_id, current.municipio_ibge, body.exercicio)
     return r
 
 
