@@ -11,6 +11,17 @@ ACS_USER = UserOut(username="acs-teste", nome="ACS Teste", cargo="Agente Comunit
 CONSULTA_USER = UserOut(username="consulta-teste", nome="Consulta Teste", cargo="Consulta", municipio="Apuí/AM", role="consulta")
 
 
+@pytest.fixture(autouse=True)
+def _cnes_sem_rede(monkeypatch):
+    """O mapa busca as UBS no CNES/DATASUS. Nos testes a lista é fixa: com o DATASUS lento, cada teste
+    esperava as consultas reais e estourava o limite de 90 s do CI (16/11/2026)."""
+    async def _ubs():
+        return [{"cnes": "2206406", "nome": "UBS Teste", "tipo": "CENTRO DE SAUDE/UNIDADE BASICA",
+                 "latitude": -7.1970, "longitude": -59.8870}]
+    import routers.mapa_visitas_domiciliares as mapa
+    monkeypatch.setattr(mapa, "buscar_estabelecimentos", _ubs)
+
+
 @pytest.fixture
 def app_com_overrides(db_session, municipio):
     async def _get_db_override():
