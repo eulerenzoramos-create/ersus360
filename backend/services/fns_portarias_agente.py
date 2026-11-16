@@ -1079,18 +1079,26 @@ def validar_emails(lista: list[str]) -> list[str]:
 
 async def enviar_pdf_email(r: dict, pdf: bytes, nome_arquivo: str, destinos: list[str], mensagem: str | None, *,
                            municipio: str | None, remetente_nome: str | None) -> dict:
-    """Envia pelo Resend (HTTPS — o Railway bloqueia SMTP), com o PDF anexado."""
+    """Envia por HTTPS (o Railway bloqueia SMTP), com o PDF anexado, para qualquer endereço.
+
+    Provedores, nesta ordem:
+      • Brevo  — BREVO_API_KEY + BREVO_SENDER (e-mail remetente verificado no Brevo; não exige domínio próprio);
+      • Resend — RESEND_API_KEY + EMAIL_FROM (exige domínio verificado; onboarding@resend.dev só entrega
+                 ao dono da conta Resend).
+    """
     import base64
     import html as _html
     import os
 
     import httpx
 
+    brevo = os.getenv("BREVO_API_KEY", "")
+    brevo_rem = os.getenv("BREVO_SENDER", "") or os.getenv("EMAIL_FROM", "")
     chave = os.getenv("RESEND_API_KEY", "")
     remetente = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
-    if not chave:
-        return {"ok": False, "erro": "Envio de e-mail não configurado no servidor (RESEND_API_KEY). "
-                                     "Baixe o PDF e anexe ao seu e-mail."}
+    if not (brevo and brevo_rem) and not chave:
+        return {"ok": False, "erro": "Envio de e-mail não configurado no servidor. "
+                                     "Use “Enviar pelo meu e-mail” ou baixe o PDF e anexe ao seu e-mail."}
     links = r.get("links") or {}
     titulo = ("Transferências sem portaria identificada" if r.get("numero_portaria") == SEM_PORTARIA
               else f"Portaria nº {links.get('numero_formatado') or r.get('numero_portaria')}")
@@ -1109,13 +1117,31 @@ async def enviar_pdf_email(r: dict, pdf: bytes, nome_arquivo: str, destinos: lis
         f"<p style='color:#6b7280;font-size:12px'>Enviado por {_html.escape(remetente_nome or 'usuário do ERSUS360')} "
         f"pelo ERSUS360.</p>"
     )
+    anexo = base64.b64encode(pdf).decode()
+    if brevo and brevo_rem:
+        try:
+            async with httpx.AsyncClient(timeout=30) as c:
+                resp = await c.post("https://api.brevo.com/v3/smtp/email",
+                                    headers={"api-key": brevo, "Content-Type": "application/json",
+                                             "accept": "application/json"},
+                                    json={"sender": {"email": brevo_rem, "name": "ERSUS360"},
+                                          "to": [{"email": d} for d in destinos], "subject": assunto,
+                                          "htmlContent": corpo,
+                                          "attachment": [{"name": nome_arquivo, "content": anexo}]})
+        except httpx.HTTPError as e:
+            logger.warning("Portarias IA: e-mail (Brevo) não enviado: %s", e)
+            return {"ok": False, "erro": "Serviço de e-mail indisponível agora. Use “Enviar pelo meu e-mail”."}
+        if resp.status_code in (200, 201, 202):
+            return {"ok": True}
+        logger.warning("Portarias IA: Brevo HTTP %s: %s", resp.status_code, resp.text[:300])
+        return {"ok": False, "erro": f"O serviço de e-mail recusou o envio (HTTP {resp.status_code}). "
+                                     "Use “Enviar pelo meu e-mail”."}
     try:
         async with httpx.AsyncClient(timeout=30) as c:
             resp = await c.post("https://api.resend.com/emails",
                                 headers={"Authorization": f"Bearer {chave}", "Content-Type": "application/json"},
                                 json={"from": remetente, "to": destinos, "subject": assunto, "html": corpo,
-                                      "attachments": [{"filename": nome_arquivo,
-                                                       "content": base64.b64encode(pdf).decode()}]})
+                                      "attachments": [{"filename": nome_arquivo, "content": anexo}]})
     except httpx.HTTPError as e:
         logger.warning("Portarias IA: e-mail não enviado: %s", e)
         return {"ok": False, "erro": "Serviço de e-mail indisponível agora. Baixe o PDF e anexe ao seu e-mail."}
@@ -1124,6 +1150,6 @@ async def enviar_pdf_email(r: dict, pdf: bytes, nome_arquivo: str, destinos: lis
     logger.warning("Portarias IA: Resend HTTP %s: %s", resp.status_code, resp.text[:300])
     if resp.status_code == 403 and remetente.endswith("@resend.dev"):
         return {"ok": False, "erro": "O remetente de teste do servidor só entrega para o dono da conta de e-mail. "
-                                     "Configure um domínio verificado (EMAIL_FROM) ou baixe o PDF e anexe ao seu e-mail."}
+                                     "Use “Enviar pelo meu e-mail” (funciona para qualquer endereço)."}
     return {"ok": False, "erro": f"O serviço de e-mail recusou o envio (HTTP {resp.status_code}). "
-                                 "Baixe o PDF e anexe ao seu e-mail."}
+                                 "Use “Enviar pelo meu e-mail”."}

@@ -696,6 +696,36 @@ function AcoesPdf({ numero, exercicio }: { numero: string; exercicio: number }) 
     } finally { setOcupado(null); }
   };
 
+  // Envio pelo e-mail do próprio usuário: funciona para qualquer endereço, sem depender do servidor de e-mail.
+  const enviarPeloMeuEmail = async () => {
+    const lista = destinos.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+    setOcupado("email"); setMsg(null);
+    try {
+      const { blob, nome } = await obterPdf(numero, exercicio);
+      const assunto = `Relatório técnico — Portaria nº ${numero} — Exercício ${exercicio}`;
+      const texto = (mensagem.trim() ? mensagem.trim() + "\n\n" : "")
+        + `Segue em anexo o relatório técnico da Portaria nº ${numero} (exercício ${exercicio}), gerado pelo ERSUS360.`;
+      const arquivo = new File([blob], nome, { type: "application/pdf" });
+      const nav: any = navigator;
+      if (nav.canShare?.({ files: [arquivo] })) {
+        // celular/tablet: abre o app de e-mail (ou WhatsApp etc.) já com o PDF anexado
+        try { await nav.share({ files: [arquivo], title: assunto, text: texto }); setEmailAberto(false); return; }
+        catch (e: any) { if (e?.name === "AbortError") return; }
+      }
+      // computador: baixa o PDF e abre o e-mail do usuário com destinatário, assunto e texto preenchidos
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      window.location.href = `mailto:${lista.map(encodeURIComponent).join(",")}`
+        + `?subject=${encodeURIComponent(assunto)}`
+        + `&body=${encodeURIComponent(texto + "\n\n(Anexe o arquivo " + nome + ", que acabou de ser baixado.)")}`;
+      setMsg({ ok: true, txt: `PDF baixado (${nome}). Anexe-o no e-mail que foi aberto.` });
+      setEmailAberto(false);
+    } catch { setMsg({ ok: false, txt: "Não foi possível gerar o PDF." }); }
+    finally { setOcupado(null); }
+  };
+
   const b: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 10px", borderRadius: 7,
     fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${C.indigo}55`, background: C.white, color: C.indigo };
   return (
@@ -710,18 +740,20 @@ function AcoesPdf({ numero, exercicio }: { numero: string; exercicio: number }) 
         <div style={{ position: "absolute", top: 36, right: 0, zIndex: 5, width: 340, background: C.white,
           border: `1px solid ${C.bdr}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.15)", padding: 12 }}>
           <div style={{ fontWeight: 800, fontSize: 12.5, color: C.indigo, marginBottom: 6 }}>Enviar PDF por e-mail</div>
-          <label style={{ fontSize: 11, color: C.sec, fontWeight: 600 }}>Para (até 5, separados por vírgula)</label>
-          <input value={destinos} onChange={e => setDestinos(e.target.value)} placeholder="secretaria@municipio.gov.br"
+          <label style={{ fontSize: 11, color: C.sec, fontWeight: 600 }}>Para — qualquer e-mail (até 5, separados por vírgula)</label>
+          <input value={destinos} onChange={e => setDestinos(e.target.value)} placeholder="nome@gmail.com, secretaria@municipio.gov.br"
             style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.bdr}`, fontSize: 12, marginBottom: 6 }} />
           <label style={{ fontSize: 11, color: C.sec, fontWeight: 600 }}>Mensagem (opcional)</label>
           <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} rows={3} maxLength={2000}
             style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.bdr}`, fontSize: 12, fontFamily: "inherit" }} />
-          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 6 }}>
+          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 6, flexWrap: "wrap" }}>
             <button onClick={() => setEmailAberto(false)} style={b}>Cancelar</button>
+            <button onClick={enviarPeloMeuEmail} disabled={ocupado === "email"} style={b}
+              title="Abre o seu e-mail com o PDF — funciona para qualquer endereço">Enviar pelo meu e-mail</button>
             <button onClick={enviar} disabled={ocupado === "email" || !destinos.trim()}
-              style={{ ...b, background: C.indigo, color: C.white, border: "none" }}>{ocupado === "email" ? "Enviando…" : "Enviar"}</button>
+              style={{ ...b, background: C.indigo, color: C.white, border: "none" }}>{ocupado === "email" ? "Enviando…" : "Enviar pelo ERSUS360"}</button>
           </div>
-          <div style={{ fontSize: 10.5, color: C.sec, marginTop: 6 }}>O PDF vai anexado. Se o envio não estiver configurado no servidor, baixe o PDF e anexe ao seu e-mail.</div>
+          <div style={{ fontSize: 10.5, color: C.sec, marginTop: 6 }}>“Enviar pelo ERSUS360” manda o PDF anexado pelo servidor. “Enviar pelo meu e-mail” abre o seu e-mail (no celular, já com o PDF anexado; no computador, o PDF é baixado para você anexar).</div>
           {msg && <div style={{ fontSize: 11.5, color: msg.ok ? C.green : C.red, marginTop: 6 }}>{msg.txt}</div>}
         </div>
       )}
