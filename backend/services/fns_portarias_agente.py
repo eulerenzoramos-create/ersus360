@@ -574,7 +574,111 @@ async def detalhe(db: AsyncSession, municipio_id: int | None, ibge: str, exercic
                       if a.validado_em else None)
     if a.validado_em:
         r["situacao"] = "validada"
+    r["links"] = await links_oficiais(db, numero, exercicio)
     return r
+
+
+# ── Link oficial da portaria ─────────────────────────────────────────────────────
+# O FNS informa só o número da portaria (nuPortaria), sem ano nem data. O link vem, nesta ordem:
+#   1. catálogo de portarias do ERSUS360 (cadastrado pelo gestor) — confirmado
+#   2. coletor diário do DOU (portarias_dou) — portarias do MS com o mesmo número; a conferir
+#   3. busca no DOU já preenchida com o número — sempre disponível
+
+DOMINIOS_OFICIAIS = ("in.gov.br", "saude.gov.br", "bvsms.saude.gov.br", "gov.br", "planalto.gov.br")
+
+
+def link_oficial_valido(url: str | None) -> bool:
+    from urllib.parse import urlparse
+    try:
+        u = urlparse((url or "").strip())
+    except ValueError:
+        return False
+    host = (u.hostname or "").lower()
+    return u.scheme == "https" and any(host == d or host.endswith("." + d) for d in DOMINIOS_OFICIAIS)
+
+
+def numero_formatado(numero: str) -> str:
+    d = _so_digitos(numero)
+    return f"{int(d):,}".replace(",", ".") if d else numero
+
+
+def _numero_no_titulo(titulo: str | None) -> str:
+    m = re.search(r"N[º°O]\.?\s*([\d.]+)", N.normalizar(titulo).replace("N.O", "NO"))
+    return _so_digitos(m.group(1)) if m else ""
+
+
+def _ano_no_titulo(titulo: str | None) -> int | None:
+    anos = re.findall(r"\b(20\d{2}|19\d{2})\b", titulo or "")
+    return int(anos[-1]) if anos else None
+
+
+def url_busca_dou(numero: str) -> str:
+    from urllib.parse import urlencode
+    q = f'"Portaria GM/MS nº {numero_formatado(numero)}"'
+    return "https://www.in.gov.br/consulta/-/buscar/dou?" + urlencode(
+        {"q": q, "s": "todos", "exactDate": "all", "sortType": "0"})
+
+
+async def links_oficiais(db: AsyncSession, numero: str, exercicio: int) -> dict:
+    out = {"cadastrado": [], "dou": [], "busca_dou": None, "numero_formatado": None}
+    if numero == SEM_PORTARIA or not _so_digitos(numero):
+        return out
+    alvo = _so_digitos(numero)
+    out["numero_formatado"] = numero_formatado(numero)
+    out["busca_dou"] = url_busca_dou(numero)
+
+    from models.portaria import Portaria
+    for p in (await db.execute(select(Portaria))).scalars():
+        if _so_digitos(p.numero) == alvo and (not p.ano or p.ano <= exercicio) and link_oficial_valido(p.link_diario):
+            out["cadastrado"].append({"ano": p.ano, "orgao": p.orgao_emissor, "link": p.link_diario,
+                                      "data_publicacao": p.data_publicacao.isoformat() if p.data_publicacao else None})
+
+    try:
+        from models.portaria_dou import PortariaDOU
+        rows = (await db.execute(select(PortariaDOU).where(PortariaDOU.numero.isnot(None),
+                                                           PortariaDOU.url_oficial.isnot(None)))).scalars().all()
+    except Exception as exc:  # tabela do coletor ausente num ambiente novo: segue sem ela
+        logger.warning("Portarias IA: portarias_dou indisponível: %s", exc)
+        rows = []
+    vistos = set()
+    for p in rows:
+        if (_so_digitos(p.numero) != alvo and _numero_no_titulo(p.titulo) != alvo) or not link_oficial_valido(p.url_oficial):
+            continue
+        ano = _ano_no_titulo(p.titulo) or (int(p.data_publicacao[:4]) if p.data_publicacao else None)
+        if ano and ano > exercicio or p.url_oficial in vistos:
+            continue
+        vistos.add(p.url_oficial)
+        out["dou"].append({"titulo": p.titulo, "ano": ano, "data_publicacao": p.data_publicacao,
+                           "orgao": p.orgao, "link": p.url_oficial})
+    out["dou"].sort(key=lambda x: x.get("data_publicacao") or "", reverse=True)
+    return out
+
+
+async def registrar_documento(db: AsyncSession, numero: str, ano: int, link: str,
+                              data_publicacao: date | None) -> dict:
+    """Cadastra o link oficial no catálogo de portarias. Cria a portaria (número + ano) se ainda não existir;
+    numa portaria existente só preenche o que está vazio — nunca sobrescreve dado já cadastrado."""
+    from models.portaria import Portaria
+    if not link_oficial_valido(link):
+        raise ValueError("Use o link oficial (https) do DOU (in.gov.br) ou do Ministério da Saúde (saude.gov.br).")
+    alvo = _so_digitos(numero)
+    if not alvo or numero == SEM_PORTARIA:
+        raise ValueError("Portaria sem número.")
+    existente = next((p for p in (await db.execute(select(Portaria).where(Portaria.ano == ano))).scalars()
+                      if _so_digitos(p.numero) == alvo), None)
+    if existente is None:
+        existente = Portaria(numero=alvo, ano=ano, orgao_emissor="GM/MS", link_diario=link.strip(),
+                             data_publicacao=data_publicacao)
+        db.add(existente)
+        acao = "criada"
+    else:
+        if existente.link_diario and existente.link_diario.strip() != link.strip():
+            raise ValueError(f"A portaria nº {numero_formatado(numero)}/{ano} já tem outro link cadastrado no catálogo.")
+        existente.link_diario = existente.link_diario or link.strip()
+        existente.data_publicacao = existente.data_publicacao or data_publicacao
+        acao = "atualizada"
+    await db.commit()
+    return {"ok": True, "acao": acao, "numero": alvo, "ano": ano}
 
 
 async def validar(db: AsyncSession, ibge: str, exercicio: int, numero: str, usuario: str, nota: str | None) -> bool:

@@ -53,6 +53,7 @@ interface AnaliseIA {
   transferencias: { id: number; mes: number; numero_ob: string | null; programa: string | null; bloco: string | null;
     natureza: string; despesa: string; valor_liquido: number; finalidade: string; propostas: string[]; parcela_fns: string | null }[];
   verificado_em: string | null; validacao: { por: string; em: string; nota: string | null } | null; aviso: string;
+  links?: LinksPortaria;
 }
 interface RespostaConsulta {
   classificacao: string; categoria: string; justificativa: string; base_legal: Citacao[];
@@ -309,6 +310,7 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
 
         {r && aba === "analise" && (
           <div>
+            <DocumentoOficial numero={numero} exercicio={exercicio} links={r.links} />
             {r.pendencias.length > 0 && (
               <div style={{ background: C.amberL, borderRadius: 8, padding: "8px 12px", marginTop: 12, fontSize: 12, color: C.amber }}>
                 <b>Pendências:</b>
@@ -318,7 +320,6 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
             {sec("Identificação")}
             {linha("Número", r.identificacao.numero)}
             {linha("Ano / publicação", r.identificacao.ano ? `${r.identificacao.ano} · ${dataBR(r.identificacao.data_publicacao)}` : "Não confirmado — portaria não cadastrada no catálogo")}
-            {r.identificacao.link && linha("Documento oficial", <a href={r.identificacao.link} target="_blank" rel="noopener noreferrer">{r.identificacao.link}</a>)}
             {linha("Natureza do recurso", Object.entries(r.identificacao.naturezas).map(([n, v]) => `${n}: ${BRL(v)}`).join(" · "))}
             {linha("Bloco de financiamento (FNS)", r.identificacao.blocos.join(" · ") || "Não informado pelo FNS")}
             {linha("Programa / componente (FNS)", r.identificacao.programas.join(" · "))}
@@ -435,6 +436,109 @@ export function AnaliseTecnicaPortaria({ numero, exercicio, abrirConsulta, onClo
         )}
         {r && <div style={{ fontSize: 10.5, color: C.sec, marginTop: 18 }}>{r.aviso}</div>}
       </div>
+    </div>
+  );
+}
+
+// ─── Link oficial da portaria ─────────────────────────────────────────────────
+interface LinkDoc { ano: number | null; link: string; data_publicacao: string | null; orgao?: string | null; titulo?: string }
+interface LinksPortaria { cadastrado: LinkDoc[]; dou: LinkDoc[]; busca_dou: string | null; numero_formatado: string | null }
+
+function DocumentoOficial({ numero, exercicio, links }: { numero: string; exercicio: number; links?: LinksPortaria }) {
+  const qc = useQueryClient();
+  const [aberto, setAberto] = useState(false);
+  const [form, setForm] = useState({ ano: "", data: "", link: "" });
+  const [salvando, setSalvando] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; txt: string } | null>(null);
+  if (!links || !links.busca_dou) return null;   // "Sem portaria": não há o que linkar
+
+  const salvar = async (dados: { ano: string; data: string; link: string }) => {
+    setSalvando(true); setMsg(null);
+    try {
+      await apiPost("/api/fns-portarias-ia/documento", {
+        numero, exercicio, ano: Number(dados.ano), link: dados.link.trim(),
+        data_publicacao: dados.data || null,
+      });
+      setMsg({ ok: true, txt: "Link oficial registrado no catálogo de portarias." });
+      setAberto(false);
+      await qc.invalidateQueries({ queryKey: ["fns-portaria-ia", exercicio, numero] });
+      await qc.invalidateQueries({ queryKey: ["fns-portarias-ia"] });
+    } catch (e: any) {
+      setMsg({ ok: false, txt: e?.response?.data?.detail ?? "Não foi possível registrar o link." });
+    } finally { setSalvando(false); }
+  };
+  const usar = (d: LinkDoc) => salvar({ ano: String(d.ano ?? ""), data: (d.data_publicacao ?? "").slice(0, 10), link: d.link });
+  const abrir = (href: string, txt: string) => (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      style={{ color: C.blue, fontWeight: 700, wordBreak: "break-all" }}>{txt} <ExternalLink size={11} style={{ verticalAlign: "-1px" }} /></a>
+  );
+  const inp: CSSProperties = { padding: "5px 7px", borderRadius: 6, border: `1px solid ${C.bdr}`, fontSize: 12 };
+  const cad = links.cadastrado[0];
+
+  return (
+    <div style={{ border: `1px solid ${cad ? "#a5d6a7" : C.bdr}`, background: cad ? C.greenL : C.grayL, borderRadius: 10,
+      padding: "10px 12px", marginTop: 12 }}>
+      <div style={{ fontWeight: 800, fontSize: 12.5, color: C.indigo, textTransform: "uppercase", letterSpacing: 0.4 }}>
+        Documento oficial — Portaria nº {links.numero_formatado}
+      </div>
+
+      {cad ? (
+        <div style={{ fontSize: 12.5, marginTop: 6 }}>
+          {abrir(cad.link, cad.link)}
+          <div style={{ color: C.green, fontSize: 11.5, marginTop: 2 }}>
+            ✓ Cadastrado no catálogo{cad.ano ? ` · ${cad.orgao ?? "GM/MS"} ${cad.ano}` : ""}{cad.data_publicacao ? ` · publicada em ${dataBR(cad.data_publicacao)}` : ""}
+          </div>
+        </div>
+      ) : links.dou.length > 0 ? (
+        <div style={{ fontSize: 12.5, marginTop: 6 }}>
+          <div style={{ color: C.amber, fontSize: 11.5, marginBottom: 4 }}>
+            Encontrada no DOU pela captura diária do ERSUS360. Confira se é a portaria do repasse (o FNS informa só o número, sem o ano).
+          </div>
+          {links.dou.map(d => (
+            <div key={d.link} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "4px 0", borderTop: `1px dashed ${C.bdr}` }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                {abrir(d.link, d.titulo || d.link)}
+                <div style={{ color: C.sec, fontSize: 11 }}>{d.data_publicacao ? `Publicada em ${dataBR(d.data_publicacao)}` : ""}{d.orgao ? ` · ${d.orgao}` : ""}</div>
+              </div>
+              {d.ano && <button onClick={() => usar(d)} disabled={salvando} style={btn(false)}>Confirmar este link</button>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: C.sec, marginTop: 6 }}>
+          Link ainda não cadastrado. O FNS informa só o número da portaria, sem o ano.
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+        <a href={links.busca_dou} target="_blank" rel="noopener noreferrer" style={{ ...btn(false), textDecoration: "none" }}>
+          <ExternalLink size={12} /> Buscar no Diário Oficial da União
+        </a>
+        {!cad && <button onClick={() => setAberto(!aberto)} style={btn(true)}>Registrar link oficial</button>}
+      </div>
+
+      {aberto && !cad && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end", marginTop: 8 }}>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: 10, fontWeight: 600, color: C.sec }}>
+            Ano da portaria
+            <input type="number" min={1990} max={exercicio} value={form.ano} placeholder={String(exercicio)}
+              onChange={e => setForm({ ...form, ano: e.target.value })} style={{ ...inp, width: 90 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: 10, fontWeight: 600, color: C.sec }}>
+            Publicação (opcional)
+            <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} style={inp} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: 10, fontWeight: 600, color: C.sec, flex: "1 1 260px" }}>
+            Link oficial (DOU ou Saúde Legis)
+            <input value={form.link} placeholder="https://www.in.gov.br/web/dou/-/portaria-gm/ms-n-…"
+              onChange={e => setForm({ ...form, link: e.target.value })} style={inp} />
+          </label>
+          <button onClick={() => salvar(form)} disabled={salvando || !form.ano || form.link.trim().length < 12} style={btn(true)}>
+            {salvando ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      )}
+      {msg && <div style={{ fontSize: 12, marginTop: 6, color: msg.ok ? C.green : C.red }}>{msg.txt}</div>}
     </div>
   );
 }

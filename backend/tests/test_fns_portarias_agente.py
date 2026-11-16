@@ -216,3 +216,56 @@ def test_portaria_com_finalidades_diferentes_tem_uma_matriz_para_cada():
     assert {c["categoria"]: c["classificacao"] for c in acs}["consumo"] == N.ANALISE
     assert {c["categoria"]: c["classificacao"] for c in regular}["consumo"] == N.PERMITIDO
     assert [t["finalidade"] for t in r["transferencias"]][1].startswith("Assistência financeira complementar")
+
+
+def test_link_oficial_so_aceita_dominios_oficiais():
+    assert ag.link_oficial_valido("https://www.in.gov.br/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024-553925580")
+    assert ag.link_oficial_valido("https://bvsms.saude.gov.br/bvs/saudelegis/gm/2024/prt3493_11_04_2024.html")
+    assert not ag.link_oficial_valido("http://www.in.gov.br/x")              # sem https
+    assert not ag.link_oficial_valido("https://in.gov.br.golpe.com/x")
+    assert not ag.link_oficial_valido("javascript:alert(1)")
+    assert ag.numero_formatado("10146") == "10.146" and ag.numero_formatado("3493") == "3.493"
+    assert ag._numero_no_titulo("PORTARIA GM/MS Nº 10.146, DE 3 DE SETEMBRO DE 2026") == "10146"
+    assert "Portaria+GM%2FMS+n%C2%BA+3.493" in ag.url_busca_dou("3493")
+
+
+async def test_analise_tecnica_traz_link_da_portaria(ambiente):
+    c, S = ambiente["client"], ambiente["Session"]
+    await _popular(S)
+    from models.portaria_dou import PortariaDOU
+    async with S() as db:
+        db.add_all([
+            PortariaDOU(titulo="PORTARIA GM/MS Nº 3.493, DE 10 DE ABRIL DE 2024", numero="3.493",
+                        data_publicacao="2024-04-11", orgao="Ministério da Saúde/Gabinete do Ministro",
+                        url_oficial="https://www.in.gov.br/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024",
+                        chave_dedup="a" * 32),
+            # mesmo número, publicada depois do exercício → não serve
+            PortariaDOU(titulo="PORTARIA GM/MS Nº 3.493, DE 2 DE MARÇO DE 2027", numero="3.493",
+                        data_publicacao="2027-03-03", url_oficial="https://www.in.gov.br/web/dou/-/outra",
+                        chave_dedup="b" * 32),
+        ])
+        await db.commit()
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    r = (await c.get("/api/fns-portarias-ia/portaria?exercicio=2026&numero=3493", headers=_h(tok))).json()
+    links = r["links"]
+    assert [d["ano"] for d in links["dou"]] == [2024]
+    assert links["cadastrado"] == [] and "3.493" in links["busca_dou"]
+
+    # gestor registra o link oficial → catálogo → identificação com ano e link
+    url = "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2024/prt3493_11_04_2024.html"
+    ruim = await c.post("/api/fns-portarias-ia/documento", headers=_h(tok),
+                        json={"numero": "3493", "exercicio": 2026, "ano": 2024, "link": "https://site-falso.com/p"})
+    assert ruim.status_code == 422
+    tok_consulta = await _token(c, "ana.consulta@apui.gov.br")
+    assert (await c.post("/api/fns-portarias-ia/documento", headers=_h(tok_consulta),
+                         json={"numero": "3493", "exercicio": 2026, "ano": 2024, "link": url})).status_code == 403
+    ok = await c.post("/api/fns-portarias-ia/documento", headers=_h(tok),
+                      json={"numero": "3493", "exercicio": 2026, "ano": 2024, "link": url, "data_publicacao": "2024-04-11"})
+    assert ok.status_code == 200, ok.text
+    r = (await c.get("/api/fns-portarias-ia/portaria?exercicio=2026&numero=3493", headers=_h(tok))).json()
+    assert r["links"]["cadastrado"][0]["link"] == url
+    assert r["identificacao"]["ano"] == 2024 and r["identificacao"]["link"] == url
+    # link diferente para a mesma portaria/ano não sobrescreve o cadastrado
+    outro = await c.post("/api/fns-portarias-ia/documento", headers=_h(tok),
+                         json={"numero": "3493", "exercicio": 2026, "ano": 2024, "link": "https://www.in.gov.br/web/dou/-/x"})
+    assert outro.status_code == 422
