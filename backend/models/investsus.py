@@ -566,3 +566,52 @@ class LimiteProgramaInvestSUS(Base):
     historico: Mapped[list | None] = mapped_column(JSON, nullable=True)
     registrado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     registrado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class ContaRegularizacaoInvestSUS(Base):
+    """Conta bancária de emenda no painel FNS "Regularização Contas Emendas" (ADPF 854).
+    Uma linha por município × conta × proposta. Lida do painel público (services/
+    investsus_regularizacao_contas.py) ou recebida de agente externo; nunca digitada."""
+    __tablename__ = "is_contas_regularizacao"
+    __table_args__ = (
+        Index("ix_is_contas_reg_mun_conta_prop", "municipio_id", "conta_dv", "numero_proposta", unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    proposta_id: Mapped[int | None] = mapped_column(ForeignKey("is_propostas.id"), nullable=True, index=True)
+    cnpj: Mapped[str] = mapped_column(String(14))
+    uf: Mapped[str] = mapped_column(String(2))
+    municipio: Mapped[str] = mapped_column(String(100))
+    esfera: Mapped[str] = mapped_column(String(20))
+    banco: Mapped[str] = mapped_column(String(60))
+    agencia_dv: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    conta_dv: Mapped[str] = mapped_column(String(30))
+    nova_conta_cef: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    data_abertura: Mapped[date | None] = mapped_column(Date, nullable=True)
+    status_regularizacao: Mapped[str] = mapped_column(String(40))
+    possui_pendencia: Mapped[bool] = mapped_column(Boolean, default=False)
+    numero_emenda: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    numero_proposta: Mapped[str] = mapped_column(String(200))
+    link_consulta_fns: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    presente_ultima_coleta: Mapped[bool] = mapped_column(Boolean, default=True)
+    historico: Mapped[list | None] = mapped_column(JSON, nullable=True)  # [{em, de, para}]
+    primeira_coleta_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ColetaRegularizacaoInvestSUS(Base):
+    """Registro de cada leitura do painel de regularização (auditoria da coleta)."""
+    __tablename__ = "is_contas_regularizacao_coletas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    origem: Mapped[str] = mapped_column(String(30))  # qlik_engine | agente_externo | agendado
+    usuario: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    filtros: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    resumo: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    atualizacao_bb: Mapped[date | None] = mapped_column(Date, nullable=True)
+    atualizacao_cef: Mapped[date | None] = mapped_column(Date, nullable=True)
+    ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    erro: Mapped[str | None] = mapped_column(Text, nullable=True)
