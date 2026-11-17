@@ -555,6 +555,33 @@ async def _job_investsus_federal() -> None:
         logger.error("[Scheduler] Erro no job INVESTSUS 360: %s", exc, exc_info=True)
 
 
+async def _job_investsus_regularizacao_contas() -> None:
+    """Regularização de Contas de Emendas (ADPF 854): lê o painel público do FNS para cada município
+    ativo, grava a situação de cada conta e gera/encerra alertas de pendência. Painel sem login."""
+    logger.info("[Scheduler] InvestSUS: regularização de contas de emendas...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from tenancy.contexto import MunicipioContexto, contexto_municipio
+        from routers.investsus_regularizacao import sincronizar
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+        for mun in municipios:
+            ctx = MunicipioContexto(id=mun.id, uuid=mun.uuid, ibge=mun.codigo_ibge, nome=mun.nome, uf=mun.uf)
+            with contexto_municipio(ctx):
+                try:
+                    async with AsyncSessionLocal() as db:
+                        r = await sincronizar(db, mun.id, "agendado", "agente-regularizacao-contas")
+                    logger.info("[Scheduler] Regularização contas %s: %s contas, %s pendente(s), %s alerta(s) encerrado(s)",
+                                mun.codigo_ibge, r["resumo"]["total_contas"], r["resumo"]["total_pendentes"],
+                                r["alertas_encerrados"])
+                except Exception as exc:  # painel fora do ar etc. — não para os demais municípios
+                    logger.warning("[Scheduler] Regularização contas %s: %s", mun.codigo_ibge, exc)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job de regularização de contas: %s", exc, exc_info=True)
+
+
 async def _job_fns_portarias_ia() -> None:
     """Agente das Portarias FNS: confere a vigência dos dispositivos no texto oficial e reanalisa as portarias
     do exercício atual e do anterior de cada município ativo (só regrava o que mudou)."""
@@ -765,6 +792,11 @@ def start_scheduler() -> None:
     scheduler.add_job(_job_investsus_federal,
                       CronTrigger(hour="6,13", minute=40, timezone="America/Manaus"),
                       id="investsus_federal", replace_existing=True, misfire_grace_time=3600)
+
+    # InvestSUS — Regularização de Contas (painel FNS atualizado semanalmente pelo BB/CEF): 1x/dia
+    scheduler.add_job(_job_investsus_regularizacao_contas,
+                      CronTrigger(hour=6, minute=50, timezone="America/Manaus"),
+                      id="investsus_regularizacao_contas", replace_existing=True, misfire_grace_time=3600)
 
     scheduler.start()
     logger.info(
