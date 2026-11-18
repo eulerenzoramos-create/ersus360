@@ -454,6 +454,8 @@ from routers.egestor_diagnostico import router as egestor_diagnostico_router
 app.include_router(egestor_diagnostico_router)
 from routers.egestor_pagamento import router as egestor_pagamento_router
 app.include_router(egestor_pagamento_router)
+from routers.aps_simulador import router as aps_simulador_router
+app.include_router(aps_simulador_router)
 from routers.siaps_publico import router as siaps_publico_router, router_ia as siaps_ia_router
 app.include_router(siaps_publico_router)
 app.include_router(siaps_ia_router)
