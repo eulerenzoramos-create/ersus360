@@ -157,7 +157,8 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                      "percentual": round(min(100.0, cap / populacao * 100), 1),
                      "nota": "Capacidade de cadastro das eSF pagas pelo parâmetro do Art. 11, § 1º (sem eAP/eSFR) "
                              "dividida pela população do MS — não é a cobertura oficial do e-Gestor."}
-    perfil = {"estrato_ied": estrato, "estrato_texto": r48.get("dsFaixaIndiceEquidade"), "populacao": populacao,
+    uf = next((e["detalhe"].get("sgUf") for e in pg["equipes"] if (e.get("detalhe") or {}).get("sgUf")), None)
+    perfil = {"uf": uf, "estrato_ied": estrato, "estrato_texto": r48.get("dsFaixaIndiceEquidade"), "populacao": populacao,
               "populacao_ano": pop_ano, "quadrimestre_avaliacao": quad, "cobertura_estimada": cobertura,
               "classificacao_vinculo_egestor": pg.get("classificacao_vinculo"),
               "classificacao_qualidade_egestor": pg.get("classificacao_qualidade"),
@@ -165,71 +166,154 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                            "homologadas_siaps": (hv or {}).get("homologadas", {}).get(t),
                            "validas_siaps": (hv or {}).get("validas", {}).get(t)} for t in tipos]}
 
-    # ── Transição (Art. 3º) ─────────────────────────────────────────────────────────────────────────────
-    fim = (params.get("transicao.fim") or {}).get("valor_texto")
-    em_transicao = None if not fim else parcela < fim
-    transicao = {"meses": V("transicao.meses"), "fim": fim, "em_transicao": em_transicao,
-                 "norma": params["transicao.meses"]["norma"],
-                 "texto": ("Durante a transição o MS paga vínculo e qualidade de eSF/eAP no valor “Bom”, "
-                           "independente do desempenho. "
-                           + ("Competência final ainda não registrada: o efeito financeiro do desempenho é "
-                              "mostrado como “após a transição”." if not fim else
-                              f"Transição até {fim[4:]}/{fim[:4]} (registrada)."))}
-    if not fim:
-        alertas.append({"tipo": "atualizacao_manual", "texto": "Registrar a competência final da regra de transição "
-                        "(Art. 3º da PRT 3.493/2024, red. PRT 6.907/2025) para aplicar o desempenho real.",
-                        "chave": "transicao.fim"})
-
-    # ── Conferência norma × pago (diferenças) ─────────────────────────────────────────────────────────────
-    confere: dict[str, bool] = {}
-    diferencas: list[dict] = []
-
-    def conferir(chave: str, rotulo: str, esperado: float | None, pago: float | None, qt: float, base: str):
-        if esperado is None or pago is None or not qt:
-            return
-        ok = abs(esperado - pago) <= TOL * max(1, qt)
-        confere[chave] = ok
-        if not ok:
-            diferencas.append({"tipo": "parametro_divergente", "componente": rotulo, "esperado_norma": esperado,
-                               "pago_egestor": pago, "diferenca": round(pago - esperado, 2),
-                               "texto": f"{rotulo}: pela norma ({base}) seriam {_brl(esperado)}; o e-Gestor pagou "
-                                        f"{_brl(pago)}. Há norma posterior não registrada ou outra regra aplicada — "
-                                        "o incremento deste componente não entra no total até atualizar o parâmetro."})
-            alertas.append({"tipo": "atualizacao_manual", "texto": f"Parâmetro de “{rotulo}” diverge do valor pago "
-                            "no e-Gestor: registrar a norma vigente.", "chave": chave})
-
-    if estrato and qt_pag_esf:
-        conferir("fixo.eSF", "eSF — componente fixo", V(f"fixo.eSF.{estrato}") * qt_pag_esf,
-                 r48.get("vlPagamentoFixo"), qt_pag_esf, f"Art. 9º-B, {estrato}")
-    cl_v = _norm(pg.get("classificacao_vinculo")).lower() or None
-    cl_q = _norm(pg.get("classificacao_qualidade")).lower() or None
-    if qt_pag_esf and cl_v in ap.CLASSES:
-        conferir("vinculo.eSF", "eSF — vínculo e acompanhamento", V(f"vinculo.eSF.{cl_v}") * qt_pag_esf,
-                 r48.get("vlPagamentoVinculo"), qt_pag_esf, f"Anexo II, {ap.ROTULO_CLASSE[cl_v]}")
-    if qt_pag_esf and cl_q in ap.CLASSES:
-        conferir("qualidade.eSF", "eSF — qualidade", V(f"qualidade.eSF.{cl_q}") * qt_pag_esf,
-                 r48.get("vlPagamentoQualidade"), qt_pag_esf, f"Anexo III, {ap.ROTULO_CLASSE[cl_q]}")
-    # eMulti: modalidade pelos quantitativos pagos
+    # ── Regra de pagamento de vínculo e qualidade — detectada no próprio pagamento do e-Gestor ─────────────
+    # Para cada componente, compara o valor pago com (a) todas as equipes no valor "Bom" (regra de transição) e
+    # (b) a classificação de cada equipe em cada avaliação quadrimestral capturada. O que fechar é a regra que o
+    # MS aplicou nesta parcela. Equipe paga sem avaliação no quadrimestre (nova homologação) entra como "Bom"
+    # (Art. 12-D, § 2º). Nada fecha → divergência (parâmetro/norma a registrar).
+    por_quad: dict[str, dict] = {}
+    for r in await sq._ativos(db, municipio_id):
+        por_quad.setdefault(r.quadrimestre, {})[(r.componente, r.ine)] = r
+    quads = sorted(por_quad, reverse=True)
+    pg_eq: dict[str, list] = {}
+    for e in pg["equipes"]:
+        pg_eq.setdefault(e["ine"], []).append(e)
+    pagos = {co: [e["ine"] for e in pg["equipes"] if e["co_componente"] == co and e["ok"]] for co in (48, 5, 42, 7)}
+    r5 = _res(comps, 5)
+    qI, qII = int(_n(r5.get("qtPagamentoModalidadeI"))), int(_n(r5.get("qtPagamentoModalidadeII")))
+    qIq, qIIq = int(_n(r5.get("qtPagamentoEqpQuilombAssentModalI"))), int(_n(r5.get("qtPagamentoEqpQuilombAssentModalII")))
     ref42 = (_res(comps, 42).get("_referencia") or {})
     qpag = ref42.get("quantitativoPagamento") or {}
     mod_emulti = {"qtAmpliada": "ampliada", "qtComplementar": "complementar", "qtEstrategica": "estrategica"}
     emulti_mods = {m: int(qpag.get(k) or 0) for k, m in mod_emulti.items() if qpag.get(k)}
-    if emulti_mods:
-        esperado = sum(V(f"qualidade.eMulti.{m}.bom") * q for m, q in emulti_mods.items())
-        conferir("qualidade.eMulti", "eMulti — qualidade", esperado, _res(comps, 51).get("vlTotal"),
-                 sum(emulti_mods.values()), "Anexo III, Bom (transição)")
-    # eSB: modalidade I/II e quilombola/assentamento pelos quantitativos pagos
-    r5 = _res(comps, 5)
-    esb_mods = {}
-    qI, qII = int(_n(r5.get("qtPagamentoModalidadeI"))), int(_n(r5.get("qtPagamentoModalidadeII")))
-    qIq, qIIq = int(_n(r5.get("qtPagamentoEqpQuilombAssentModalI"))), int(_n(r5.get("qtPagamentoEqpQuilombAssentModalII")))
-    for m, q in (("I_quil", qIq), ("II_quil", qIIq), ("I", max(0, qI - qIq)), ("II", max(0, qII - qIIq))):
-        if q:
-            esb_mods[m] = q
-    if esb_mods:
-        esperado = sum(V(f"qualidade.eSB.{m}.bom") * q for m, q in esb_mods.items())
-        conferir("qualidade.eSB", "eSB — qualidade", esperado, _res(comps, 50).get("vlTotal"),
-                 sum(esb_mods.values()), "Anexo III, Bom (transição)")
+
+    def chave_esb(ine: str) -> str | None:
+        det = next((v["detalhe"] for v in pg_eq.get(ine, []) if v["co_componente"] == 5), {}) or {}
+        mod = "II" if str(det.get("modalidade")) == "2" else "I" if str(det.get("modalidade")) == "1" else None
+        if mod is None:
+            return None
+        tot, quil = (qI, qIq) if mod == "I" else (qII, qIIq)
+        if quil and quil != tot:
+            return None                                    # mistura comum × quilombola/assentamento: não identificável
+        return f"qualidade.eSB.{mod}{'_quil' if quil else ''}"
+
+    REGRAS = [
+        ("qualidade.eSF", "eSF — qualidade", "QUALIDADE", pagos[48], lambda i: "qualidade.eSF", r48.get("vlPagamentoQualidade")),
+        ("vinculo.eSF", "eSF — vínculo e acompanhamento", "CVAT", pagos[48], lambda i: "vinculo.eSF", r48.get("vlPagamentoVinculo")),
+        ("qualidade.eSB", "eSB — qualidade", "QUALIDADE", pagos[5], chave_esb, _res(comps, 50).get("vlTotal")),
+        ("qualidade.eMulti", "eMulti — qualidade", "QUALIDADE", pagos[42],
+         (lambda i: f"qualidade.eMulti.{next(iter(emulti_mods))}") if len(emulti_mods) == 1 else (lambda i: None),
+         _res(comps, 51).get("vlTotal")),
+        ("qualidade.eSFR", "eSFR — qualidade", "QUALIDADE", pagos[7], lambda i: "qualidade.eSFR", _res(comps, 58).get("vlTotal")),
+        ("vinculo.eSFR", "eSFR — vínculo e acompanhamento", "CVAT", pagos[7], lambda i: "vinculo.eSFR", _res(comps, 61).get("vlTotal")),
+    ]
+    periodo = (params.get("transicao.periodo") or {}).get("valor_texto") or ""
+    fim_transicao = periodo.split("-")[-1] if "-" in periodo else "999999"
+    regras: dict[str, dict] = {}
+    cands_por: dict[str, list] = {}
+    diferencas: list[dict] = []
+    for chave, rotulo, comp_q, ines_pagos, chave_fn, pago in REGRAS:
+        if not ines_pagos or pago is None:
+            continue
+        pago = _n(pago)
+
+        def val(ine, classe, _f=chave_fn):
+            k = _f(ine)
+            return V(f"{k}.{classe}") if k and classe in ap.CLASSES else None
+
+        def soma(classes: dict, _ines=ines_pagos, _val=val) -> float | None:
+            vs = [_val(i, classes.get(i) or "bom") for i in _ines]
+            return None if any(v is None for v in vs) else round(sum(vs), 2)
+
+        cand_bom = soma({})
+        cands = []
+        for q in quads:
+            cls = {i: (por_quad[q].get((comp_q, i)).classificacao if por_quad[q].get((comp_q, i)) else None) for i in ines_pagos}
+            cands.append((q, cls, soma(cls)))
+        tol = TOL * max(1, len(ines_pagos))
+        reg = {"chave": chave, "rotulo": rotulo, "pago": pago, "equipes_pagas": len(ines_pagos), "componente_siaps": comp_q,
+               "valor_bom": cand_bom, "regra": None, "quadrimestre": None, "esperado": None, "classes": {}}
+        bom_ok = cand_bom is not None and abs(cand_bom - pago) <= tol
+        # avaliação que explica o pagamento: com alguma equipe fora de "Bom" (senão não se distingue da transição)
+        achou = next(((q, cls, s) for q, cls, s in cands if s is not None and abs(s - pago) <= tol
+                      and any((cls.get(i) or "bom") != "bom" for i in ines_pagos)), None)
+        empate = next(((q, cls, s) for q, cls, s in cands if s is not None and abs(s - pago) <= tol
+                       and any(cls.get(i) for i in ines_pagos)), None)
+        if cand_bom is None and not achou:
+            reg["regra"] = "sem_parametro"
+        elif achou:
+            q, cls, s = achou
+            reg.update(regra="classificacao", quadrimestre=q, esperado=s,
+                       classes={i: cls.get(i) or "bom" for i in ines_pagos})
+        elif bom_ok:
+            # todas "Bom": transição ou classificação Bom de fato — resolvido abaixo pelo mesmo componente do SIAPS
+            reg.update(regra="bom", esperado=cand_bom, classes={i: "bom" for i in ines_pagos},
+                       _empate=empate[0] if empate and parcela > fim_transicao else None)
+        else:
+            reg.update(regra="divergente", esperado=cand_bom)
+        # previsão com a avaliação mais recente (a próxima parcela recalculada usa a avaliação seguinte)
+        if reg["regra"] == "classificacao" and quads and quads[0] > reg["quadrimestre"]:
+            q0, cls0 = cands[0][0], cands[0][1]
+            s0 = soma({i: cls0.get(i) or reg["classes"].get(i) for i in ines_pagos})   # sem avaliação nova: mantém a paga
+            reg.update(previsao_quadrimestre=q0, previsao_mensal=s0,
+                       variacao_mensal=None if s0 is None else round(s0 - pago, 2))
+        regras[chave] = reg
+        cands_por[chave] = (cands, soma, ines_pagos)
+        if reg["regra"] == "divergente":
+            diferencas.append({"tipo": "parametro_divergente", "componente": rotulo, "esperado_norma": cand_bom,
+                               "pago_egestor": pago, "diferenca": round(pago - cand_bom, 2),
+                               "texto": f"{rotulo}: o valor pago ({_brl(pago)}) não fecha nem com “Bom” para todas "
+                                        f"({_brl(cand_bom)}) nem com a classificação das equipes em nenhuma avaliação "
+                                        "capturada. Registrar a norma vigente ou capturar a avaliação do quadrimestre."})
+            alertas.append({"tipo": "atualizacao_manual", "chave": chave,
+                            "texto": f"“{rotulo}”: pagamento não confere com os parâmetros cadastrados — registrar a norma vigente."})
+        elif reg["regra"] == "sem_parametro":
+            lacunas.append(f"{rotulo}: sem tabela por classificação cadastrada para a modalidade paga — incremento não calculado.")
+
+    # empate "Bom para todas" × avaliação com todas "Bom": se outro componente do mesmo bloco do SIAPS (ex.: qualidade)
+    # já é pago pela classificação das equipes, este também é
+    for reg in regras.values():
+        q_emp = reg.pop("_empate", None)
+        if reg["regra"] == "bom" and q_emp and any(o["regra"] == "classificacao" and o["componente_siaps"] == reg["componente_siaps"]
+                                                   for o in regras.values()):
+            reg.update(regra="classificacao", quadrimestre=q_emp)
+            if quads and quads[0] > q_emp:
+                cs, soma_f, ines_f = cands_por[reg["chave"]]
+                q0, cls0 = cs[0][0], cs[0][1]
+                s0 = soma_f({i: cls0.get(i) or "bom" for i in ines_f})
+                reg.update(previsao_quadrimestre=q0, previsao_mensal=s0,
+                           variacao_mensal=None if s0 is None else round(s0 - reg["pago"], 2))
+    ROT_REGRA = {"bom": "todas as equipes no valor “Bom” (regra de transição / nova homologação)",
+                 "classificacao": "classificação de cada equipe na avaliação {q}",
+                 "divergente": "não identificada — pago não confere com os parâmetros",
+                 "sem_parametro": "sem parâmetro cadastrado"}
+    for reg in regras.values():
+        reg["regra_texto"] = ROT_REGRA[reg["regra"]].format(q=reg.get("quadrimestre"))
+    transicao = {"periodo": (params.get("transicao.periodo") or {}).get("valor_texto"),
+                 "norma": params["transicao.periodo"]["norma"],
+                 "regras": [{"componente": r["rotulo"], "regra": r["regra"], "texto": r["regra_texto"],
+                             "quadrimestre": r.get("quadrimestre")} for r in regras.values()],
+                 "texto": ("Transição (PRT 6.907/2025; perguntas frequentes do SIAPS): de maio/2024 a dezembro/2025 o MS "
+                           "pagou vínculo e qualidade no valor “Bom”. O simulador identifica, no pagamento de cada parcela, "
+                           "qual regra foi aplicada em cada componente.")}
+
+    # ── Conferência do componente fixo ────────────────────────────────────────────────────────────────
+    confere: dict[str, bool] = {}
+    if estrato and qt_pag_esf and r48.get("vlPagamentoFixo") is not None:
+        esperado = V(f"fixo.eSF.{estrato}") * qt_pag_esf
+        confere["fixo.eSF"] = abs(esperado - _n(r48.get("vlPagamentoFixo"))) <= TOL * qt_pag_esf
+        if not confere["fixo.eSF"]:
+            diferencas.append({"tipo": "parametro_divergente", "componente": "eSF — componente fixo",
+                               "esperado_norma": esperado, "pago_egestor": r48.get("vlPagamentoFixo"),
+                               "texto": f"eSF — componente fixo: pela norma (Art. 9º-B, {estrato}) seriam {_brl(esperado)}; "
+                                        f"o e-Gestor pagou {_brl(_n(r48.get('vlPagamentoFixo')))}."})
+    for reg in regras.values():
+        if reg.get("variacao_mensal"):
+            v = reg["variacao_mensal"]
+            diferencas.append({"tipo": "previsao_proxima_avaliacao", "componente": reg["rotulo"], "diferenca": v,
+                               "texto": f"{reg['rotulo']}: com a avaliação {reg['previsao_quadrimestre']} (mais recente) o "
+                                        f"valor mensal passa de {_brl(reg['pago'])} para {_brl(reg['previsao_mensal'])} "
+                                        f"({'+' if v > 0 else '−'}{_brl(abs(v))}/mês) quando o MS aplicar essa avaliação."})
 
     # ── Situação atual por componente (valores pagos — fonte oficial) ────────────────────────────────────
     componentes = []
@@ -259,14 +343,15 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                                     "credenciada. O total acima soma os dois como publicado; conferir no e-Gestor/FNS se é "
                                     "um único desconto (nesse caso o valor recebido é maior)."})
 
-    # ── Por equipe: valor atual (rateio do pago) × previsto pela norma com o desempenho real ────────────
-    pg_eq: dict[str, list] = {}
-    for e in pg["equipes"]:
-        pg_eq.setdefault(e["ine"], []).append(e)
+    # ── Por equipe: pago (pela regra identificada) × previsto (avaliação mais recente) × potencial ─────────
     nomes = {e.ine: e for e in equipes_siaps}
     ines = sorted(set(nomes) | set(pg_eq), key=lambda i: (tipos.index(nomes[i].tipo) if i in nomes and nomes[i].tipo in tipos else 9,
                                                            nomes[i].nome if i in nomes else i))
-    por_equipe, inc_prox, inc_otimo, inc_nc = [], 0.0, 0.0, 0.0
+    por_equipe, inc_prox, inc_otimo, inc_apos, inc_nc = [], 0.0, 0.0, 0.0, 0.0
+    COMP_POR_TIPO = {"eSF": [("vinculo", "vinculo.eSF"), ("qualidade", "qualidade.eSF")], "eSB": [("qualidade", "qualidade.eSB")],
+                     "eMulti": [("qualidade", "qualidade.eMulti")],
+                     "eSFR": [("vinculo", "vinculo.eSFR"), ("qualidade", "qualidade.eSFR")]}
+    FN = {r[0]: r[4] for r in REGRAS}
 
     def rateio(co: int, campo: str, qt_campo: str = "qtPagamento") -> float | None:
         r = _res(comps, co)
@@ -276,121 +361,89 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
     for ine in ines:
         eq = nomes.get(ine)
         tipo = eq.tipo if eq else (pg_eq[ine][0].get("tipo") if pg_eq.get(ine) else None)
-        val = pg_eq.get(ine, [])
-        pago_ok = any(v["ok"] for v in val) if val else None
-        pend = [p["rotulo"] + ": " + str(p["situacao"]) for v in val for p in v["pendencias"]]
+        vals = pg_eq.get(ine, [])
+        pago_ok = any(v["ok"] for v in vals) if vals else None
+        pend = [p["rotulo"] + ": " + str(p["situacao"]) for v in vals for p in v["pendencias"]]
         aq, av = aval.get(("QUALIDADE", ine)), aval.get(("CVAT", ine))
-        linha = {"ine": ine, "equipe": eq.nome if eq else (val[0].get("equipe") if val else None), "tipo": tipo,
+        linha = {"ine": ine, "equipe": eq.nome if eq else (vals[0].get("equipe") if vals else None), "tipo": tipo,
                  "homologada": aq.homologada if aq else None, "valida": aq.equipe_valida if aq else None,
-                 "credenciada_egestor": bool(val), "pagamento_ok": pago_ok, "pendencias": pend,
+                 "credenciada_egestor": bool(vals), "pagamento_ok": pago_ok, "pendencias": pend,
                  "vinculo": {"classificacao": av.classificacao, "nota": av.nota_final} if av else None,
                  "qualidade": {"classificacao": aq.classificacao, "nota": aq.nota_final} if aq else None,
                  "atual": {}, "norma": {}, "melhoria": [], "observacoes": []}
-        if tipo == "eSF":
-            if pago_ok:
-                linha["atual"] = {"fixo": rateio(48, "vlPagamentoFixo"), "vinculo": rateio(48, "vlPagamentoVinculo"),
-                                  "qualidade": rateio(48, "vlPagamentoQualidade")}
-            linha["norma"]["fixo"] = V(f"fixo.eSF.{estrato}") if estrato else None
-            for comp_k, reg, chave in (("vinculo", av, "vinculo.eSF"), ("qualidade", aq, "qualidade.eSF")):
-                if not reg or reg.classificacao not in ap.CLASSES:
-                    linha["observacoes"].append(f"Sem classificação de {comp_k} no SIAPS.")
-                    continue
-                atual_v = V(f"{chave}.{reg.classificacao}")
-                linha["norma"][comp_k] = atual_v
-                confirmado = confere.get(chave, False)
-                for alvo, acum in ((_proxima(reg.classificacao), "prox"), ("otimo", "otimo")):
-                    if not alvo or alvo == reg.classificacao or (acum == "otimo" and reg.classificacao == "otimo"):
-                        continue
-                    ganho = V(f"{chave}.{alvo}") - atual_v
-                    if acum == "prox":
-                        plano = plano_melhoria(reg, alvo)
-                        linha["melhoria"].append({"componente": comp_k, "de": reg.classificacao, "para": alvo,
-                                                  "incremento_mensal": ganho, "confirmado": confirmado,
-                                                  "plano": plano, "norma": params[f"{chave}.{alvo}"]["norma"]})
-                    if not reg.equipe_valida:
-                        continue
-                    if confirmado:
-                        if acum == "prox":
-                            inc_prox += ganho
-                        else:
-                            inc_otimo += ganho
-                    elif acum == "prox":
+        # custeio/fixo (não dependem de classificação)
+        if pago_ok:
+            if tipo == "eSF":
+                linha["atual"]["fixo"] = rateio(48, "vlPagamentoFixo")
+            elif tipo == "eSB":
+                linha["atual"]["custeio"] = rateio(5, "vlPagamento", "qtPagamentoModalidadeI") if not qII else None
+            elif tipo == "eMulti":
+                linha["atual"]["custeio"] = rateio(42, "vlPagamento", "qtHomologado")
+                linha["atual"]["atendimento_remoto"] = _n(_res(comps, 55).get("vlTotal")) / max(1, sum(emulti_mods.values())) if emulti_mods else None
+            elif tipo == "eSFR":
+                linha["atual"]["custeio"] = rateio(7, "vlPagamento")
+        linha["norma"] = {k: v for k, v in linha["atual"].items()}
+        if tipo == "eSF" and estrato:
+            linha["norma"]["fixo"] = V(f"fixo.eSF.{estrato}")
+        for comp_k, chave in COMP_POR_TIPO.get(tipo, []):
+            reg_regra = regras.get(chave)
+            reg_aval = av if comp_k == "vinculo" else aq
+            kfn = FN.get(chave)
+            k_base = kfn(ine) if kfn else None
+            if pago_ok and reg_regra and reg_regra["regra"] in ("bom", "classificacao") and k_base:
+                cl_pago = reg_regra["classes"].get(ine, "bom")
+                linha["atual"][comp_k] = V(f"{k_base}.{cl_pago}")
+            elif pago_ok and reg_regra:
+                tot = {"qualidade.eSF": r48.get("vlPagamentoQualidade"), "vinculo.eSF": r48.get("vlPagamentoVinculo"),
+                       "qualidade.eSB": _res(comps, 50).get("vlTotal"), "qualidade.eMulti": _res(comps, 51).get("vlTotal"),
+                       "qualidade.eSFR": _res(comps, 58).get("vlTotal"), "vinculo.eSFR": _res(comps, 61).get("vlTotal")}.get(chave)
+                linha["atual"][comp_k] = round(_n(tot) / max(1, reg_regra["equipes_pagas"]), 2)
+            if not reg_aval or reg_aval.classificacao not in ap.CLASSES or not k_base:
+                if not k_base and pago_ok:
+                    linha["observacoes"].append(f"Modalidade sem tabela de {comp_k} identificável: valor pela norma não calculado.")
+                elif pago_ok:
+                    linha["observacoes"].append(f"Sem classificação de {comp_k} na avaliação mais recente do SIAPS.")
+                continue
+            cl = reg_aval.classificacao
+            atual_v = V(f"{k_base}.{cl}")
+            linha["norma"][comp_k] = atual_v
+            regra = reg_regra["regra"] if reg_regra else "sem_parametro"
+            efeito = {"classificacao": "proxima_avaliacao", "bom": "apos_transicao"}.get(regra, "nao_confirmado")
+            alvo = _proxima(cl)
+            if alvo:
+                ganho = V(f"{k_base}.{alvo}") - atual_v
+                linha["melhoria"].append({"componente": comp_k, "de": cl, "para": alvo, "incremento_mensal": ganho,
+                                          "confirmado": efeito != "nao_confirmado", "efeito": efeito,
+                                          "plano": plano_melhoria(reg_aval, alvo), "norma": params[f"{k_base}.{alvo}"]["norma"]})
+                if reg_aval.equipe_valida and pago_ok:
+                    if efeito == "proxima_avaliacao":
+                        inc_prox += ganho
+                    elif efeito == "apos_transicao":
+                        inc_apos += ganho
+                    else:
                         inc_nc += ganho
-        elif tipo == "eSB":
-            if pago_ok:
-                linha["atual"] = {"custeio": rateio(5, "vlPagamento", "qtPagamentoModalidadeI")
-                                  if not qII else None,
-                                  "qualidade": round(_n(_res(comps, 50).get("vlTotal")) / sum(esb_mods.values()), 2)
-                                  if esb_mods else None}
-            mods = list(esb_mods)
-            if aq and aq.classificacao in ap.CLASSES and len(mods) == 1:
-                chave = f"qualidade.eSB.{mods[0]}"
-                atual_v = V(f"{chave}.{aq.classificacao}")
-                linha["norma"]["qualidade"] = atual_v
-                alvo = _proxima(aq.classificacao)
-                if alvo:
-                    ganho = V(f"{chave}.{alvo}") - atual_v
-                    conf = confere.get("qualidade.eSB", False)
-                    linha["melhoria"].append({"componente": "qualidade", "de": aq.classificacao, "para": alvo,
-                                              "incremento_mensal": ganho, "confirmado": conf,
-                                              "plano": plano_melhoria(aq, alvo), "norma": params[f"{chave}.{alvo}"]["norma"]})
-                    if aq.equipe_valida:
-                        inc_prox, inc_nc = (inc_prox + ganho, inc_nc) if conf else (inc_prox, inc_nc + ganho)
-                if aq.classificacao != "otimo" and aq.equipe_valida and confere.get("qualidade.eSB"):
-                    inc_otimo += V(f"{chave}.otimo") - atual_v
-            elif len(mods) > 1:
-                linha["observacoes"].append("Modalidade da eSB (I/II, quilombola/assentamento) não identificável por equipe.")
-        elif tipo == "eMulti":
-            if pago_ok:
-                linha["atual"] = {"custeio": rateio(42, "vlPagamento", "qtHomologado"),
-                                  "qualidade": _n(_res(comps, 51).get("vlTotal")) / max(1, sum(emulti_mods.values())) if emulti_mods else None,
-                                  "atendimento_remoto": _n(_res(comps, 55).get("vlTotal")) / max(1, sum(emulti_mods.values())) if emulti_mods else None}
-            if len(emulti_mods) == 1 and aq and aq.classificacao in ap.CLASSES and pago_ok:
-                m = next(iter(emulti_mods))
-                chave = f"qualidade.eMulti.{m}"
-                atual_v = V(f"{chave}.{aq.classificacao}")
-                linha["norma"]["qualidade"] = atual_v
-                alvo = _proxima(aq.classificacao)
-                if alvo:
-                    ganho = V(f"{chave}.{alvo}") - atual_v
-                    conf = confere.get("qualidade.eMulti", False)
-                    linha["melhoria"].append({"componente": "qualidade", "de": aq.classificacao, "para": alvo,
-                                              "incremento_mensal": ganho, "confirmado": conf,
-                                              "plano": plano_melhoria(aq, alvo), "norma": params[f"{chave}.{alvo}"]["norma"]})
-                    if aq.equipe_valida:
-                        inc_prox, inc_nc = (inc_prox + ganho, inc_nc) if conf else (inc_prox, inc_nc + ganho)
-                if aq.classificacao != "otimo" and aq.equipe_valida and confere.get("qualidade.eMulti"):
-                    inc_otimo += V(f"{chave}.otimo") - atual_v
-            if not val:
-                linha["observacoes"].append("Equipe no SIAPS sem credenciamento/pagamento no e-Gestor.")
-        elif tipo == "eSFR":
-            if pago_ok:
-                linha["atual"] = {"custeio": rateio(7, "vlPagamento"), "vinculo": _n(_res(comps, 61).get("vlTotal")) or None,
-                                  "qualidade": _n(_res(comps, 58).get("vlTotal")) or None}
-            linha["observacoes"].append("Valores de vínculo/qualidade da eSFR por classificação não estão na tabela "
-                                        "da PRT 3.493/2024 cadastrada: incremento não calculado (atualização manual).")
-        if tipo in ("eSB", "eMulti") and linha["norma"]:
-            # custeio e atendimento remoto não variam com a classificação: entram pelo valor pago (e-Gestor)
-            for kk in ("custeio", "atendimento_remoto"):
-                if linha["atual"].get(kk) is not None:
-                    linha["norma"][kk] = linha["atual"][kk]
-        elif tipo == "eSFR" and linha["atual"]:
-            linha["norma"] = {"custeio": linha["atual"].get("custeio")}
-            linha["observacoes"].append("Pela norma: só o custeio (vínculo/qualidade da eSFR sem tabela cadastrada).")
+            if cl != "otimo" and reg_aval.equipe_valida and pago_ok and efeito == "proxima_avaliacao":
+                inc_otimo += V(f"{k_base}.otimo") - atual_v
+        linha["atual"] = {k: v for k, v in linha["atual"].items() if v is not None}
+        linha["norma"] = {k: v for k, v in linha["norma"].items() if v is not None}
         linha["atual_total"] = round(sum(_n(v) for v in linha["atual"].values()), 2) if linha["atual"] else None
         linha["norma_total"] = round(sum(_n(v) for v in linha["norma"].values()), 2) if linha["norma"] else None
         por_equipe.append(linha)
 
-    efeito_hoje = em_transicao is False
+    efeito_hoje = inc_prox > 0
+    variacao_proxima = round(sum(r.get("variacao_mensal") or 0 for r in regras.values()), 2)
     desempenho = {
         "incremento_mensal_proximo_nivel": round(inc_prox, 2),
         "incremento_mensal_todas_otimo": round(inc_otimo, 2),
+        "incremento_mensal_apos_transicao": round(inc_apos, 2),
         "incremento_mensal_nao_confirmado": round(inc_nc, 2),
+        "variacao_proxima_avaliacao_mensal": variacao_proxima,
         "efeito_financeiro": "imediato" if efeito_hoje else "apos_transicao",
+        "regras": list(regras.values()),
         "texto": ("Incremento por desempenho = valor pela norma com a classificação melhorada − valor pela norma com a "
-                  "classificação atual (equipes válidas). Só entram parâmetros conferidos com o valor pago no e-Gestor. "
-                  + ("" if efeito_hoje else "Enquanto durar a transição, o MS paga “Bom”: o incremento vale a partir "
-                     "do fim da transição.")),
+                  "classificação atual (equipes válidas). Entra no total só onde o MS já paga pela classificação de cada "
+                  "equipe (regra identificada no pagamento). Onde ainda paga “Bom” para todas (transição), o ganho aparece "
+                  "como “após a transição”."),
     }
 
     oportunidades = _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, aval)
@@ -404,7 +457,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
     inc_cred_pot = round(sum(grupos.values()), 2)
     implantacao_pot = round(sum(o.get("implantacao_total") or 0 for o in oportunidades
                                 if o["elegibilidade"] in ("confirmada", "potencial") and o.get("conta_implantacao", True)), 2)
-    inc_desemp_total = desempenho["incremento_mensal_proximo_nivel"] if efeito_hoje else 0.0
+    inc_desemp_total = desempenho["incremento_mensal_proximo_nivel"]
     total_mensal = round(mensal_atual + inc_desemp_total + inc_cred_conf, 2)
 
     pend_norma = [h for h in await ap.historico(db, municipio_id) if h["situacao"] == "pendente_validacao"]
@@ -422,7 +475,9 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
             "implantacao_nao_recorrente_a_confirmar": implantacao_pot,
             "total_potencial_mensal": total_mensal, "total_potencial_anual": round(total_mensal * 12, 2),
             "total_com_a_confirmar_mensal": round(total_mensal + inc_cred_pot +
-                                                  (0 if efeito_hoje else desempenho["incremento_mensal_proximo_nivel"]), 2),
+                                                  desempenho["incremento_mensal_apos_transicao"], 2),
+            "incremento_desempenho_apos_transicao_mensal": desempenho["incremento_mensal_apos_transicao"],
+            "variacao_proxima_avaliacao_mensal": desempenho["variacao_proxima_avaliacao_mensal"],
             "oportunidades": len(oportunidades),
             "oportunidades_confirmadas": sum(1 for o in oportunidades if o["elegibilidade"] == "confirmada"),
             "oportunidades_pendentes": sum(1 for o in oportunidades if o["elegibilidade"] == "potencial"),
@@ -485,7 +540,8 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
         por_esf = round((_n(r48.get("vlPagamentoFixo")) + _n(r48.get("vlPagamentoVinculo")) +
                          _n(r48.get("vlPagamentoQualidade"))) / _n(pag), 2)
     por_esf_norma = (V(f"fixo.eSF.{estrato}") + V("vinculo.eSF.bom") + V("qualidade.eSF.bom")) if estrato else None
-    ref_esf = "valor por eSF pago nesta parcela (e-Gestor)" if por_esf else "PRT 3.493/2024 (fixo + vínculo/qualidade “Bom”)"
+    ref_esf = ("fixo do estrato + vínculo e qualidade no valor “Bom” (nova homologação recebe “Bom” até o 2º recálculo, "
+               "Art. 12-D, § 2º)" if por_esf_norma else "valor por eSF pago nesta parcela (e-Gestor)")
 
     # 1. eSF credenciada e ainda não homologada
     if isinstance(cred, (int, float)) and isinstance(hom, (int, float)) and cred > hom:
@@ -493,7 +549,7 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
         ops.append(_op("esf_homologacao", "eSF — homologação de equipe já credenciada", quantidade=n,
                        situacao_atual=f"{int(cred)} eSF credenciadas, {int(hom)} homologadas, {int(pag or 0)} pagas (e-Gestor).",
                        perfil=f"Estrato {estrato[1:] if estrato else '—'}; teto {teto} eSF.",
-                       elegibilidade="potencial", custeio_unitario=por_esf or por_esf_norma,
+                       elegibilidade="potencial", custeio_unitario=por_esf_norma or por_esf,
                        implantacao_unitaria=V("implantacao.eSF"), portaria="PRT GM/MS 3.493/2024",
                        fundamento="Art. 9º-B (fixo), Art. 3º § 3º (nova homologação recebe vínculo e qualidade no valor "
                                   f"“Bom”), Art. 9º-C (implantação). Custeio por equipe: {ref_esf}.",
@@ -511,7 +567,7 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
             ops.append(_op("esf_nova", "eSF — credenciamento de nova equipe (vaga no teto)", quantidade=vagas,
                            situacao_atual=f"Teto de {int(teto)} eSF; {int(cred)} credenciadas → {vagas} vaga(s).",
                            perfil=f"População {perfil['populacao'] or '—'}; estrato {estrato[1:] if estrato else '—'}.",
-                           elegibilidade="potencial", custeio_unitario=por_esf or por_esf_norma,
+                           elegibilidade="potencial", custeio_unitario=por_esf_norma or por_esf,
                            implantacao_unitaria=V("implantacao.eSF"), portaria="PRT GM/MS 3.493/2024",
                            fundamento=f"Art. 9º-B, Art. 9º-C e teto publicado no e-Gestor. Custeio por equipe: {ref_esf}.",
                            condicoes=["Profissionais (médico, enfermeiro, técnico de enfermagem, ACS) contratados",
@@ -568,6 +624,7 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
                            pendencias=["Modalidade", "Ato de credenciamento", "Homologação"],
                            providencia="Prioridade: confirmar modalidade e solicitar credenciamento da 2ª eMulti.",
                            grupo_exclusivo="emulti_2"))
+    ops.extend(_oportunidades_esfr(comps, params, perfil))
     # 4. eSB — modalidade II e novas equipes
     r5, ref5 = _res(comps, 5), _ref(comps, 5).get("valoresReferencia") or {}
     vI, vII = ref5.get("vlCusteioModalidadeI"), ref5.get("vlCusteioModalidadeII")
@@ -595,7 +652,6 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
     # 5. Programas publicados no e-Gestor sem recebimento (descoberta automática)
     conhecidos = {
         6: ("ecr", "Equipe de Consultório na Rua (eCR)", ["População em situação de rua no território (critério da portaria)"]),
-        7: ("esfr", "eSF Ribeirinha (eSFR) — novas equipes", ["Território ribeirinho/fluvial com população dispersa"]),
         8: ("academia", "Academia da Saúde — polo", ["Polo construído/habilitado"]),
         9: ("uom", "Unidade Odontológica Móvel (UOM)", ["Veículo/unidade móvel e eSB vinculada"]),
         10: ("ubsf", "Unidade Básica de Saúde Fluvial (UBSF)", ["Embarcação UBSF e equipe ribeirinha"]),
@@ -643,6 +699,104 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
     return ops
 
 
+AMAZONIA_LEGAL_PANTANAL = {"AC", "AM", "AP", "PA", "RO", "RR", "TO", "MT", "MA", "MS"}   # MS: Pantanal Sul-Mato-Grossense
+
+
+def _oportunidades_esfr(comps, params, perfil) -> list[dict]:
+    """Arranjo ribeirinho (PRT GM/MS 5.850/2024, Arts. 69–72; PRT 8.994/2025): o pagamento da eSFR no e-Gestor é
+    comparado com o custeio base. Se só o base é pago, profissionais adicionais e logística não estão sendo
+    custeados — oportunidade de adequação. Estruturas registradas (embarcações/unidades de apoio) vêm do e-Gestor."""
+    V = lambda k: ap.valor(params, k)                                  # noqa: E731
+    r7 = _res(comps, 7)
+    if not r7 or not V("esfr.custeio"):
+        return []
+    norma = params["esfr.custeio"]["norma"].split(",")[0]
+    qt = int(_n(r7.get("qtPagamento")))
+    pago_custeio = _n(r7.get("vlPagamento"))
+    base = V("esfr.custeio") * qt
+    so_base = qt and abs(pago_custeio - base) <= TOL
+    est = _res(comps, 7).get("_estruturas") or _res(comps, 10).get("_estruturas") or {}
+    emb, apoio = est.get("embarcacoes") or [], est.get("unidades_apoio") or []
+    uf = perfil.get("uf")
+    amazonia = uf in AMAZONIA_LEGAL_PANTANAL if uf else None
+    fator = 1.0 if amazonia is not False else 0.5        # PRT 8.994/2025: 50% fora da Amazônia Legal/Pantanal
+    r14 = _res(comps, 14)
+    micro = int(_n(r14.get("qtPagamento")))
+    v_micro = (_ref(comps, 14).get("valoresReferencia") or {}).get("vlCusteio")
+    v_acs = (_ref(comps, 12).get("valoresReferencia") or {}).get("vlCusteio")
+    situacao = (f"{qt} eSFR paga(s): {_brl(pago_custeio)} de custeio "
+                + ("(só o valor base — sem profissionais adicionais nem logística)." if so_base else
+                   f"(base {_brl(base)} + adicionais/logística {_brl(pago_custeio - base)}).")
+                + f" Registradas no e-Gestor: {len(emb)} embarcação(ões), {len(apoio)} unidade(s) de apoio.")
+    etapas = ["Elaborar o projeto: território, população das comunidades, rios do circuito, programação anual de viagens "
+              "(retorno a cada comunidade em até 60 dias), organização da oferta e da referência/urgência",
+              "Aprovar a proposta na CIB/CIR e o Plano de Saúde no Conselho Municipal de Saúde",
+              "Solicitar ao Ministério da Saúde pelo sistema de credenciamento vigente (análise técnica e orçamentária da SAPS)",
+              "Após a portaria, cadastrar no SCNES os profissionais, embarcações e unidades de apoio vinculados ao estabelecimento",
+              "Manter a produção mensal nos sistemas nacionais"]
+    cond = ["Atendimento à população por no mínimo 14 dias/mês + 2 dias de educação permanente/planejamento",
+            "Embarcações e unidades de apoio identificadas com a programação visual do SUS e cadastradas no SCNES"]
+    ops = []
+    comum = dict(portaria=norma, condicoes=cond, etapas=etapas, situacao_atual=situacao,
+                 perfil=(f"Município com eSFR credenciada e paga; UF {uf or '—'} "
+                         + ("(Amazônia Legal/Pantanal: logística sem o limite de 50% da PRT 8.994/2025)." if amazonia else
+                            "(logística limitada a 50% pela PRT 8.994/2025)." if amazonia is False else "(UF não identificada).")))
+    if not qt:
+        return ops
+    # logística: embarcações já registradas sem incentivo
+    if so_base and emb:
+        ops.append(_op("esfr_embarcacao_registrada", "eSFR — incentivo de logística das embarcações já registradas",
+                       quantidade=min(4, len(emb)), custeio_unitario=round(V("esfr.logistica.embarcacao") * fator, 2), elegibilidade="potencial",
+                       fundamento=f"{params['esfr.logistica.embarcacao']['norma']}: R$ 6.000 por embarcação de pequeno porte "
+                                  "(até 4). O e-Gestor registra a embarcação, mas o custeio pago é só o valor base.",
+                       pendencias=["Aprovação CIB/CIR do arranjo", "Solicitação do incentivo de logística ao MS"],
+                       providencia="Adequar a eSFR à portaria: solicitar o incentivo de logística da(s) embarcação(ões) já registrada(s).",
+                       observacao="Embarcação(ões): " + "; ".join(f"nº {e.get('nuEmbarcacao', '—')} — {e.get('dsComunidadeAtendida', '')} "
+                                                                f"({e.get('noEmbarcacao', '')})" for e in emb[:4]),
+                       **comum))
+    rest_emb = max(0, 4 - len(emb))
+    for oid, nome, chave, qtd, txt in (
+            ("esfr_embarcacoes", "eSFR — novas embarcações de pequeno porte", "esfr.logistica.embarcacao", rest_emb, "até 4 embarcações"),
+            ("esfr_unidades_apoio", "eSFR — unidades de apoio (satélites)", "esfr.logistica.unidade_apoio", max(0, 4 - len(apoio)), "até 4 unidades de apoio"),
+            ("esfr_pickup", "eSFR — veículos pick-up 4x4", "esfr.logistica.pickup", 2, "até 2 pick-ups")):
+        if qtd:
+            ops.append(_op(oid, nome, quantidade=qtd, custeio_unitario=round(V(chave) * fator, 2), elegibilidade="potencial",
+                           fundamento=f"{params[chave]['norma']}: {_brl(V(chave))} por unidade ({txt})"
+                                      + ("" if fator == 1 else " — 50% fora da Amazônia Legal/Pantanal (PRT 8.994/2025)") + ".",
+                           pendencias=["Estrutura existente/adquirida", "Aprovação CIB/CIR", "Solicitação ao MS"],
+                           providencia=f"Avaliar necessidade do território e incluir {txt.replace('até ', 'até ')} no projeto da eSFR.",
+                           **comum))
+    # profissionais adicionais (só o base é pago → nenhum adicional custeado hoje)
+    if so_base:
+        for oid, nome, chave, qtd in (("esfr_aux_enf", "eSFR — auxiliares/técnicos de enfermagem adicionais", "esfr.prof.aux_tec_enfermagem", 11),
+                                      ("esfr_saude_bucal", "eSFR — auxiliar/técnico em saúde bucal", "esfr.prof.saude_bucal", 1),
+                                      ("esfr_nivel_superior", "eSFR — profissionais de nível superior adicionais", "esfr.prof.nivel_superior", 2)):
+            ops.append(_op(oid, nome, quantidade=qtd, custeio_unitario=V(chave), elegibilidade="potencial",
+                           fundamento=f"{params[chave]['norma']}: {_brl(V(chave))} por profissional/mês.",
+                           pendencias=["Profissionais contratados e cadastrados na eSFR no SCNES", "Aprovação CIB/CIR", "Solicitação ao MS"],
+                           providencia="Incluir os profissionais adicionais no projeto/solicitação da eSFR.",
+                           observacao="Quantidade = máximo da portaria; o e-Gestor paga hoje só o custeio base (nenhum adicional).",
+                           **comum))
+    if v_micro and micro < 12:
+        ops.append(_op("esfr_microscopistas", "eSFR — microscopistas adicionais (região endêmica)", quantidade=12 - micro,
+                       custeio_unitario=v_micro, elegibilidade="potencial",
+                       fundamento=f"PRT GM/MS 5.850/2024, Art. 70 (até 12, valor vigente por profissional); valor de referência "
+                                  f"do e-Gestor {_brl(v_micro)}. Hoje {micro} pagos.",
+                       pendencias=["Área endêmica de malária", "Profissionais cadastrados na eSFR"],
+                       providencia="Avaliar necessidade de microscopistas (área endêmica) até o limite de 12.", **comum))
+    # nova eSFR (usa vaga do teto de eSF)
+    vq, vv = V("qualidade.eSFR.bom"), V("vinculo.eSFR.bom")
+    ops.append(_op("esfr_nova", "eSFR — nova equipe ribeirinha (vaga do teto de eSF)", quantidade=1,
+                   custeio_unitario=round(V("esfr.custeio") + (vq or 0) + (vv or 0), 2),
+                   implantacao_unitaria=V("esfr.implantacao"), elegibilidade="potencial",
+                   fundamento=f"{norma}: custeio {_brl(V('esfr.custeio'))} + vínculo e qualidade “Bom” por 12 parcelas "
+                              f"(Art. 69-D); implantação {_brl(V('esfr.implantacao'))} (Art. 69-A).",
+                   pendencias=["Comunidades acessadas por rio", "Vaga no teto de eSF", "Aprovação CIB/CIR"],
+                   providencia="Se houver comunidades só acessíveis por rio, comparar nova eSFR × nova eSF na vaga do teto.",
+                   grupo_exclusivo="esf_vaga", **comum))
+    return ops
+
+
 def _respostas(kpis, desempenho, ops, pg, transicao) -> list[dict]:
     brl = _brl
     pot = [o for o in ops if o["elegibilidade"] == "potencial"]
@@ -652,11 +806,16 @@ def _respostas(kpis, desempenho, ops, pg, transicao) -> list[dict]:
          "resposta": f"{brl(kpis['financiamento_atual_mensal'])} na {pg['parcela_rotulo']} (pago, e-Gestor) — "
                      f"projeção anual {brl(kpis['financiamento_atual_anual'])} se mantido."},
         {"pergunta": "Quanto poderá incrementar melhorando os indicadores?",
-         "resposta": f"{brl(desempenho['incremento_mensal_proximo_nivel'])}/mês subindo um nível nas equipes válidas "
-                     f"({brl(desempenho['incremento_mensal_todas_otimo'])}/mês com todas em Ótimo)"
-                     + ("." if desempenho["efeito_financeiro"] == "imediato" else " — efeito após a transição (hoje o MS paga “Bom”).")
-                     + (f" Mais {brl(desempenho['incremento_mensal_nao_confirmado'])}/mês dependem de parâmetro a atualizar."
-                        if desempenho["incremento_mensal_nao_confirmado"] else "")},
+         "resposta": (f"{brl(desempenho['incremento_mensal_proximo_nivel'])}/mês subindo um nível nas equipes válidas, nos "
+                      f"componentes já pagos pela classificação de cada equipe "
+                      f"({brl(desempenho['incremento_mensal_todas_otimo'])}/mês com todas em Ótimo)."
+                      + (f" Mais {brl(desempenho['incremento_mensal_apos_transicao'])}/mês no vínculo/demais componentes "
+                         "ainda pagos como “Bom” (valem após a transição)." if desempenho["incremento_mensal_apos_transicao"] else "")
+                      + (f" Com a avaliação mais recente, o valor mensal já muda {'+' if desempenho['variacao_proxima_avaliacao_mensal'] > 0 else '−'}"
+                         f"{brl(abs(desempenho['variacao_proxima_avaliacao_mensal']))} quando o MS aplicá-la."
+                         if desempenho["variacao_proxima_avaliacao_mensal"] else "")
+                      + (f" {brl(desempenho['incremento_mensal_nao_confirmado'])}/mês dependem de parâmetro a atualizar."
+                         if desempenho["incremento_mensal_nao_confirmado"] else ""))},
         {"pergunta": "Quais novos programas e equipes poderá solicitar?",
          "resposta": ", ".join(o["programa"] for o in pot) or "Nenhuma oportunidade com perfil compatível identificada."},
         {"pergunta": "O município atende aos requisitos de credenciamento?",

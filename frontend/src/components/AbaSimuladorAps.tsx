@@ -92,7 +92,9 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginBottom: 16 }}>
         <Kpi rotulo="Financiamento atual (pago na parcela)" valor={brl(k.financiamento_atual_mensal)} sub={`Projeção anual ${brl(k.financiamento_atual_anual)}`} />
         <Kpi rotulo="Incremento por melhoria de indicadores" valor={`${brl(k.incremento_desempenho_mensal)}/mês`} cor="#16a34a"
-          sub={k.incremento_desempenho_efeito === "imediato" ? "Com efeito na competência" : "Efeito após a transição (MS paga “Bom”)"} />
+          sub={`Na próxima avaliação aplicada pelo MS${k.incremento_desempenho_apos_transicao_mensal ? ` · +${brl(k.incremento_desempenho_apos_transicao_mensal)}/mês após a transição (vínculo)` : ""}`} />
+        <Kpi rotulo="Mudança com a avaliação mais recente" valor={`${k.variacao_proxima_avaliacao_mensal > 0 ? "+" : ""}${brl(k.variacao_proxima_avaliacao_mensal)}/mês`}
+          cor={k.variacao_proxima_avaliacao_mensal < 0 ? "#dc2626" : "#16a34a"} sub="Quando o MS aplicar a avaliação quadrimestral já capturada" />
         <Kpi rotulo="Incremento por credenciamentos confirmados" valor={`${brl(k.incremento_credenciamento_confirmado_mensal)}/mês`} cor="#16a34a" />
         <Kpi rotulo="Credenciamentos a confirmar (não garantido)" valor={`${brl(k.incremento_credenciamento_a_confirmar_mensal)}/mês`} cor="#b45309"
           sub={`Implantação (parcela única): ${brl(k.implantacao_nao_recorrente_a_confirmar)}`} />
@@ -140,7 +142,11 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
               <td style={td}>{e.homologadas_siaps ?? "—"}</td><td style={td}>{e.validas_siaps ?? "—"}</td></tr>))}</tbody>
         </table>
         <div style={{ fontSize: 12, color: "#475569", marginTop: 10, background: "#f8fafc", padding: 10, borderRadius: 8 }}>
-          <b>Regra de transição:</b> {t.texto} <i>({t.norma})</i>
+          <b>Regra de pagamento identificada nesta parcela:</b>
+          <ul style={{ margin: "6px 0 6px 18px", padding: 0 }}>
+            {(t.regras ?? []).map((r: any) => <li key={r.componente}><b>{r.componente}:</b> {r.texto}</li>)}
+          </ul>
+          {t.texto} <i>({t.norma})</i>
         </div>
       </div>
 
@@ -172,12 +178,12 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
       <div style={card}>
         <h3 style={h3}>Por equipe — atual × norma com o desempenho real × potencial</h3>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
-          “Atual” = rateio igual do total pago pelo e-Gestor entre as equipes pagas. “Pela norma” = valor da tabela para a
-          classificação da equipe no SIAPS (vale após a transição). Clique na equipe para ver os indicadores a melhorar.
+          “Pago” = valor da equipe pela regra que o MS aplicou nesta parcela (fechada com o total do e-Gestor). “Com a avaliação
+          mais recente” = valor da tabela para a classificação atual da equipe no SIAPS. Clique na equipe para ver os indicadores a melhorar.
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr>{["Equipe", "Tipo", "Homolog./válida", "Pagamento", "Vínculo", "Qualidade", "Atual/mês", "Pela norma/mês", "Potencial (próximo nível)"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Equipe", "Tipo", "Homolog./válida", "Pagamento", "Vínculo", "Qualidade", "Pago/mês", "Com a avaliação mais recente", "Potencial (próximo nível)"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>{d.por_equipe.map((e: any) => (
               <Fragment key={e.ine}>
                 <tr key={e.ine} onClick={() => setEqAberta(eqAberta === e.ine ? null : e.ine)} style={{ cursor: "pointer" }}>
@@ -191,7 +197,8 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
                   <td style={td}>{brl(e.atual_total)}</td><td style={td}>{brl(e.norma_total)}</td>
                   <td style={td}>{e.melhoria.length ? e.melhoria.map((m: any) => (
                     <div key={m.componente}>{m.componente}: <Classe c={m.de} /> → <Classe c={m.para} /> <b>+{brl(m.incremento_mensal)}</b>
-                      {!m.confirmado && <span title="Parâmetro da norma diverge do valor pago no e-Gestor" style={{ color: "#b45309" }}> (não confirmado)</span>}</div>)) : "—"}</td>
+                      {m.efeito === "apos_transicao" && <span style={{ color: "#6b7280" }}> (após a transição)</span>}
+                      {m.efeito === "nao_confirmado" && <span title="Pagamento não confere com os parâmetros cadastrados" style={{ color: "#b45309" }}> (não confirmado)</span>}</div>)) : "—"}</td>
                 </tr>
                 {eqAberta === e.ine && (
                   <tr key={e.ine + "-d"}><td style={{ ...td, background: "#f8fafc" }} colSpan={9}>

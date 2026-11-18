@@ -79,6 +79,20 @@ def validacoes_equipes(detalhe) -> list[dict]:
     return lista or []
 
 
+def estruturas(detalhe) -> dict | None:
+    """Embarcações e unidades de apoio publicadas para a eSFR/UBSF (o e-Gestor grafa "Embaracacao" na eSFR)."""
+    v = detalhe.get("validacoes") if isinstance(detalhe, dict) else None
+    if not isinstance(v, dict):
+        return None
+    emb = v.get("validacoesEquipesEmEmbaracacao") or v.get("validacoesEquipesEmEmbarcacao") or []
+    apoio = v.get("validacoesUnidadesApoio") or []
+    if not emb and not apoio:
+        return None
+    campos = ("coEquipe", "nuEmbarcacao", "noEmbarcacao", "dsComunidadeAtendida", "coCnes", "noUnidade")
+    return {"embarcacoes": [{k: e.get(k) for k in campos if e.get(k)} for e in emb][:20],
+            "unidades_apoio": [{k: e.get(k) for k in campos if e.get(k)} for e in apoio][:20]}
+
+
 async def _get(client: httpx.AsyncClient, url: str, params: dict):
     r = await client.get(url, params=params)
     r.raise_for_status()
@@ -114,11 +128,15 @@ async def buscar(ibge: str, parcelas: int = PARCELAS_GUARDADAS, client: httpx.As
                         "coProcessoPagamento": c["coProcessoPagamento"], "coProcessoValidacao": c["coProcessoValidacao"],
                         "coPlanoOrcamentario": c["coPlanoOrcamentario"]})
                     d = d if isinstance(d, dict) else {}
+                    est = estruturas(d)
+                    if est:
+                        d = {**d, "_estruturas": est}
                     componentes.append({"co_plano": plano["coSeqPlanoOrcamentario"], "ds_plano": plano["dsPlanoOrcamentario"],
                                         "co_componente": c["coComponentePagamento"],
                                         "ds_componente": c["dsComponentePagamento"].strip(),
                                         "resumo": {**{k: v for k, v in d.items() if not isinstance(v, (list, dict))},
-                                                   **({"_referencia": ref} if (ref := {k: d[k] for k in REFERENCIA if d.get(k)}) else {})},
+                                                   **({"_referencia": ref} if (ref := {k: d[k] for k in REFERENCIA if d.get(k)}) else {}),
+                                                   **({"_estruturas": d["_estruturas"]} if d.get("_estruturas") else {})},
                                         "equipes": validacoes_equipes(d)})
             m = munic.get(g["nuParcela"], {})
             saida.append({"nu_parcela": g["nuParcela"], "nu_comp_cnes": g["nuCompCnes"],
