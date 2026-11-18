@@ -279,6 +279,7 @@ async def resultados(current: SessaoMunicipal,
                        "regra": f"{r.indicador_codigo} v{r.versao_metodologia}"
                                 + (f" — {cfg.nota_metodologica}" if cfg else ""),
                        "situacao": r.situacao, "fonte": r.fonte,
+                       "variaveis": (r.payload_original or {}).get("variaveis"),
                        "coletado_em": r.data_extracao.isoformat() if r.data_extracao else None})
     for r in cvat:
         linhas.append({"componente": "cvat", "indicador": "CVAT", "indicador_nome": "Vínculo e Acompanhamento Territorial",

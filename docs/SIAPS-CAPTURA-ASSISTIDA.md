@@ -64,7 +64,7 @@ Qualidade abre sozinha com o resultado; a importação depende do clique em "Imp
     if (r.status !== 200) continue;
     for (const c of (JSON.parse(r.json).content || [])) for (const e of c.equipes) for (const i of e.indicadores)
       linhas.push([c.competencia, e.coCnes, e.noUnidade, e.coEquipe, e.noEquipe, e.sgEquipe, i.noIndicador,
-                   i.score, i.numerador, i.denominador, i.scoreClassificacao]);
+                   i.score, i.numerador, i.denominador, i.scoreClassificacao, i.variaveis || null]);
   }
   sessionStorage.setItem("ersus360_mensal", JSON.stringify(linhas));
   return `${linhas.length} linhas mensais (${ativas.join(",")}); ${res.length} consultas`;
@@ -115,7 +115,7 @@ Trocar `ERSUS` pelo endereço do ERSUS360 (produção: `https://ersus360.vercel.
   const linhas = JSON.parse(sessionStorage.getItem("ersus360_mensal") || "[]");
   const pacote = { formato: "ersus360-siaps-captura-v1", fonte: "SIAPS área logada", municipio_ibge: "130014",
     capturado_em: new Date().toISOString(),
-    colunas: ["competencia", "cnes", "ubs", "ine", "equipe", "sg_equipe", "indicador", "score", "numerador", "denominador", "classificacao"],
+    colunas: ["competencia", "cnes", "ubs", "ine", "equipe", "sg_equipe", "indicador", "score", "numerador", "denominador", "classificacao", "variaveis"],
     linhas, quadrimestral };
   setTimeout(() => { location.href = ERSUS + "/siaps#captura-siaps=" + encodeURIComponent(JSON.stringify(pacote)); }, 300);
   return `${linhas.length} linhas mensais + ${quadrimestral.length} avaliações quadrimestrais (${quads.join(",")})`;

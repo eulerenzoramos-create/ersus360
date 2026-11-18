@@ -587,3 +587,33 @@ async def test_conferencia_explica_equipe_nao_valida_contada_na_area_publica(amb
     conf = (await c.get("/api/siaps-publico/conferencia", headers=_h(tok))).json()
     item = next(i for i in conf["itens"] if (i["quadrimestre"], i["componente"], i["sg_equipe"]) == ("2026Q1", "QUALIDADE", "eMulti"))
     assert item["situacao"] == "confere" and "EMULTI TESTE (regular)" in item["nota"]
+
+
+async def test_captura_guarda_variaveis_a_k_como_no_siaps(ambiente):
+    """Set/26, SAO SEBASTIAO, Gestação e Puerpério — valores da tela do SIAPS (A–K, NM 553, DN 15, 36,87)."""
+    from services import siaps_captura as sc
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    var = {f"QTBP{l}": v for l, v in zip("ABCDEFGHIJK", [13, 4, 6, 6, 8, 4, 5, 2, 3, 3, 6])}
+    var.update({"QTBPCOMPLETO": 1, "PTBPA": 130, "CLASSIFICACAO": "SUFICIENTE"})
+    linha = ["202609", "2013312", "UBS ANIZIO FERREIRA DA SILVA", "0001536974", "SAO SEBASTIAO", "eSF",
+             "Cuidado da Gestante e da Puérpera", 36.87, 553, 15, "SUFICIENTE"]
+    novo = {**_captura([linha + [var]]), "colunas": sc.COLUNAS_V2}
+    r = (await c.post("/api/siaps-publico/captura", json=novo, headers=_h(tok))).json()
+    assert r["inseridos"] == 1
+    res = (await c.get("/api/siaps-relatorios/resultados", params={"indicador": "C3", "competencia": "2026-09"},
+                       headers=_h(tok))).json()
+    (l,) = [x for x in res["linhas"] if x["componente"] == "qualidade"]
+    assert (l["numerador"], l["denominador"], l["resultado"]) == (553, 15, 36.87)
+    assert [l["variaveis"][f"QTBP{x}"] for x in "ABCDEFGHIJK"] == [13, 4, 6, 6, 8, 4, 5, 2, 3, 3, 6]
+
+    # pacote antigo (sem variáveis) da mesma competência não apaga as variáveis já guardadas
+    assert (await c.post("/api/siaps-publico/captura", json=_captura([linha]), headers=_h(tok))).status_code == 200
+    res = (await c.get("/api/siaps-relatorios/resultados", params={"indicador": "C3", "competencia": "2026-09"},
+                       headers=_h(tok))).json()
+    assert res["linhas"][0]["variaveis"]["QTBPK"] == 6
+
+    # variável com nome/valor fora do padrão é recusada (nada de texto livre ou dado pessoal)
+    for ruim in ({"cpf": "123"}, {"QTBPA": "x" * 41}, {"QTBPA": [1]}, "A=1"):
+        p = {**_captura([linha + [ruim]]), "colunas": sc.COLUNAS_V2}
+        assert (await c.post("/api/siaps-publico/captura", json=p, headers=_h(tok))).status_code == 422

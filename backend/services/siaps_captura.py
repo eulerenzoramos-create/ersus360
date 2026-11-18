@@ -34,6 +34,10 @@ FONTE_CAPTURA = "SIAPS — área logada (captura assistida)"
 FONTE_LOG = "SIAPS_LOGADO"
 COLUNAS = ["competencia", "cnes", "ubs", "ine", "equipe", "sg_equipe", "indicador", "score",
            "numerador", "denominador", "classificacao"]
+# Desde 17/11/2026 a captura também traz as variáveis de cada boa prática (A–K, NM.x/DN.x…), exatamente
+# como a API do SIAPS devolve em `indicadores[].variaveis`; pacotes antigos (11 colunas) continuam válidos.
+COLUNAS_V2 = COLUNAS + ["variaveis"]
+MAX_VARIAVEIS = 60
 CLASSES = {"OTIMO": "otimo", "BOM": "bom", "SUFICIENTE": "suficiente", "REGULAR": "regular"}
 MAX_LINHAS = 5000
 
@@ -76,12 +80,35 @@ def _comp(c: str) -> str:
     return f"{c[:4]}-{c[4:]}"
 
 
+_CHAVE_VAR = re.compile(r"^[A-Z][A-Z0-9_]{0,29}$")
+
+
+def limpar_variaveis(v) -> dict | None:
+    """Só o que a tela do SIAPS mostra: chave em MAIÚSCULAS → número (ou texto curto, ex.: CLASSIFICACAO).
+    Nada de dado pessoal: as variáveis são contagens agregadas por equipe."""
+    if v is None:
+        return None
+    if not isinstance(v, dict):
+        raise CapturaInvalida("Variáveis fora do formato.")
+    if len(v) > MAX_VARIAVEIS:
+        raise CapturaInvalida("Variáveis demais em uma linha.")
+    saida = {}
+    for k, x in v.items():
+        if not isinstance(k, str) or not _CHAVE_VAR.match(k):
+            raise CapturaInvalida(f"Variável com nome inválido: {str(k)[:40]!r}")
+        if isinstance(x, bool) or not (x is None or isinstance(x, (int, float)) or (isinstance(x, str) and len(x) <= 40)):
+            raise CapturaInvalida(f"Valor inválido na variável {k}.")
+        saida[k] = x
+    return saida
+
+
 def validar(pacote: dict, ibge: str) -> list[dict]:
     if not isinstance(pacote, dict) or pacote.get("formato") != FORMATO:
         raise CapturaInvalida("Formato não reconhecido: use a captura do SIAPS gerada pelo ERSUS360.")
     if str(pacote.get("municipio_ibge", ""))[:6] != ibge[:6]:
         raise CapturaInvalida("A captura é de outro município.")
-    if pacote.get("colunas") != COLUNAS:
+    colunas = pacote.get("colunas")
+    if colunas not in (COLUNAS, COLUNAS_V2):
         raise CapturaInvalida("Colunas diferentes do formato esperado.")
     linhas = pacote.get("linhas")
     if not isinstance(linhas, list) or (not linhas and not pacote.get("quadrimestral")):
@@ -90,9 +117,10 @@ def validar(pacote: dict, ibge: str) -> list[dict]:
         raise CapturaInvalida(f"Captura grande demais ({len(linhas)} linhas).")
     saida = []
     for l in linhas:
-        if not isinstance(l, list) or len(l) != len(COLUNAS):
+        if not isinstance(l, list) or len(l) != len(colunas):
             raise CapturaInvalida("Linha fora do formato.")
-        d = dict(zip(COLUNAS, l))
+        d = dict(zip(colunas, l))
+        d["variaveis"] = limpar_variaveis(d.get("variaveis"))
         classe = CLASSES.get(_norm(str(d["classificacao"])).upper())
         if not classe:
             raise CapturaInvalida(f"Classificação desconhecida: {d['classificacao']!r}")
@@ -124,6 +152,7 @@ async def importar(db: AsyncSession, ibge: str, pacote: dict, usuario: str | Non
     ins = atu = 0
     corrigidos: list[str] = []
     sem_codigo = sorted({f"{l['sg_equipe']}: {l['indicador']}" for l in linhas if not l["codigo"]})
+    anteriores_var = {k: (r.payload_original or {}).get("variaveis") for k, r in atuais.items()}
     for l in linhas:
         if not l["codigo"]:
             continue
@@ -157,6 +186,11 @@ async def importar(db: AsyncSession, ibge: str, pacote: dict, usuario: str | Non
         reg.payload_original = {**{k: v for k, v in (reg.payload_original or {}).items() if k == "historico"},
                                 "captura": {k: l[k] for k in COLUNAS}, "ubs": l["ubs"],
                                 "capturado_em": pacote.get("capturado_em")}
+        if l.get("variaveis") is not None:
+            reg.payload_original["variaveis"] = l["variaveis"]
+        elif (antigas := (anteriores_var.get(chave))):
+            # pacote antigo (sem variáveis) não apaga as variáveis já capturadas
+            reg.payload_original["variaveis"] = antigas
     q_res = (await sq.gravar(db, municipio_id, quad, inicio)) if quad else {"novos": 0, "revisados": [], "sem_mudanca": 0}
     obs = [("Indicadores sem código: " + "; ".join(sem_codigo)) if sem_codigo else None,
            ("Valores mensais alterados pelo MS: " + "; ".join(corrigidos[:50])) if corrigidos else None,
@@ -188,7 +222,7 @@ async def situacao(db: AsyncSession, ibge: str) -> dict:
     return {"ultima_captura": (log.concluido_em or log.iniciado_em).isoformat() if log else None,
             "capturado_no_siaps_em": (log.payload_resumo or {}).get("capturado_em") if log else None,
             "competencias": [{"competencia": c, "linhas": n} for c, n in comps],
-            "formato": FORMATO, "colunas": COLUNAS}
+            "formato": FORMATO, "colunas": COLUNAS_V2}
 
 
 async def resultados_da_competencia(db: AsyncSession, ibge: str, competencia: str | None = None):

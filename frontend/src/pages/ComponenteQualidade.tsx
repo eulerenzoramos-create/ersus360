@@ -8,6 +8,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import { FICHAS_SIAPS, colunasDoIndicador } from "../components/siapsBoasPraticas";
 import {
   BarChart2, Users, TrendingUp, CheckCircle, XCircle,
   AlertCircle, AlertTriangle, Info, Loader2, RefreshCw,
@@ -1004,6 +1005,15 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
     return `${ubs ? `UBS: ${ubs} - ` : ""}Equipe: ${l.equipe}`;
   };
   const filtradas = itens.filter(l => !busca.trim() || rotulo(l).toLowerCase().includes(busca.trim().toLowerCase()));
+  // Colunas das boas práticas (A–K, ou NM.x/DN.x/Pontuação x na Prevenção do Câncer), como no SIAPS
+  const colVars = colunasDoIndicador(codSel, linhas);
+  const ficha = FICHAS_SIAPS[codSel];
+  const semVariaveis = colVars.length > 0 && linhas.length > 0 && linhas.every(l => !l.variaveis);
+  const valorVar = (l:any, c:{chave:string;tipo:string}) => {
+    const v = l.variaveis?.[c.chave];
+    if (v == null || typeof v !== "number") return "—";
+    return c.tipo === "pont" ? fmtPont(v) : fmtInt(v);
+  };
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const pag = Math.min(pagina, totalPaginas);
   const visiveis = filtradas.slice((pag - 1) * porPagina, pag * porPagina);
@@ -1082,13 +1092,19 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
             <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
                 <thead><tr>
-                  <th style={{ ...th, textAlign:"left" }}>Equipe</th>
+                  <th style={{ ...th, textAlign:"left", minWidth:220 }}>Equipe</th>
+                  {colVars.map(c => <th key={c.chave} style={{ ...th, padding:"12px 8px" }}>{c.rotulo}</th>)}
                   <th style={th}>NM</th><th style={th}>DN</th><th style={th}>Pontuação</th>
                 </tr></thead>
                 <tbody>
                   {visiveis.map(l => (
                     <tr key={`${l.ine}-${l.indicador}`} style={{ borderBottom:"1px solid #e5e7eb" }}>
                       <td style={{ padding:"18px 10px", fontSize:14 }}>{rotulo(l)}</td>
+                      {colVars.map(c => (
+                        <td key={c.chave} style={{ textAlign:"center" }}>
+                          <span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 8px", fontSize:12 }}>{valorVar(l, c)}</span>
+                        </td>
+                      ))}
                       <td style={{ textAlign:"center" }}><span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 10px", fontSize:12 }}>{fmtInt(l.numerador)}</span></td>
                       <td style={{ textAlign:"center" }}><span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 10px", fontSize:12 }}>{fmtInt(l.denominador)}</span></td>
                       <td style={{ textAlign:"center" }}>
@@ -1099,7 +1115,7 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
                     </tr>
                   ))}
                   {visiveis.length === 0 && (
-                    <tr><td colSpan={4} style={{ padding:20, textAlign:"center", color:"#6b7280", fontSize:13 }}>Nenhuma equipe encontrada para a busca.</td></tr>
+                    <tr><td colSpan={4 + colVars.length} style={{ padding:20, textAlign:"center", color:"#6b7280", fontSize:13 }}>Nenhuma equipe encontrada para a busca.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1120,10 +1136,64 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
             </div>
             <div style={{ fontSize:11, color:"#6b7280", marginTop:8 }}>
               Resultado oficial do SIAPS, não recalculado pelo ERSUS360. NM = numerador · DN = denominador.
+              {semVariaveis && " As colunas das boas práticas aparecem depois da próxima captura do SIAPS (as capturas antigas não traziam esses valores)."}
             </div>
+            {ficha && <QuadrosFichaSiaps ficha={ficha} />}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Quadros abaixo da tabela, como no SIAPS: Pontuação, Boas Práticas e NM/DN ──
+const COR_FAIXA: Record<string,string> = { Regular:"#c2410c", Suficiente:"#ca8a04", Bom:"#16a34a", "Ótimo":"#1e3a8a" };
+function QuadrosFichaSiaps({ ficha }: { ficha: import("../components/siapsBoasPraticas").FichaSiaps }) {
+  const card: React.CSSProperties = { border:"1px solid #e5e7eb", borderRadius:10, background:"#fff", overflow:"hidden" };
+  const cab: React.CSSProperties = { background:"#f8fafc", padding:"10px 14px", color:AZUL, fontWeight:700, fontSize:14, borderBottom:"1px solid #e5e7eb" };
+  return (
+    <div style={{ display:"flex", gap:20, marginTop:28, flexWrap:"wrap", alignItems:"flex-start" }}>
+      <div style={{ display:"flex", flexDirection:"column", gap:20, flex:"1 1 260px", maxWidth:340 }}>
+        {ficha.faixas && (
+          <div style={card}>
+            <div style={cab}>Pontuação</div>
+            <div style={{ display:"flex", gap:12, padding:"12px 14px", flexWrap:"wrap" }}>
+              {ficha.faixas.map(([c, f]) => (
+                <div key={c} style={{ borderLeft:`3px solid ${COR_FAIXA[c] ?? "#6b7280"}`, paddingLeft:6, fontSize:11.5 }}>
+                  <div style={{ color:"#4b5563" }}>{c}</div><div style={{ fontWeight:600 }}>{f}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding:"8px 14px", borderTop:"1px solid #e5e7eb", fontSize:11.5 }}>
+              Fonte: <a href="https://www.gov.br/saude/pt-br/composicao/saps/publicacoes/fichas-tecnicas" target="_blank" rel="noreferrer" style={{ color:AZUL }}>Fichas Técnicas do Ministério da Saúde</a>
+            </div>
+          </div>
+        )}
+        <div style={card}>
+          {[["NM", ficha.nm], ["DN", ficha.dn]].map(([k, t]) => (
+            <div key={k} style={{ display:"flex", gap:10, padding:"12px 14px", borderBottom: k === "NM" ? "1px solid #e5e7eb" : "none", fontSize:12, color:"#374151" }}>
+              <span style={{ background:AZUL, color:"#fff", borderRadius:4, padding:"2px 6px", fontWeight:700, fontSize:11, height:"fit-content" }}>{k}</span>
+              <span>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {ficha.boas.length > 0 && (
+        <div style={{ ...card, flex:"3 1 420px" }}>
+          <div style={cab}>Boas Práticas</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))" }}>
+            {ficha.boas.map(b => (
+              <div key={b.letra} style={{ display:"flex", gap:8, padding:"12px", border:"1px solid #f1f5f9", fontSize:11.5, color:"#4b5563" }}>
+                <span style={{ background:AZUL, color:"#fff", borderRadius:4, width:20, height:20, display:"inline-flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:11, flexShrink:0 }}>{b.letra}</span>
+                <div>
+                  <div>{b.texto}</div>
+                  {b.pontos && <div style={{ marginTop:6, fontSize:11, color:AZUL }}>{b.pontos}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
