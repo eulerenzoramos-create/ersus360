@@ -35,6 +35,10 @@ ELEG = {"confirmada": "Elegibilidade confirmada", "potencial": "Potencialmente e
 TOL = 0.51                                     # tolerância de centavos na conferência
 
 
+def _brl(v) -> str:
+    return "R$ " + f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def _n(v) -> float:
     return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else 0.0
 
@@ -188,8 +192,8 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
         if not ok:
             diferencas.append({"tipo": "parametro_divergente", "componente": rotulo, "esperado_norma": esperado,
                                "pago_egestor": pago, "diferenca": round(pago - esperado, 2),
-                               "texto": f"{rotulo}: pela norma ({base}) seriam R$ {esperado:,.2f}; o e-Gestor pagou "
-                                        f"R$ {pago:,.2f}. Há norma posterior não registrada ou outra regra aplicada — "
+                               "texto": f"{rotulo}: pela norma ({base}) seriam {_brl(esperado)}; o e-Gestor pagou "
+                                        f"{_brl(pago)}. Há norma posterior não registrada ou outra regra aplicada — "
                                         "o incremento deste componente não entra no total até atualizar o parâmetro."})
             alertas.append({"tipo": "atualizacao_manual", "texto": f"Parâmetro de “{rotulo}” diverge do valor pago "
                             "no e-Gestor: registrar a norma vigente.", "chave": chave})
@@ -240,7 +244,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                             "vl_ajuste": c.get("vl_ajuste"), "vl_total": c.get("vl_total")})
         if _n(c.get("vl_desconto")):
             diferencas.append({"tipo": "desconto", "componente": c["componente"], "diferenca": c["vl_desconto"],
-                               "texto": f"{c['componente']}: desconto de R$ {abs(_n(c['vl_desconto'])):,.2f} nesta "
+                               "texto": f"{c['componente']}: desconto de {_brl(abs(_n(c['vl_desconto'])))} nesta "
                                         "parcela (ver pendências das equipes no Relatório de Pagamento)."})
         cred, pag = r.get("qtCredenciado"), r.get("qtPagamento")
         if isinstance(cred, (int, float)) and isinstance(pag, (int, float)) and cred > pag:
@@ -248,6 +252,12 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                                "texto": f"{c['componente']}: {int(cred)} credenciada(s), {int(pag)} paga(s) — "
                                         f"{int(cred - pag)} sem pagamento nesta parcela."})
     mensal_atual = round(sum(_n(c["vl_total"]) for c in componentes), 2)
+    d48, d49 = _n(_comp(comps, 48).get("vl_desconto")), _n(_comp(comps, 49).get("vl_desconto"))
+    if d48 and d48 == d49 and not _n(_res(comps, 49).get("qtCredenciado")):
+        diferencas.append({"tipo": "desconto_repetido", "componente": "eSF/eAP", "diferenca": d49,
+                           "texto": f"O e-Gestor publica o mesmo desconto ({_brl(abs(d49))}) na eSF e na eAP, sem eAP "
+                                    "credenciada. O total acima soma os dois como publicado; conferir no e-Gestor/FNS se é "
+                                    "um único desconto (nesse caso o valor recebido é maior)."})
 
     # ── Por equipe: valor atual (rateio do pago) × previsto pela norma com o desempenho real ────────────
     pg_eq: dict[str, list] = {}
@@ -359,6 +369,14 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                                   "qualidade": _n(_res(comps, 58).get("vlTotal")) or None}
             linha["observacoes"].append("Valores de vínculo/qualidade da eSFR por classificação não estão na tabela "
                                         "da PRT 3.493/2024 cadastrada: incremento não calculado (atualização manual).")
+        if tipo in ("eSB", "eMulti") and linha["norma"]:
+            # custeio e atendimento remoto não variam com a classificação: entram pelo valor pago (e-Gestor)
+            for kk in ("custeio", "atendimento_remoto"):
+                if linha["atual"].get(kk) is not None:
+                    linha["norma"][kk] = linha["atual"][kk]
+        elif tipo == "eSFR" and linha["atual"]:
+            linha["norma"] = {"custeio": linha["atual"].get("custeio")}
+            linha["observacoes"].append("Pela norma: só o custeio (vínculo/qualidade da eSFR sem tabela cadastrada).")
         linha["atual_total"] = round(sum(_n(v) for v in linha["atual"].values()), 2) if linha["atual"] else None
         linha["norma_total"] = round(sum(_n(v) for v in linha["norma"].values()), 2) if linha["norma"] else None
         por_equipe.append(linha)
@@ -597,10 +615,10 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
         qt_c = r.get("qtCredenciado")
         pago = _n(r.get("vlTotal"))
         if oid == "esfr":
-            sit = f"{int(qt_c or 0)} eSFR credenciada(s), R$ {pago:,.2f} na parcela."
+            sit = f"{int(qt_c or 0)} eSFR credenciada(s), {_brl(pago)} na parcela."
         else:
             sit = (f"{int(qt_c)} credenciado(s); " if isinstance(qt_c, (int, float)) else "") + \
-                  ("sem recebimento nesta parcela." if not pago else f"R$ {pago:,.2f} na parcela.")
+                  ("sem recebimento nesta parcela." if not pago else f"{_brl(pago)} na parcela.")
         if pago and oid not in ("esfr", "uom"):
             continue
         ops.append(_op(oid, nome, elegibilidade="dados_insuficientes", situacao_atual=sit,
@@ -626,7 +644,7 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
 
 
 def _respostas(kpis, desempenho, ops, pg, transicao) -> list[dict]:
-    brl = lambda v: f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")  # noqa: E731
+    brl = _brl
     pot = [o for o in ops if o["elegibilidade"] == "potencial"]
     conf = [o for o in ops if o["elegibilidade"] == "confirmada"]
     return [
@@ -649,5 +667,5 @@ def _respostas(kpis, desempenho, ops, pg, transicao) -> list[dict]:
          "resposta": "; ".join(f"{o['programa']}: {brl(o['incremento_mensal'])}/mês ({brl(o['incremento_anual'])}/ano)"
                                for o in pot if o["incremento_mensal"]) or "—"},
         {"pergunta": "Quais providências o gestor deve tomar?",
-         "resposta": " ".join(f"• {o['providencia']}" for o in pot if o["providencia"]) or "—"},
+         "resposta": " ".join(f"• {p}" for p in dict.fromkeys(o["providencia"] for o in pot if o["providencia"])) or "—"},
     ]
