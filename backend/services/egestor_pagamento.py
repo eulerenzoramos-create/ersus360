@@ -44,6 +44,11 @@ ROTULOS = {
 }
 # Informativos (não são suspensão): ex. eSB com carga horária compartilhada com a UOM.
 INFORMATIVOS = {"stEsbUom"}
+# Blocos do relatório detalhado guardados junto do resumo (em "_referencia"): valores de referência com a
+# portaria vigente, quantitativos por modalidade e população. Usados pelo Simulador da APS; não têm CNS.
+REFERENCIA = ("valoresReferencia", "listaValoresReferencia", "quantitativoCredenciado", "quantitativoPagamento",
+              "quantitativoImplantacao", "quantitativoCredenciadoRemoto", "quantitativoPagamentoRemoto",
+              "quantitativoPago", "populacao")
 TIPO_POR_COMPONENTE = {48: "eSF", 49: "eAP", 5: "eSB", 37: "eSB", 42: "eMulti", 7: "eSFR"}
 
 
@@ -112,7 +117,8 @@ async def buscar(ibge: str, parcelas: int = PARCELAS_GUARDADAS, client: httpx.As
                     componentes.append({"co_plano": plano["coSeqPlanoOrcamentario"], "ds_plano": plano["dsPlanoOrcamentario"],
                                         "co_componente": c["coComponentePagamento"],
                                         "ds_componente": c["dsComponentePagamento"].strip(),
-                                        "resumo": {k: v for k, v in d.items() if not isinstance(v, (list, dict))},
+                                        "resumo": {**{k: v for k, v in d.items() if not isinstance(v, (list, dict))},
+                                                   **({"_referencia": ref} if (ref := {k: d[k] for k in REFERENCIA if d.get(k)}) else {})},
                                         "equipes": validacoes_equipes(d)})
             m = munic.get(g["nuParcela"], {})
             saida.append({"nu_parcela": g["nuParcela"], "nu_comp_cnes": g["nuCompCnes"],
@@ -171,7 +177,18 @@ async def sincronizar(db: AsyncSession, municipio_id: int, ibge: str) -> dict:
         for tabela in (EgestorPagamentoComponente, EgestorValidacaoEquipe):
             await db.execute(delete(tabela).where(tabela.municipio_id == municipio_id, tabela.nu_parcela == velha))
     await db.commit()
-    return {"ok": bool(gravadas), "parcelas": gravadas,
+    alteracoes = []
+    if gravadas:
+        # monitoramento normativo: valores de referência/portaria publicados pelo e-Gestor mudaram?
+        from services import aps_parametros
+        recente = max(gravadas)
+        p_rec = next(p for p in parcelas if p["nu_parcela"] == recente)
+        try:
+            alteracoes = await aps_parametros.detectar_alteracoes(db, municipio_id, p_rec["componentes"], recente)
+        except Exception as e:  # o monitoramento nunca derruba a sincronização do pagamento
+            logger.warning("Monitor de normas (e-Gestor) falhou: %s", e)
+            await db.rollback()
+    return {"ok": bool(gravadas), "parcelas": gravadas, **({"alteracoes_normativas": alteracoes} if alteracoes else {}),
             "motivo": None if gravadas else "e-Gestor não publicou pagamento para o município"}
 
 

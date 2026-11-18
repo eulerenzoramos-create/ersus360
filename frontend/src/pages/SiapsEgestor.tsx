@@ -4,6 +4,7 @@ import MonitoramentoSiaps from "../components/MonitoramentoSiaps";
 import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/QualidadeOficialPorEquipe";
 import QuadrimestralEquipes, { ConferenciaFontes } from "../components/QuadrimestralEquipes";
 import PainelGeralAps from "../components/PainelGeralAps";
+import AbaSimuladorAps from "../components/AbaSimuladorAps";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
@@ -1847,7 +1848,7 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
 
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "painel" | "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura" | "monitoramento";
+type Aba = "painel" | "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura" | "monitoramento" | "simulador";
 
 export default function SiapsEgestor() {
   // a captura assistida do SIAPS chega pelo endereço (#captura-siaps=…) e abre direto na aba Qualidade
@@ -1866,7 +1867,7 @@ export default function SiapsEgestor() {
   }, [cat, compPadrao]);
   // O e-Gestor publica as parcelas antes do SIAPS publicar os resultados: as abas do e-Gestor abrem
   // na parcela mais recente já publicada (não no último mês do SIAPS), salvo escolha do usuário.
-  const abaEgestor = aba === "rel_pagamento" || aba === "diag_cobertura";
+  const abaEgestor = aba === "rel_pagamento" || aba === "diag_cobertura" || aba === "simulador";
   const ultimaParcela = cat?.competencias.find(c => c.egestor_parcela_publicada)?.competencia;
   const comp = abaEgestor && !compEscolhida && ultimaParcela ? ultimaParcela : compPadrao;
   const item = cat?.competencias.find(c => c.competencia === comp);
@@ -1885,6 +1886,7 @@ export default function SiapsEgestor() {
     { id: "quadrimestre",       label: "Avaliação Quadrimestre" },
     { id: "analise_indicador",  label: "📊 Análise do Indicador" },
     { id: "rel_pagamento",      label: "💳 Relatório de Pagamento (e-Gestor)" },
+    { id: "simulador",          label: "💰 Simulador e Oportunidades" },
     { id: "diag_cobertura",    label: "🩺 Diagnóstico / Cobertura" },
     { id: "monitoramento",     label: "🛰️ Monitoramento SIAPS" },
   ];
@@ -1948,6 +1950,7 @@ export default function SiapsEgestor() {
         {aba === "analise_indicador" && mostrar && <AbaAnaliseIndicador competencia={item ? comp : undefined} />}
         {aba === "rel_pagamento"     && mostrar && <AbaRelatorioPagamento parcelaGlobal={item?.egestor_parcela} />}
         {aba === "diag_cobertura"    && mostrar && <AbaDiagnosticoCobertura parcelaGlobal={item?.egestor_parcela} />}
+        {aba === "simulador"         && <AbaSimuladorAps parcelaGlobal={item?.egestor_parcela} />}
         {aba === "monitoramento"    && <MonitoramentoSiaps municipio={{ uf: dashData?.uf, nome: dashData?.municipio }} />}
       </div>
 
