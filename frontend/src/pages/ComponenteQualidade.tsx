@@ -1009,6 +1009,8 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
   const colVars = colunasDoIndicador(codSel, linhas);
   const ficha = FICHAS_SIAPS[codSel];
   const semVariaveis = colVars.length > 0 && linhas.length > 0 && linhas.every(l => !l.variaveis);
+  // Prevenção do Câncer: o SIAPS mostra só NM.x/DN.x/Pontuação x e a Pontuação final, sem NM/DN totais
+  const mostraNmDn = !(colVars.some(c => c.rotulo.startsWith("NM.")) && !semVariaveis);
   const valorVar = (l:any, c:{chave:string;tipo:string}) => {
     const v = l.variaveis?.[c.chave];
     if (v == null || typeof v !== "number") return "—";
@@ -1094,7 +1096,7 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
                 <thead><tr>
                   <th style={{ ...th, textAlign:"left", minWidth:220 }}>Equipe</th>
                   {colVars.map(c => <th key={c.chave} style={{ ...th, padding:"12px 8px" }}>{c.rotulo}</th>)}
-                  <th style={th}>NM</th><th style={th}>DN</th><th style={th}>Pontuação</th>
+                  {mostraNmDn && <><th style={th}>NM</th><th style={th}>DN</th></>}<th style={th}>Pontuação</th>
                 </tr></thead>
                 <tbody>
                   {visiveis.map(l => (
@@ -1105,8 +1107,10 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
                           <span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 8px", fontSize:12 }}>{valorVar(l, c)}</span>
                         </td>
                       ))}
+                      {mostraNmDn && <>
                       <td style={{ textAlign:"center" }}><span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 10px", fontSize:12 }}>{fmtInt(l.numerador)}</span></td>
                       <td style={{ textAlign:"center" }}><span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 10px", fontSize:12 }}>{fmtInt(l.denominador)}</span></td>
+                      </>}
                       <td style={{ textAlign:"center" }}>
                         <span style={{ background:bgClassif(l.classificacao), color:corClassif(l.classificacao), borderRadius:6, padding:"4px 10px", fontSize:12 }}>
                           {fmtPont(l.resultado)}
@@ -1115,7 +1119,7 @@ function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_R
                     </tr>
                   ))}
                   {visiveis.length === 0 && (
-                    <tr><td colSpan={4 + colVars.length} style={{ padding:20, textAlign:"center", color:"#6b7280", fontSize:13 }}>Nenhuma equipe encontrada para a busca.</td></tr>
+                    <tr><td colSpan={(mostraNmDn ? 4 : 2) + colVars.length} style={{ padding:20, textAlign:"center", color:"#6b7280", fontSize:13 }}>Nenhuma equipe encontrada para a busca.</td></tr>
                   )}
                 </tbody>
               </table>
