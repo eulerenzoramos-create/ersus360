@@ -61,12 +61,45 @@ BASE: dict[str, tuple[float | str | None, str]] = {
     # Parâmetro de cadastro por eSF, por porte populacional (Art. 11, § 1º; limite +50% no § 2º)
     "cadastro.eSF.ate20mil": (2000, f"{PRT}, Art. 11, § 1º"), "cadastro.eSF.ate50mil": (2500, f"{PRT}, Art. 11, § 1º"),
     "cadastro.eSF.ate100mil": (2750, f"{PRT}, Art. 11, § 1º"), "cadastro.eSF.acima100mil": (3000, f"{PRT}, Art. 11, § 1º"),
-    # Regra de transição (Art. 3º, I e II, red. PRT 6.907/2025): vínculo e qualidade pagos no valor "bom" por
-    # 20 meses. A norma conta os meses a partir da implantação; a competência de término não está no texto
-    # e precisa ser registrada (e validada) para o Simulador aplicar o desempenho real.
-    "transicao.meses": (20, f"{PRT}, Art. 3º, I e II (red. PRT GM/MS 6.907/2025)"),
-    "transicao.fim": (None, f"{PRT}, Art. 3º (competência final a registrar)"),
+    # Transição (Art. 3º, I e II, red. PRT GM/MS 6.907/2025; perguntas frequentes do SIAPS, v1.0 de 11/11/2025):
+    # vínculo e qualidade pagos no valor "Bom" de maio/2024 a dezembro/2025. Depois disso o Simulador identifica
+    # a regra efetivamente aplicada no próprio pagamento de cada parcela (ver aps_simulador).
+    "transicao.periodo": ("202405-202512", "PRT GM/MS 3.493/2024, Art. 3º (red. PRT GM/MS 6.907/2025); FAQ SIAPS"),
 }
+
+FONTE_7799 = ("Portaria GM/MS nº 7.799/2025 — texto em bvsms.saude.gov.br/bvs/saudelegis/gm/2025/prt7799_21_08_2025.html "
+              "(Anexo XCIX-B), lido em 18/11/2026")
+FONTE_9591 = ("Portaria GM/MS nº 9.591/2025 (DOU 23/12/2025) — tabela do Anexo XCIX-B para eSB 40h reproduzida em "
+              "acsace.com.br (texto oficial na BVS indisponível em 18/11/2026); valores conferidos com o pagamento do "
+              "e-Gestor (parcela 10/2026: 4 eSB Ótimo × R$ 3.750 + 6 Bom × R$ 3.000 = R$ 33.000 pagos)")
+FONTE_5850 = ("Portaria GM/MS nº 5.850/2024, republicada (DOU nº 236, 09/12/2024) — bvsms.saude.gov.br/bvs/saudelegis/gm/"
+              "2025/prt5850_06_02_2025_REP.html, Arts. 69 a 72 e Anexos; com a PRT GM/MS nº 8.994/2025 (até 2 profissionais "
+              "de nível superior; limite de 50% fora da Amazônia Legal/Pantanal); lido em 18/11/2026. Custeio de R$ 24.000 "
+              "conferido com o valor de referência publicado no e-Gestor")
+
+# Versões posteriores da tabela (vigência AAAAMM). Valem a partir da competência indicada; antes dela vale a BASE.
+VERSOES: list[tuple[str, str, float, str, str]] = [
+    *[(f"qualidade.eSFR.{c}", "202508", v, "PRT GM/MS 7.799/2025, Anexo XCIX-B", FONTE_7799)
+      for c, v in zip(CLASSES, (8000, 6000, 4000, 2000))],
+    *[(f"qualidade.eCR.{m}.{c}", "202508", v, "PRT GM/MS 7.799/2025, Anexo XCIX-B", FONTE_7799)
+      for m, vs in (("III", (8000, 6000, 4000, 2000)), ("II", (7000, 5250, 3500, 1750)), ("I", (6000, 4500, 3000, 1500)))
+      for c, v in zip(CLASSES, vs)],
+    *[(f"vinculo.eSFR.{c}", "202412", v, "PRT GM/MS 5.850/2024, Anexo XCIX-A", FONTE_5850)
+      for c, v in zip(CLASSES, (8000, 6000, 4000, 2000))],
+    # eSFR — arranjo ribeirinho (Arts. 69 a 72): custeio, implantação, profissionais adicionais e logística
+    ("esfr.custeio", "202412", 24000, "PRT GM/MS 5.850/2024, Art. 69", FONTE_5850),
+    ("esfr.implantacao", "202412", 50000, "PRT GM/MS 5.850/2024, Art. 69-A", FONTE_5850),
+    ("esfr.prof.aux_tec_enfermagem", "202412", 2375, "PRT GM/MS 5.850/2024, Art. 71 e Anexo (até 11)", FONTE_5850),
+    ("esfr.prof.saude_bucal", "202412", 2375, "PRT GM/MS 5.850/2024, Art. 71 e Anexo (até 1)", FONTE_5850),
+    ("esfr.prof.nivel_superior", "202412", 5000, "PRT GM/MS 5.850/2024, Art. 71 e Anexo; PRT 8.994/2025 (até 2)", FONTE_5850),
+    ("esfr.logistica.embarcacao", "202412", 6000, "PRT GM/MS 5.850/2024, Art. 72 e Anexo (até 4)", FONTE_5850),
+    ("esfr.logistica.pickup", "202412", 6000, "PRT GM/MS 5.850/2024, Art. 72 e Anexo (até 2)", FONTE_5850),
+    ("esfr.logistica.unidade_apoio", "202412", 4000, "PRT GM/MS 5.850/2024, Art. 72 e Anexo (até 4)", FONTE_5850),
+    *[(f"qualidade.eSB.{m}.{c}", "202601", v, "PRT GM/MS 9.591/2025, Anexo XCIX-B (eSB 40h)", FONTE_9591)
+      for m, vs in (("I", (2500, 2000, 1500, 1000)), ("II", (3300, 2500, 1700, 1200)),
+                    ("I_quil", (3750, 3000, 2250, 1500)), ("II_quil", (4950, 3750, 2550, 1800)))
+      for c, v in zip(CLASSES, vs)],
+]
 
 DESCRICAO = {
     "fixo": "Componente fixo (por equipe, conforme estrato do IED)",
@@ -89,6 +122,10 @@ async def vigentes(db: AsyncSession, municipio_id: int, competencia: str) -> dic
     saida = {k: {"valor": v if not isinstance(v, str) else None, "valor_texto": v if isinstance(v, str) else None,
                  "norma": n, "fonte": FONTE_BASE, "origem": "norma", "vigencia_inicio": None, "id": None}
              for k, (v, n) in BASE.items()}
+    for k, vig, v, n, f in VERSOES:
+        if competencia >= vig:
+            saida[k] = {"valor": v, "valor_texto": None, "norma": n, "fonte": f, "origem": "norma",
+                        "vigencia_inicio": vig, "id": None}
     regs = (await db.execute(select(ApsParametroNorma).where(
         (ApsParametroNorma.municipio_id.is_(None)) | (ApsParametroNorma.municipio_id == municipio_id),
         ApsParametroNorma.origem == "manual").order_by(ApsParametroNorma.vigencia_inicio, ApsParametroNorma.id))).scalars()
