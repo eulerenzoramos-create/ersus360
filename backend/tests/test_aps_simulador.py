@@ -76,6 +76,10 @@ async def test_situacao_atual_conferencia_e_desempenho(ambiente, monkeypatch):
     assert "eSF — componente fixo" not in div and "eSF — vínculo e acompanhamento" not in div
     assert div["eSF — qualidade"]["esperado_norma"] == 54000 and div["eSF — qualidade"]["pago_egestor"] == 72000
     assert "eMulti — qualidade" not in div                     # Estratégica Bom 2.250 = pago
+    assert "R$ 54.000,00" in div["eSF — qualidade"]["texto"] and "R$ 72.000,00" in div["eSF — qualidade"]["texto"]
+    assert any(x["tipo"] == "desconto_repetido" for x in d["diferencas"])   # mesmo desconto na eSF e na eAP
+    em1 = next(e for e in d["por_equipe"] if e["ine"] == "0002449927")
+    assert em1["norma"]["custeio"] == em1["atual"]["custeio"] == 12000 and em1["norma"]["qualidade"] == 2250
     assert any(x["tipo"] == "desconto" for x in d["diferencas"])
     # por equipe: ESF 1 qualidade Suficiente → Bom; plano de melhoria pelos indicadores de maior peso
     e1 = next(e for e in d["por_equipe"] if e["ine"] == ESF[0])
@@ -123,6 +127,8 @@ async def test_oportunidades_apui(ambiente, monkeypatch):
     max_esf = max(ops["esf_homologacao"]["incremento_mensal"], ops["esf_nova"]["incremento_mensal"])
     assert d["kpis"]["incremento_credenciamento_a_confirmar_mensal"] >= max_esf
     assert len(d["respostas"]) == 6
+    prov = d["respostas"][5]["resposta"]
+    assert prov.count("2ª eMulti") == 1                                   # providência sem repetição
 
 
 async def test_parametros_validacao_historico_e_transicao(ambiente, monkeypatch):
