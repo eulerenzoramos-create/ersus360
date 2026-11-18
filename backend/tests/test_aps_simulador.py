@@ -61,6 +61,9 @@ async def _semear(S, mid, monkeypatch, parcela=PARCELA_202610):
         regs += [_q(mid, "2026Q2", "QUALIDADE", "eSF", ESF[0], "suficiente", sum(i["nota"] for i in q1), q1)]
         regs += [_q(mid, "2026Q2", "QUALIDADE", "eSF", i, "otimo", 8.0) for i in ESF[1:]]
         regs += [_q(mid, "2026Q2", "CVAT", "eSF", ESF[0], "bom", 7.2)]
+        regs += [_q(mid, "2026Q2", "CVAT", "eSF", ESF[2], "regular", 4.0)]
+        # avaliação antiga com a eSFR "Bom": não pode virar "classificação" (outros componentes usam 2026Q1)
+        regs += [_q(mid, "2025Q1", "QUALIDADE", "eSFR", "0000007048", "bom", 6.0)]
         regs += [_q(mid, "2026Q2", "QUALIDADE", "eMulti", "0002449927", "otimo", 8.0)]
         db.add_all(regs)
         await db.commit()
@@ -114,7 +117,14 @@ async def test_situacao_atual_regra_identificada_e_desempenho(ambiente, monkeypa
     assert em1["atual"]["qualidade"] == 2250 and em1["norma"]["qualidade"] == 3000 and em1["norma"]["custeio"] == 12000
     # incremento por desempenho: qualidade eSF (equipe 1 Suficiente→Bom) entra; vínculo fica "após a transição"
     assert d["desempenho"]["incremento_mensal_proximo_nivel"] == 2000
-    assert d["desempenho"]["incremento_mensal_apos_transicao"] == 2000
+    assert d["desempenho"]["incremento_mensal_apos_transicao"] == 2000 + 2000      # equipe 1 Bom→Ótimo; equipe 3 Regular→Suficiente
+    # fim da transição do vínculo: equipe 3 (Regular) perderia R$ 4.000/mês; previsão atual continua "Bom"
+    e3 = next(e for e in d["por_equipe"] if e["ine"] == ESF[2])
+    assert e3["norma"]["vinculo"] == 6000 and e3["fim_transicao"] == [{"componente": "vinculo", "classificacao": "regular",
+                                                                      "variacao_mensal": -4000}]
+    assert d["kpis"]["fim_transicao_perdas_mensal"] == -4000
+    areal = next(e for e in d["por_equipe"] if e["ine"] == "0000007048")
+    assert areal["norma"]["vinculo"] == areal["atual"]["vinculo"] == 6000      # sem avaliação nova: mantém o pago
     assert d["desempenho"]["efeito_financeiro"] == "imediato"
     assert d["kpis"]["total_potencial_mensal"] == round(d["kpis"]["financiamento_atual_mensal"] + 2000, 2)
     assert d["kpis"]["variacao_proxima_avaliacao_mensal"] == -4000 + 750
@@ -169,7 +179,7 @@ async def test_parametros_validacao_e_historico(ambiente, monkeypatch):
     tok = await _token(c, "gestor.apui@teste.gov.br")
     outro = await _token(c, "multi@teste.gov.br")
     consulta = await _token(c, "ana.consulta@apui.gov.br")
-    novo = {"chave": "vinculo.eSF.bom", "valor": 6500, "norma": "Portaria GM/MS (exemplo de teste)",
+    novo = {"chave": "vinculo.eSF.bom", "valor": 6600, "norma": "Portaria GM/MS (exemplo de teste)",
             "fonte": "Texto oficial conferido no DOU", "justificativa": "Teste de atualização normativa",
             "vigencia_inicio": "202601", "nacional": False}
     assert (await c.post("/api/aps-simulador/parametros", json=novo, headers=_h(consulta))).status_code == 403
@@ -190,7 +200,7 @@ async def test_parametros_validacao_e_historico(ambiente, monkeypatch):
     async with S() as db:
         from services import aps_parametros as ap
         assert ap.valor(await ap.vigentes(db, mid, "202512"), "vinculo.eSF.bom") == 6000
-        assert ap.valor(await ap.vigentes(db, mid, "202610"), "vinculo.eSF.bom") == 6500
+        assert ap.valor(await ap.vigentes(db, mid, "202610"), "vinculo.eSF.bom") == 6600
         assert ap.valor(await ap.vigentes(db, mid, "202512"), "qualidade.eSB.I_quil.bom") == 2755.13   # PRT 3.493
         assert ap.valor(await ap.vigentes(db, mid, "202610"), "qualidade.eSB.I_quil.bom") == 3000      # PRT 9.591
     # isolamento: outro município não vê parâmetro municipal nem dados

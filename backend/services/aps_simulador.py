@@ -275,7 +275,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
     for reg in regras.values():
         q_emp = reg.pop("_empate", None)
         if reg["regra"] == "bom" and q_emp and any(o["regra"] == "classificacao" and o["componente_siaps"] == reg["componente_siaps"]
-                                                   for o in regras.values()):
+                                                   and o.get("quadrimestre") == q_emp for o in regras.values()):
             reg.update(regra="classificacao", quadrimestre=q_emp)
             if quads and quads[0] > q_emp:
                 cs, soma_f, ines_f = cands_por[reg["chave"]]
@@ -348,6 +348,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
     ines = sorted(set(nomes) | set(pg_eq), key=lambda i: (tipos.index(nomes[i].tipo) if i in nomes and nomes[i].tipo in tipos else 9,
                                                            nomes[i].nome if i in nomes else i))
     por_equipe, inc_prox, inc_otimo, inc_apos, inc_nc = [], 0.0, 0.0, 0.0, 0.0
+    fim_trans = [0.0, 0.0]          # [perdas, ganhos] por mês quando a classificação real passar a valer
     COMP_POR_TIPO = {"eSF": [("vinculo", "vinculo.eSF"), ("qualidade", "qualidade.eSF")], "eSB": [("qualidade", "qualidade.eSB")],
                      "eMulti": [("qualidade", "qualidade.eMulti")],
                      "eSFR": [("vinculo", "vinculo.eSFR"), ("qualidade", "qualidade.eSFR")]}
@@ -399,6 +400,8 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                        "qualidade.eSFR": _res(comps, 58).get("vlTotal"), "vinculo.eSFR": _res(comps, 61).get("vlTotal")}.get(chave)
                 linha["atual"][comp_k] = round(_n(tot) / max(1, reg_regra["equipes_pagas"]), 2)
             if not reg_aval or reg_aval.classificacao not in ap.CLASSES or not k_base:
+                if linha["atual"].get(comp_k) is not None:
+                    linha["norma"][comp_k] = linha["atual"][comp_k]          # sem avaliação nova: mantém o pago
                 if not k_base and pago_ok:
                     linha["observacoes"].append(f"Modalidade sem tabela de {comp_k} identificável: valor pela norma não calculado.")
                 elif pago_ok:
@@ -406,8 +409,17 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                 continue
             cl = reg_aval.classificacao
             atual_v = V(f"{k_base}.{cl}")
-            linha["norma"][comp_k] = atual_v
             regra = reg_regra["regra"] if reg_regra else "sem_parametro"
+            if regra == "bom":
+                # ainda pago como "Bom": a previsão continua "Bom"; o efeito da classificação real vale no fim da transição
+                linha["norma"][comp_k] = V(f"{k_base}.bom")
+                delta = round(atual_v - V(f"{k_base}.bom"), 2)
+                if delta and pago_ok and reg_aval.equipe_valida:
+                    linha["fim_transicao"] = linha.get("fim_transicao", []) + [
+                        {"componente": comp_k, "classificacao": cl, "variacao_mensal": delta}]
+                    fim_trans[0 if delta < 0 else 1] += delta
+            else:
+                linha["norma"][comp_k] = atual_v
             efeito = {"classificacao": "proxima_avaliacao", "bom": "apos_transicao"}.get(regra, "nao_confirmado")
             alvo = _proxima(cl)
             if alvo:
@@ -438,6 +450,8 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
         "incremento_mensal_apos_transicao": round(inc_apos, 2),
         "incremento_mensal_nao_confirmado": round(inc_nc, 2),
         "variacao_proxima_avaliacao_mensal": variacao_proxima,
+        "fim_transicao_perdas_mensal": round(fim_trans[0], 2),
+        "fim_transicao_ganhos_mensal": round(fim_trans[1], 2),
         "efeito_financeiro": "imediato" if efeito_hoje else "apos_transicao",
         "regras": list(regras.values()),
         "texto": ("Incremento por desempenho = valor pela norma com a classificação melhorada − valor pela norma com a "
@@ -478,6 +492,8 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                                                   desempenho["incremento_mensal_apos_transicao"], 2),
             "incremento_desempenho_apos_transicao_mensal": desempenho["incremento_mensal_apos_transicao"],
             "variacao_proxima_avaliacao_mensal": desempenho["variacao_proxima_avaliacao_mensal"],
+            "fim_transicao_perdas_mensal": desempenho["fim_transicao_perdas_mensal"],
+            "fim_transicao_ganhos_mensal": desempenho["fim_transicao_ganhos_mensal"],
             "oportunidades": len(oportunidades),
             "oportunidades_confirmadas": sum(1 for o in oportunidades if o["elegibilidade"] == "confirmada"),
             "oportunidades_pendentes": sum(1 for o in oportunidades if o["elegibilidade"] == "potencial"),
@@ -814,6 +830,9 @@ def _respostas(kpis, desempenho, ops, pg, transicao) -> list[dict]:
                       + (f" Com a avaliação mais recente, o valor mensal já muda {'+' if desempenho['variacao_proxima_avaliacao_mensal'] > 0 else '−'}"
                          f"{brl(abs(desempenho['variacao_proxima_avaliacao_mensal']))} quando o MS aplicá-la."
                          if desempenho["variacao_proxima_avaliacao_mensal"] else "")
+                      + (f" Atenção: quando o vínculo deixar de ser pago como “Bom”, as equipes hoje abaixo de Bom perdem "
+                         f"{brl(abs(desempenho['fim_transicao_perdas_mensal']))}/mês (e as acima ganham "
+                         f"{brl(desempenho['fim_transicao_ganhos_mensal'])}/mês)." if desempenho.get("fim_transicao_perdas_mensal") else "")
                       + (f" {brl(desempenho['incremento_mensal_nao_confirmado'])}/mês dependem de parâmetro a atualizar."
                          if desempenho["incremento_mensal_nao_confirmado"] else ""))},
         {"pergunta": "Quais novos programas e equipes poderá solicitar?",
