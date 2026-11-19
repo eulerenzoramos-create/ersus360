@@ -500,6 +500,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
             "oportunidades_dados_insuficientes": sum(1 for o in oportunidades if o["elegibilidade"] == "dados_insuficientes")}
 
     respostas = _respostas(kpis, desempenho, oportunidades, pg, transicao)
+    por_tipo = resumo_por_tipo(componentes, por_equipe, regras, oportunidades)
     return {
         "situacao_dado": "oficial_validado", "parcela": parcela, "parcela_rotulo": pg["parcela_rotulo"],
         "parcelas": pg["parcelas"], "competencia_cnes": pg.get("competencia_cnes"),
@@ -509,6 +510,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
         "perfil": perfil, "transicao": transicao, "kpis": kpis, "componentes": componentes,
         "diferencas": diferencas, "por_equipe": por_equipe, "desempenho": desempenho,
         "oportunidades": oportunidades, "alertas": alertas, "lacunas": lacunas, "respostas": respostas,
+        "por_tipo": por_tipo,
         "parametros_usados": params,
         "formulas": {
             "desempenho": "Incremento por desempenho = valor projetado com melhoria dos indicadores − valor previsto com desempenho atual",
@@ -811,6 +813,72 @@ def _oportunidades_esfr(comps, params, perfil) -> list[dict]:
                    providencia="Se houver comunidades só acessíveis por rio, comparar nova eSFR × nova eSF na vaga do teto.",
                    grupo_exclusivo="esf_vaga", **comum))
     return ops
+
+
+GRUPOS_TIPO = [
+    ("eSF", "Saúde da Família (eSF/eAP)", {48, 49, 72}, ("esf_", "eap_"), ("qualidade.eSF", "vinculo.eSF")),
+    ("eSB", "Saúde Bucal (eSB)", {5, 37, 50, 9, 19, 18, 43}, ("esb_", "uom"), ("qualidade.eSB",)),
+    ("eMulti", "Multiprofissional (eMulti)", {42, 51, 55, 73}, ("emulti_",), ("qualidade.eMulti",)),
+    ("eSFR", "Saúde da Família Ribeirinha (eSFR)", {7, 58, 61, 14, 10}, ("esfr", "ubsf"), ("qualidade.eSFR", "vinculo.eSFR")),
+    ("ACS", "Agentes Comunitários de Saúde", {12, 31}, ("acs",), ()),
+    ("Outros", "Demais programas e incentivos", None, (), ()),
+]
+
+
+def resumo_por_tipo(componentes, por_equipe, regras, oportunidades) -> list[dict]:
+    """Projeções organizadas por tipo de equipe: quanto recebe, o que muda com a próxima avaliação, ganho por
+    melhoria de indicadores, efeito do fim da transição e oportunidades (com valores) — tudo do cálculo acima."""
+    usados, ops_usadas, saida = set(), set(), []
+    for tipo, nome, cos, prefixos, chaves in GRUPOS_TIPO:
+        comps = [c for c in componentes if (c["co"] in cos if cos is not None else c["co"] not in usados)]
+        usados |= {c["co"] for c in comps}
+        ops = [o for o in oportunidades if (o["id"].startswith(prefixos) if prefixos else o["id"] not in ops_usadas)]
+        ops_usadas |= {o["id"] for o in ops}
+        eqs = [e for e in por_equipe if e.get("tipo") == tipo or (tipo == "eSF" and e.get("tipo") == "eAP")]
+        pago = round(sum(_n(c["vl_total"]) for c in comps), 2)
+        variacao = round(sum(regras[k].get("variacao_mensal") or 0 for k in chaves if k in regras), 2)
+        melhoria = {"proxima_avaliacao": 0.0, "apos_transicao": 0.0, "nao_confirmado": 0.0}
+        for e in eqs:
+            if not e.get("pagamento_ok") or e.get("valida") is False:
+                continue
+            for m in e.get("melhoria", []):
+                melhoria[m.get("efeito", "nao_confirmado")] += _n(m["incremento_mensal"])
+        perdas = round(sum(f["variacao_mensal"] for e in eqs for f in e.get("fim_transicao", []) if f["variacao_mensal"] < 0), 2)
+        ganhos = round(sum(f["variacao_mensal"] for e in eqs for f in e.get("fim_transicao", []) if f["variacao_mensal"] > 0), 2)
+        grupos: dict[str, float] = {}
+        for o in ops:
+            if o["elegibilidade"] in ("confirmada", "potencial") and o.get("incremento_mensal"):
+                g = o.get("grupo_exclusivo") or o["id"]
+                grupos[g] = max(grupos.get(g, 0), o["incremento_mensal"])
+        if not comps and not ops and not eqs:
+            continue
+        destaque = []
+        if variacao:
+            destaque.append({"tipo": "proxima_avaliacao", "valor": variacao})
+        if perdas:
+            destaque.append({"tipo": "fim_transicao_perda", "valor": perdas})
+        saida.append({
+            "tipo": tipo, "nome": nome,
+            "equipes": sum(1 for e in eqs if e.get("pagamento_ok")),
+            "equipes_cadastradas": len(eqs),
+            "recebe_mensal": pago, "recebe_anual": round(pago * 12, 2),
+            "regras": [{"componente": regras[k]["rotulo"], "texto": regras[k]["regra_texto"]} for k in chaves if k in regras],
+            "variacao_proxima_avaliacao_mensal": variacao,
+            "melhoria_indicadores_mensal": round(melhoria["proxima_avaliacao"], 2),
+            "melhoria_apos_transicao_mensal": round(melhoria["apos_transicao"], 2),
+            "melhoria_nao_confirmada_mensal": round(melhoria["nao_confirmado"], 2),
+            "fim_transicao_perdas_mensal": perdas, "fim_transicao_ganhos_mensal": ganhos,
+            "credenciamento_a_confirmar_mensal": round(sum(grupos.values()), 2),
+            "oportunidades": [{"id": o["id"], "programa": o["programa"], "elegibilidade": o["elegibilidade"],
+                               "elegibilidade_rotulo": o["elegibilidade_rotulo"], "quantidade": o.get("quantidade"),
+                               "incremento_mensal": o.get("incremento_mensal"), "incremento_anual": o.get("incremento_anual"),
+                               "custeio_unitario": o.get("custeio_unitario"), "implantacao_total": o.get("implantacao_total"),
+                               "grupo_exclusivo": o.get("grupo_exclusivo")} for o in ops],
+            "providencias": list(dict.fromkeys(o["providencia"] for o in ops
+                                               if o["providencia"] and o["elegibilidade"] in ("confirmada", "potencial"))),
+            "atencao": destaque,
+        })
+    return saida
 
 
 def _respostas(kpis, desempenho, ops, pg, transicao) -> list[dict]:
