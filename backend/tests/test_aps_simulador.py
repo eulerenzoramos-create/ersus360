@@ -168,6 +168,14 @@ async def test_oportunidades_apui(ambiente, monkeypatch):
     max_esf = max(ops["esf_homologacao"]["incremento_mensal"], ops["esf_nova"]["incremento_mensal"])
     assert d["kpis"]["incremento_credenciamento_a_confirmar_mensal"] >= max_esf
     assert len(d["respostas"]) == 6
+    # resumo por tipo de equipe: soma dos grupos = financiamento atual; oportunidades no grupo certo
+    pt = {g["tipo"]: g for g in d["por_tipo"]}
+    assert round(sum(g["recebe_mensal"] for g in d["por_tipo"]), 2) == d["kpis"]["financiamento_atual_mensal"]
+    assert pt["eSFR"]["recebe_mensal"] == 24000 + 6000 + 6000 + 16210          # custeio + qualidade + vínculo + microscopistas
+    assert {o["id"] for o in pt["eSFR"]["oportunidades"]} >= {"esfr_embarcacao_registrada", "esfr_nova"}
+    assert pt["eMulti"]["credenciamento_a_confirmar_mensal"] == 42750         # excludentes: conta a maior
+    assert pt["eSF"]["equipes"] == 9 and pt["ACS"]["oportunidades"][0]["elegibilidade"] == "nao_elegivel"
+    assert pt["eSB"]["recebe_mensal"] == 60210 + 33000 + 9360 + 11250
     prov = d["respostas"][5]["resposta"]
     assert prov.count("2ª eMulti") == 1                                   # providência sem repetição
 

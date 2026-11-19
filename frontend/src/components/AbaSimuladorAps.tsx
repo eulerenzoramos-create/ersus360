@@ -35,6 +35,80 @@ function Classe({ c }: { c?: string | null }) {
   return <span style={{ color: COR_CLASSE[c] ?? "#374151", fontWeight: 700 }}>{CLASSE[c] ?? c}</span>;
 }
 
+function Linha({ rotulo, valor, cor, dica }: { rotulo: string; valor: string; cor?: string; dica?: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderTop: "1px dashed #eef0f3", fontSize: 13 }}>
+      <span style={{ color: "#374151" }} title={dica}>{rotulo}</span>
+      <b style={{ color: cor ?? "#1f2937", whiteSpace: "nowrap" }}>{valor}</b>
+    </div>
+  );
+}
+
+const sinal = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${BRL(Math.abs(v))}/mês`;
+
+function CartaoTipo({ g }: { g: any }) {
+  const ops: any[] = g.oportunidades ?? [];
+  const ativas = ops.filter(o => o.elegibilidade === "potencial" || o.elegibilidade === "confirmada");
+  const outras = ops.filter(o => !(o.elegibilidade === "potencial" || o.elegibilidade === "confirmada"));
+  return (
+    <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, background: "#fcfdff" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+        <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 14 }}>{g.nome}</div>
+        {g.equipes_cadastradas > 0 && <div style={{ fontSize: 11, color: "#6b7280" }}>{g.equipes} paga(s) · {g.equipes_cadastradas} no SIAPS</div>}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: "#1e3a8a", marginTop: 6 }}>{brl(g.recebe_mensal)}<span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280" }}>/mês hoje</span></div>
+      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>{brl(g.recebe_anual)}/ano se mantido</div>
+      {g.variacao_proxima_avaliacao_mensal !== 0 && (
+        <Linha rotulo="Próxima avaliação já capturada" valor={sinal(g.variacao_proxima_avaliacao_mensal)}
+          cor={g.variacao_proxima_avaliacao_mensal < 0 ? "#dc2626" : "#16a34a"} dica="Quando o MS aplicar a avaliação quadrimestral mais recente" />
+      )}
+      {g.melhoria_indicadores_mensal > 0 && (
+        <Linha rotulo="Melhorando indicadores (1 nível)" valor={sinal(g.melhoria_indicadores_mensal)} cor="#16a34a" />
+      )}
+      {g.melhoria_apos_transicao_mensal > 0 && (
+        <Linha rotulo="Melhoria no vínculo (após a transição)" valor={sinal(g.melhoria_apos_transicao_mensal)} cor="#6b7280" />
+      )}
+      {(g.fim_transicao_perdas_mensal !== 0 || g.fim_transicao_ganhos_mensal !== 0) && (
+        <Linha rotulo="Fim da transição do vínculo" cor={g.fim_transicao_perdas_mensal + g.fim_transicao_ganhos_mensal < 0 ? "#dc2626" : "#16a34a"}
+          valor={`${sinal(g.fim_transicao_perdas_mensal)} | ${sinal(g.fim_transicao_ganhos_mensal)}`}
+          dica="Perdas das equipes abaixo de Bom | ganhos das acima de Bom" />
+      )}
+      {g.credenciamento_a_confirmar_mensal > 0 && (
+        <Linha rotulo="Credenciamentos possíveis (a confirmar)" valor={sinal(g.credenciamento_a_confirmar_mensal)} cor="#b45309" />
+      )}
+      {(g.regras ?? []).length > 0 && (
+        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 6 }}>
+          {g.regras.map((r: any) => <div key={r.componente}>• {r.componente}: {r.texto}</div>)}
+        </div>
+      )}
+      {ativas.length > 0 && (
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
+          <thead><tr><th style={{ ...th, fontSize: 11 }}>O que pode solicitar</th><th style={{ ...th, fontSize: 11 }}>Mês</th><th style={{ ...th, fontSize: 11 }}>Ano</th></tr></thead>
+          <tbody>{ativas.map(o => (
+            <tr key={o.id}>
+              <td style={{ ...td, fontSize: 12 }}>{o.programa.replace(/^[^—]+— /, "")}{o.quantidade ? ` (${o.quantidade})` : ""}
+                {o.grupo_exclusivo && <div style={{ fontSize: 10, color: "#9ca3af" }}>alternativa — conta uma vez</div>}
+                {o.implantacao_total ? <div style={{ fontSize: 10, color: "#6b7280" }}>+ implantação {brl(o.implantacao_total)} (única)</div> : null}</td>
+              <td style={{ ...td, fontSize: 12, whiteSpace: "nowrap", color: "#b45309", fontWeight: 700 }}>{o.incremento_mensal != null ? `+${brl(o.incremento_mensal)}` : "—"}</td>
+              <td style={{ ...td, fontSize: 12, whiteSpace: "nowrap" }}>{o.incremento_anual != null ? brl(o.incremento_anual) : "—"}</td>
+            </tr>))}</tbody>
+        </table>
+      )}
+      {outras.length > 0 && (
+        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 6 }}>
+          {outras.map(o => <div key={o.id}>• {o.programa}: <i>{o.elegibilidade_rotulo}</i>{o.custeio_unitario ? ` (${brl(o.custeio_unitario)} por unidade)` : ""}</div>)}
+        </div>
+      )}
+      {(g.providencias ?? []).length > 0 && (
+        <div style={{ marginTop: 8, background: "#f8fafc", borderRadius: 8, padding: "8px 10px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a", marginBottom: 2 }}>Providências</div>
+          {g.providencias.map((p: string) => <div key={p} style={{ fontSize: 12 }}>• {p}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Selo({ e, rotulo }: { e: Eleg; rotulo: string }) {
   const [bg, fg] = ELEG_COR[e];
   return <span style={{ background: bg, color: fg, borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{rotulo}</span>;
@@ -108,15 +182,25 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
           sub={`${k.oportunidades_confirmadas} confirmadas · ${k.oportunidades_pendentes} a confirmar · ${k.oportunidades_dados_insuficientes} sem dados`} />
       </div>
 
-      {/* Respostas */}
+      {/* Projeções por equipe */}
       <div style={card}>
-        <h3 style={h3}>Respostas do ERSUS360</h3>
-        {d.respostas.map((r: any) => (
-          <div key={r.pergunta} style={{ padding: "8px 0", borderTop: "1px solid #f1f5f9" }}>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{r.pergunta}</div>
-            <div style={{ fontSize: 13, color: "#374151", marginTop: 2 }}>{r.resposta}</div>
-          </div>
-        ))}
+        <h3 style={h3}>Projeções por equipe</h3>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
+          Para cada tipo de equipe: quanto recebe hoje, o que muda com a próxima avaliação, quanto ganha melhorando
+          indicadores, o efeito do fim da transição e o que pode solicitar. Valores “a confirmar” não são garantidos.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))", gap: 12 }}>
+          {(d.por_tipo ?? []).map((g: any) => <CartaoTipo key={g.tipo} g={g} />)}
+        </div>
+        <details style={{ marginTop: 12 }}>
+          <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#1e3a8a" }}>Resumo em texto (respostas do ERSUS360)</summary>
+          {d.respostas.map((r: any) => (
+            <div key={r.pergunta} style={{ padding: "8px 0", borderTop: "1px solid #f1f5f9" }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{r.pergunta}</div>
+              <div style={{ fontSize: 13, color: "#374151", marginTop: 2 }}>{r.resposta}</div>
+            </div>
+          ))}
+        </details>
       </div>
 
       {/* Alertas e lacunas */}
