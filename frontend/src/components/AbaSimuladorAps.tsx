@@ -95,6 +95,10 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
           sub={`Na próxima avaliação aplicada pelo MS${k.incremento_desempenho_apos_transicao_mensal ? ` · +${brl(k.incremento_desempenho_apos_transicao_mensal)}/mês após a transição (vínculo)` : ""}`} />
         <Kpi rotulo="Mudança com a avaliação mais recente" valor={`${k.variacao_proxima_avaliacao_mensal > 0 ? "+" : ""}${brl(k.variacao_proxima_avaliacao_mensal)}/mês`}
           cor={k.variacao_proxima_avaliacao_mensal < 0 ? "#dc2626" : "#16a34a"} sub="Quando o MS aplicar a avaliação quadrimestral já capturada" />
+        {(k.fim_transicao_perdas_mensal || k.fim_transicao_ganhos_mensal) ? (
+          <Kpi rotulo="Fim da transição do vínculo" valor={`${brl(k.fim_transicao_perdas_mensal)}/mês`} cor="#dc2626"
+            sub={`Perda das equipes abaixo de Bom quando o vínculo deixar de ser pago como “Bom” · ganho das acima: +${brl(k.fim_transicao_ganhos_mensal)}/mês`} />
+        ) : null}
         <Kpi rotulo="Incremento por credenciamentos confirmados" valor={`${brl(k.incremento_credenciamento_confirmado_mensal)}/mês`} cor="#16a34a" />
         <Kpi rotulo="Credenciamentos a confirmar (não garantido)" valor={`${brl(k.incremento_credenciamento_a_confirmar_mensal)}/mês`} cor="#b45309"
           sub={`Implantação (parcela única): ${brl(k.implantacao_nao_recorrente_a_confirmar)}`} />
@@ -198,7 +202,11 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
                   <td style={td}>{e.melhoria.length ? e.melhoria.map((m: any) => (
                     <div key={m.componente}>{m.componente}: <Classe c={m.de} /> → <Classe c={m.para} /> <b>+{brl(m.incremento_mensal)}</b>
                       {m.efeito === "apos_transicao" && <span style={{ color: "#6b7280" }}> (após a transição)</span>}
-                      {m.efeito === "nao_confirmado" && <span title="Pagamento não confere com os parâmetros cadastrados" style={{ color: "#b45309" }}> (não confirmado)</span>}</div>)) : "—"}</td>
+                      {m.efeito === "nao_confirmado" && <span title="Pagamento não confere com os parâmetros cadastrados" style={{ color: "#b45309" }}> (não confirmado)</span>}</div>)) : "—"}
+                    {(e.fim_transicao ?? []).map((f: any) => (
+                      <div key={"ft" + f.componente} style={{ color: f.variacao_mensal < 0 ? "#dc2626" : "#16a34a" }}>
+                        fim da transição ({f.componente} <Classe c={f.classificacao} />): {f.variacao_mensal > 0 ? "+" : ""}{brl(f.variacao_mensal)}/mês
+                      </div>))}</td>
                 </tr>
                 {eqAberta === e.ine && (
                   <tr key={e.ine + "-d"}><td style={{ ...td, background: "#f8fafc" }} colSpan={9}>
