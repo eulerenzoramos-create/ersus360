@@ -23,7 +23,7 @@ import httpx
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.egestor_pagamento import EgestorPagamentoComponente, EgestorValidacaoEquipe
+from models.egestor_pagamento import EgestorPagamentoComponente, EgestorPagamentoConsolidado, EgestorValidacaoEquipe
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +115,12 @@ async def buscar(ibge: str, parcelas: int = PARCELAS_GUARDADAS, client: httpx.As
                                          "nuParcelaFim": grupos[0]["nuParcela"] if grupos else f"{ano}12",
                                          "tipoRelatorio": "COMPLETO"}) if grupos else {}
         munic = {p["nuParcela"]: p for p in comp.get("pagamentos") or []}
+        planos_por = {}
+        for x in comp.get("resumosPlanosOrcamentarios") or []:
+            planos_por.setdefault(str(x.get("nuParcela")), []).append(
+                {k: x.get(k) for k in ("dsPlanoOrcamentario", "dsEsferaAdministrativa", "vlIntegral", "vlAjuste", "vlDesconto",
+                                       "vlEfetivoRepasse", "vlImplantacao", "vlAjusteImplantacao", "vlDescontoImplantacao",
+                                       "vlTotalImplantacao")})
         saida = []
         for g in grupos:
             componentes = []
@@ -142,6 +148,8 @@ async def buscar(ibge: str, parcelas: int = PARCELAS_GUARDADAS, client: httpx.As
             saida.append({"nu_parcela": g["nuParcela"], "nu_comp_cnes": g["nuCompCnes"],
                           "classificacao_qualidade": m.get("dsClassificacaoQualidadeEsfEap"),
                           "classificacao_vinculo": m.get("dsClassificacaoVinculoEsfEap"),
+                          "consolidado": {k: v for k, v in m.items() if not isinstance(v, (list, dict))},
+                          "planos": planos_por.get(g["nuParcela"], []),
                           "componentes": componentes})
         return saida
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as e:
@@ -162,6 +170,13 @@ async def sincronizar(db: AsyncSession, municipio_id: int, ibge: str) -> dict:
             await db.execute(delete(tabela).where(tabela.municipio_id == municipio_id,
                                                   tabela.nu_parcela == p["nu_parcela"]))
         agora = datetime.utcnow()
+        if p.get("consolidado") or p.get("planos"):
+            await db.execute(delete(EgestorPagamentoConsolidado).where(
+                EgestorPagamentoConsolidado.municipio_id == municipio_id,
+                EgestorPagamentoConsolidado.nu_parcela == p["nu_parcela"]))
+            db.add(EgestorPagamentoConsolidado(municipio_id=municipio_id, nu_parcela=p["nu_parcela"],
+                                               consolidado=p.get("consolidado") or {}, planos=p.get("planos") or [],
+                                               coletado_em=agora))
         for c in p["componentes"]:
             r = c["resumo"]
             db.add(EgestorPagamentoComponente(
@@ -252,6 +267,12 @@ async def painel(db: AsyncSession, municipio_id: int, parcela: str | None = None
                         "co_componente": v.co_componente, "st_pagamento": v.st_pagamento,
                         "pendencias": pend, "ok": not pend, "detalhe": json.loads(v.payload)})
     esf = next((c for c in comps if c.co_componente == 48), None)
+    cons = (await db.execute(select(EgestorPagamentoConsolidado).where(
+        EgestorPagamentoConsolidado.municipio_id == municipio_id,
+        EgestorPagamentoConsolidado.nu_parcela == parcela))).scalars().first()
+    planos = (cons.planos if cons else None) or []
+    total_comp = round(sum(c.vl_total or 0 for c in comps), 2)
+    desc_comp = round(sum(c.vl_desconto or 0 for c in comps), 2)
     return {
         "situacao_dado": "oficial_validado",
         "fonte": "e-Gestor APS — relatório público de pagamento (relatorioaps-prd.saude.gov.br)",
@@ -262,8 +283,14 @@ async def painel(db: AsyncSession, municipio_id: int, parcela: str | None = None
         "coletado_em": max((c.coletado_em for c in comps), default=None),
         "classificacao_qualidade": esf.classificacao_qualidade if esf else None,
         "classificacao_vinculo": esf.classificacao_vinculo if esf else None,
-        "total": round(sum(c.vl_total or 0 for c in comps), 2),
-        "descontos": round(sum(c.vl_desconto or 0 for c in comps), 2),
+        # total oficial = efetivo repasse por plano (o desconto de eSF/eAP aparece nos dois componentes, mas é um só)
+        "total": round(sum(x.get("vlEfetivoRepasse") or 0 for x in planos), 2) if planos else total_comp,
+        "descontos": round(sum(x.get("vlDesconto") or 0 for x in planos), 2) if planos else desc_comp,
+        "total_fonte": "resumo oficial por plano orçamentário (e-Gestor)" if planos else "soma dos componentes",
+        "total_componentes": total_comp,
+        "implantacao": round(sum(x.get("vlTotalImplantacao") or 0 for x in planos), 2) if planos else None,
+        "planos": planos,
+        "consolidado": cons.consolidado if cons else None,
         "componentes": [{"co_plano": c.co_plano, "plano": c.ds_plano, "co_componente": c.co_componente,
                          "componente": c.ds_componente, "vl_total": c.vl_total, "vl_desconto": c.vl_desconto,
                          "vl_ajuste": c.vl_ajuste, "classificacao_qualidade": c.classificacao_qualidade,

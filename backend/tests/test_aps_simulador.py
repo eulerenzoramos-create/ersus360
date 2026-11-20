@@ -80,9 +80,17 @@ async def test_situacao_atual_regra_identificada_e_desempenho(ambiente, monkeypa
     assert "CNS e e-SUS PEC não são fontes" in d["nao_utiliza"]
     p = d["perfil"]
     assert p["estrato_ied"] == "E2" and p["populacao"] == 21781 and p["populacao_ano"] == 2025
-    soma = sum(x["resumo"].get("vlTotal") or 0 for x in PARCELA_202610["componentes"])
-    assert d["kpis"]["financiamento_atual_mensal"] == round(soma, 2)
-    assert d["kpis"]["financiamento_atual_anual"] == round(soma * 12, 2)
+    # total OFICIAL pelo resumo por plano (planilha do e-Gestor, parcela 10/12): desconto de R$ 42.174 contado uma vez
+    # e extras da eSFR (R$ 13.375) incluídos — a soma dos componentes dava R$ 593.203,75
+    assert d["kpis"]["financiamento_atual_mensal"] == 648752.75
+    assert d["kpis"]["financiamento_atual_anual"] == round(648752.75 * 12, 2)
+    assert d["kpis"]["financiamento_fonte"].startswith("resumo oficial")
+    rel = (await c.get("/api/egestor-pagamento", headers=_h(tok))).json()   # Relatório de Pagamento com o mesmo total
+    assert rel["total"] == 648752.75 and rel["descontos"] == -42174 and rel["total_componentes"] == 593203.75
+    tetos = {t["programa"]: t for t in d["tetos"]}
+    assert (tetos["eSF"]["teto"], tetos["eSF"]["vagas"]) == (11, 1)
+    assert tetos["eMulti Ampliada"]["teto"] == 0 and tetos["eSB 40h"]["vagas"] == 0
+    assert tetos["eSB carga horária diferenciada"]["vagas"] == 20 and tetos["ACS"]["acima_do_teto"]
     # regra identificada no próprio pagamento
     regras = {r["chave"]: r for r in d["desempenho"]["regras"]}
     assert (regras["qualidade.eSF"]["regra"], regras["qualidade.eSF"]["quadrimestre"]) == ("classificacao", "2026Q1")
@@ -99,7 +107,8 @@ async def test_situacao_atual_regra_identificada_e_desempenho(ambiente, monkeypa
     assert regras["qualidade.eMulti"]["variacao_mensal"] == 750
     prev = [x for x in d["diferencas"] if x["tipo"] == "previsao_proxima_avaliacao"]
     assert any("R$ 68.000,00" in x["texto"] for x in prev)
-    assert any(x["tipo"] == "desconto_repetido" for x in d["diferencas"])
+    assert not any(x["tipo"] == "desconto_repetido" for x in d["diferencas"])
+    assert sum(1 for x in d["diferencas"] if x["tipo"] == "desconto") == 1  # desconto da eSF/eAP aparece uma vez
     assert any(x["tipo"] == "desconto" for x in d["diferencas"])
     # por equipe: pago pela regra identificada (não rateio)
     e1 = next(e for e in d["por_equipe"] if e["ine"] == ESF[0])
@@ -141,21 +150,29 @@ async def test_oportunidades_apui(ambiente, monkeypatch):
     assert ops["esf_homologacao"]["custeio_unitario"] == 28000          # fixo E2 16.000 + vínculo e qualidade “Bom”
     assert ops["esf_homologacao"]["implantacao_unitaria"] == 30000
     assert ops["esf_nova"]["quantidade"] == 1 and ops["eap_nova"]["conta_no_total"] is False
-    assert ops["esf_nova"]["grupo_exclusivo"] == ops["eap_nova"]["grupo_exclusivo"] == ops["esf_homologacao"]["grupo_exclusivo"]
+    assert ops["esf_nova"]["grupo_exclusivo"] == ops["eap_nova"]["grupo_exclusivo"] == ops["esfr_nova"]["grupo_exclusivo"]
+    assert ops["esf_homologacao"]["grupo_exclusivo"] is None                # homologação não consome vaga do teto
     # 2ª eMulti: SIAPS 2, e-Gestor 1 credenciada → potencial, sem direito automático, modalidade a confirmar
     em = [o for o in d["oportunidades"] if o["id"].startswith("emulti_")]
-    assert em and all(o["elegibilidade"] == "potencial" for o in em)
+    assert em and all(o["elegibilidade"] == "potencial" for o in em if o["id"] != "emulti_ampliada")
     assert "EMULTI 2" in em[0]["situacao_atual"] and "Modalidade" in em[0]["pendencias"]
     estr = ops["emulti_estrategica"]
-    assert estr["custeio_unitario"] == 12000 + 2250
+    assert estr["custeio_unitario"] == 12000 + 2250 and estr["elegibilidade"] == "potencial"
+    assert ops["emulti_complementar"]["elegibilidade"] == "potencial"       # teto Complementar 1, nenhuma paga
+    assert ops["emulti_ampliada"]["elegibilidade"] == "nao_elegivel"        # teto Ampliada 0
+    # eSB: teto 40h ocupado (10/10); carga horária diferenciada com 20 vagas
+    assert ops["esb_nova"]["elegibilidade"] == "nao_elegivel"
+    assert ops["esb_ch_diferenciada"]["quantidade"] == 20 and ops["esb_ch_diferenciada"]["custeio_unitario"] == 3000
     # eSB modalidade II: diferença publicada no e-Gestor (7.064 − 4.014)
     assert ops["esb_modII"]["custeio_unitario"] == 3050 and ops["esb_modII"]["quantidade"] == 10
     # eSFR (PRT 5.850/2024): só o custeio base é pago → embarcação registrada sem incentivo, adicionais não custeados
-    assert ops["esfr_embarcacao_registrada"]["quantidade"] == 1 and ops["esfr_embarcacao_registrada"]["custeio_unitario"] == 6000
-    assert "RIO SUCUNDURI" in ops["esfr_embarcacao_registrada"]["observacao"]
+    # eSFR: extras já pagos (1 embarcação, 1 aux. enfermagem, 1 nível superior = R$ 13.375) descontados dos limites
+    assert "esfr_embarcacao_registrada" not in ops                          # a embarcação registrada já recebe
+    assert "13.375,00" in ops["esfr_nova"]["situacao_atual"]
     assert ops["esfr_embarcacoes"]["quantidade"] == 3 and ops["esfr_unidades_apoio"]["quantidade"] == 4
     assert ops["esfr_unidades_apoio"]["custeio_unitario"] == 4000 and ops["esfr_pickup"]["custeio_unitario"] == 6000
-    assert ops["esfr_aux_enf"]["incremento_mensal"] == 11 * 2375 and ops["esfr_nivel_superior"]["incremento_mensal"] == 2 * 5000
+    assert ops["esfr_aux_enf"]["incremento_mensal"] == 10 * 2375 and ops["esfr_nivel_superior"]["incremento_mensal"] == 1 * 5000
+    assert ops["esfr_saude_bucal"]["quantidade"] == 1
     assert ops["esfr_microscopistas"]["quantidade"] == 7 and ops["esfr_microscopistas"]["custeio_unitario"] == 3242
     assert ops["esfr_nova"]["custeio_unitario"] == 24000 + 6000 + 6000 and ops["esfr_nova"]["grupo_exclusivo"] == "esf_vaga"
     assert "Amazônia Legal" in ops["esfr_nova"]["perfil"]
@@ -165,17 +182,18 @@ async def test_oportunidades_apui(ambiente, monkeypatch):
     assert ops["academia"]["elegibilidade"] == "dados_insuficientes"
     # nada potencial é somado ao total garantido; excludentes contam uma vez no "a confirmar"
     assert d["kpis"]["incremento_credenciamento_confirmado_mensal"] == 0
-    max_esf = max(ops["esf_homologacao"]["incremento_mensal"], ops["esf_nova"]["incremento_mensal"])
-    assert d["kpis"]["incremento_credenciamento_a_confirmar_mensal"] >= max_esf
+    assert d["kpis"]["incremento_credenciamento_a_confirmar_mensal"] >= ops["esf_homologacao"]["incremento_mensal"] + max(
+        ops["esf_nova"]["incremento_mensal"], ops["esfr_nova"]["incremento_mensal"])
     assert len(d["respostas"]) == 6
     # resumo por tipo de equipe: soma dos grupos = financiamento atual; oportunidades no grupo certo
     pt = {g["tipo"]: g for g in d["por_tipo"]}
     assert round(sum(g["recebe_mensal"] for g in d["por_tipo"]), 2) == d["kpis"]["financiamento_atual_mensal"]
-    assert pt["eSFR"]["recebe_mensal"] == 24000 + 6000 + 6000 + 16210          # custeio + qualidade + vínculo + microscopistas
-    assert {o["id"] for o in pt["eSFR"]["oportunidades"]} >= {"esfr_embarcacao_registrada", "esfr_nova"}
-    assert pt["eMulti"]["credenciamento_a_confirmar_mensal"] == 42750         # excludentes: conta a maior
+    assert pt["eSFR"]["recebe_mensal"] == 65585          # plano "Demais programas": custeio + qualidade + vínculo + extras + microscopistas
+    assert pt["eSF"]["recebe_mensal"] == 227826           # plano eSF/eAP com o desconto uma vez
+    assert {o["id"] for o in pt["eSFR"]["oportunidades"]} >= {"esfr_embarcacoes", "esfr_nova"}
+    assert pt["eMulti"]["credenciamento_a_confirmar_mensal"] == 28500         # Complementar (Ampliada fora do teto)
     assert pt["eSF"]["equipes"] == 9 and pt["ACS"]["oportunidades"][0]["elegibilidade"] == "nao_elegivel"
-    assert pt["eSB"]["recebe_mensal"] == 60210 + 33000 + 9360 + 11250
+    assert pt["eSB"]["recebe_mensal"] == 113820
     prov = d["respostas"][5]["resposta"]
     assert prov.count("2ª eMulti") == 1                                   # providência sem repetição
 

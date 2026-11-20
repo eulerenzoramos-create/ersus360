@@ -125,6 +125,11 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                                            "resumo": json.loads(c.resumo or "{}")})
     lacunas: list[str] = []
     alertas: list[dict] = []
+    C = pg.get("consolidado") or {}                 # consolidado oficial (COMPLETO): tetos, quantitativos, extras
+    planos = pg.get("planos") or []                 # resumo oficial por plano orçamentário
+    if not C:
+        lacunas.append("Consolidado oficial da parcela (tetos e extras) ainda não gravado: rode “Atualizar agora” no "
+                       "Relatório de Pagamento (e-Gestor).")
 
     # ── Perfil municipal ─────────────────────────────────────────────────────────────────────────────
     r48 = _res(comps, 48)
@@ -326,7 +331,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                             "vl_fixo": r.get("vlPagamentoFixo"), "vl_vinculo": r.get("vlPagamentoVinculo"),
                             "vl_qualidade": r.get("vlPagamentoQualidade"), "vl_desconto": c.get("vl_desconto"),
                             "vl_ajuste": c.get("vl_ajuste"), "vl_total": c.get("vl_total")})
-        if _n(c.get("vl_desconto")):
+        if _n(c.get("vl_desconto")) and not planos:
             diferencas.append({"tipo": "desconto", "componente": c["componente"], "diferenca": c["vl_desconto"],
                                "texto": f"{c['componente']}: desconto de {_brl(abs(_n(c['vl_desconto'])))} nesta "
                                         "parcela (ver pendências das equipes no Relatório de Pagamento)."})
@@ -335,9 +340,27 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
             diferencas.append({"tipo": "credenciada_sem_pagamento", "componente": c["componente"],
                                "texto": f"{c['componente']}: {int(cred)} credenciada(s), {int(pag)} paga(s) — "
                                         f"{int(cred - pag)} sem pagamento nesta parcela."})
-    mensal_atual = round(sum(_n(c["vl_total"]) for c in componentes), 2)
+    extra_esfr = _n(C.get("vlPagamentoEsfrbExtra"))
+    if extra_esfr and not any(c["co"] == -7 for c in componentes):
+        componentes.append({"co": -7, "componente": "eSFR — componentes extras (logística e profissionais adicionais)",
+                            "plano": "Demais programas", "teto": None, "credenciadas": None, "homologadas": None,
+                            "pagas": None, "vl_fixo": None, "vl_vinculo": None, "vl_qualidade": None, "vl_desconto": None,
+                            "vl_ajuste": None, "vl_total": extra_esfr})
+    if planos:
+        # total OFICIAL = efetivo repasse por plano orçamentário (relatório COMPLETO do e-Gestor)
+        mensal_atual = round(sum(_n(x.get("vlEfetivoRepasse")) for x in planos), 2)
+        for x in planos:
+            if _n(x.get("vlDesconto")):
+                diferencas.append({"tipo": "desconto", "componente": x.get("dsPlanoOrcamentario"), "diferenca": x["vlDesconto"],
+                                   "texto": f"{x.get('dsPlanoOrcamentario')}: desconto de {_brl(abs(_n(x['vlDesconto'])))} "
+                                            "nesta parcela (valor integral − desconto = efetivo repasse; ver pendências das equipes "
+                                            "no Relatório de Pagamento)."})
+        implantacao_parcela = round(sum(_n(x.get("vlTotalImplantacao")) for x in planos), 2)
+    else:
+        mensal_atual = round(sum(_n(c["vl_total"]) for c in componentes), 2)
+        implantacao_parcela = None
     d48, d49 = _n(_comp(comps, 48).get("vl_desconto")), _n(_comp(comps, 49).get("vl_desconto"))
-    if d48 and d48 == d49 and not _n(_res(comps, 49).get("qtCredenciado")):
+    if not planos and d48 and d48 == d49 and not _n(_res(comps, 49).get("qtCredenciado")):
         diferencas.append({"tipo": "desconto_repetido", "componente": "eSF/eAP", "diferenca": d49,
                            "texto": f"O e-Gestor publica o mesmo desconto ({_brl(abs(d49))}) na eSF e na eAP, sem eAP "
                                     "credenciada. O total acima soma os dois como publicado; conferir no e-Gestor/FNS se é "
@@ -460,7 +483,7 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                   "como “após a transição”."),
     }
 
-    oportunidades = _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, aval)
+    oportunidades = _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, aval, C)
     inc_cred_conf = round(sum(o["incremento_mensal"] or 0 for o in oportunidades
                               if o["elegibilidade"] == "confirmada" and o["conta_no_total"]), 2)
     grupos: dict[str, float] = {}
@@ -482,6 +505,8 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
                                   f"Atualização de parâmetro “{h['chave']}” aguardando validação."), "id": h["id"]})
 
     kpis = {"financiamento_atual_mensal": mensal_atual, "financiamento_atual_anual": round(mensal_atual * 12, 2),
+            "financiamento_fonte": "resumo oficial por plano (e-Gestor)" if planos else "soma dos componentes",
+            "implantacao_paga_parcela": implantacao_parcela,
             "incremento_desempenho_mensal": desempenho["incremento_mensal_proximo_nivel"],
             "incremento_desempenho_efeito": desempenho["efeito_financeiro"],
             "incremento_credenciamento_confirmado_mensal": inc_cred_conf,
@@ -500,13 +525,14 @@ async def simular(db: AsyncSession, municipio_id: int, parcela: str | None = Non
             "oportunidades_dados_insuficientes": sum(1 for o in oportunidades if o["elegibilidade"] == "dados_insuficientes")}
 
     respostas = _respostas(kpis, desempenho, oportunidades, pg, transicao)
-    por_tipo = resumo_por_tipo(componentes, por_equipe, regras, oportunidades)
+    por_tipo = resumo_por_tipo(componentes, por_equipe, regras, oportunidades, planos)
     return {
         "situacao_dado": "oficial_validado", "parcela": parcela, "parcela_rotulo": pg["parcela_rotulo"],
         "parcelas": pg["parcelas"], "competencia_cnes": pg.get("competencia_cnes"),
         "fontes": [FONTE_EGESTOR, FONTE_SIAPS + (f" ({quad})" if quad else ""),
                    "Parâmetros: " + ap.FONTE_BASE],
         "nao_utiliza": "CNS e e-SUS PEC não são fontes deste simulador.",
+        "planos": planos, "tetos": _tetos(C, comps),
         "perfil": perfil, "transicao": transicao, "kpis": kpis, "componentes": componentes,
         "diferencas": diferencas, "por_equipe": por_equipe, "desempenho": desempenho,
         "oportunidades": oportunidades, "alertas": alertas, "lacunas": lacunas, "respostas": respostas,
@@ -546,12 +572,43 @@ def _op(id_: str, programa: str, **kw) -> dict:
     return base
 
 
-def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, aval) -> list[dict]:
+def _tetos(C: dict, comps: dict) -> list[dict]:
+    """Tetos oficiais do município (relatório COMPLETO do e-Gestor) × credenciadas/pagas."""
+    if not C:
+        return []
+    linhas = [
+        ("eSF", C.get("qtTetoEsf"), C.get("qtEsfCredenciado"), C.get("qtEsfTotalPgto")),
+        ("eAP (alternativa à eSF)", C.get("qtTetoEap"), C.get("qtEapCredenciadas"), C.get("qtEapTotalPgto")),
+        ("eMulti Ampliada", C.get("qtTetoEmultiAmpliada"), None, C.get("qtEmultiPagamentoAmpliada")),
+        ("eMulti Complementar", C.get("qtTetoEmultiComplementar"), None, C.get("qtEmultiPagamentoComplementar")),
+        ("eMulti Estratégica", C.get("qtTetoEmultiEstrategica"), None, C.get("qtEmultiPagamentoEstrategica")),
+        ("eSB 40h", C.get("qtTetoSb40h"), C.get("qtSb40hCredenciada"),
+         _n(C.get("qtSbPagamentoModalidadeI")) + _n(C.get("qtSbPagamentoModalidadeII"))),
+        ("eSB carga horária diferenciada", C.get("qtTetoSbChDif"), C.get("qtSb40hDifCredenciada"),
+         _n(C.get("qtSbPagamentoDifModalidade20Horas")) + _n(C.get("qtSbPagamentoDifModalidade30Horas"))),
+        ("ACS", C.get("qtTetoAcs"), C.get("qtAcsDiretoCredenciado"), C.get("qtAcsDiretoPgto")),
+    ]
+    out = []
+    for nome, teto, cred, pag in linhas:
+        if teto is None:
+            continue
+        usado = cred if cred is not None else pag
+        out.append({"programa": nome, "teto": teto, "credenciadas": cred, "pagas": pag,
+                    "vagas": max(0, int(_n(teto) - _n(usado))), "acima_do_teto": _n(usado) > _n(teto)})
+    return out
+
+
+def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, aval, C=None) -> list[dict]:
     V = lambda k: ap.valor(params, k)                                  # noqa: E731
+    C = C or {}
     ops: list[dict] = []
     estrato = perfil["estrato_ied"]
     r48 = _res(comps, 48)
     teto, cred, hom, pag = (r48.get(k) for k in ("qtTeto", "qtCredenciado", "qtHomologado", "qtPagamento"))
+    teto = C.get("qtTetoEsf", teto)
+    cred = C.get("qtEsfCredenciado", cred)
+    hom = C.get("qtEsfHomologado", hom)
+    pag = C.get("qtEsfTotalPgto", pag)
     # valor mensal praticado por eSF nesta parcela (oficial) — referência para nova eSF
     por_esf = None
     if _n(pag):
@@ -577,7 +634,7 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
                                "Acompanhar a homologação no e-Gestor (Credenciamento)",
                                "Após a portaria, conferir o pagamento na parcela seguinte"],
                        pendencias=["Homologação pelo MS"], providencia="Verificar por que a eSF credenciada não foi homologada e regularizar no SCNES.",
-                       disponibilidade="Equipe já credenciada (e-Gestor).", grupo_exclusivo="esf_vaga"))
+                       disponibilidade="Equipe já credenciada, dentro do teto (e-Gestor)."))
     # 2. Vaga de credenciamento dentro do teto
     if isinstance(teto, (int, float)) and isinstance(cred, (int, float)):
         vagas = int(teto - cred)
@@ -597,7 +654,8 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
                            providencia="Avaliar necessidade territorial e solicitar credenciamento no e-Gestor.",
                            grupo_exclusivo="esf_vaga"))
             ops.append(_op("eap_nova", "eAP 30h — alternativa à eSF na mesma vaga", quantidade=vagas,
-                           situacao_atual="Nenhuma eAP credenciada.", perfil="Vaga do teto pode ser eSF ou eAP.",
+                           situacao_atual=f"Nenhuma eAP credenciada (teto eAP {C.get('qtTetoEap', '—')}, compartilhado com a eSF).",
+                           perfil="Vaga do teto pode ser eSF, eAP ou eSFR.",
                            elegibilidade="potencial",
                            custeio_unitario=(V(f"fixo.eAP30.{estrato}") + V("vinculo.eAP30.bom") + V("qualidade.eAP30.bom"))
                            if estrato else None,
@@ -619,15 +677,32 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
     custeios = {_norm(x.get("dsSubTipoEquipe")).replace("EMULTI ", "").lower(): x for x in lista}
     emultis = [e for e in equipes_siaps if e.tipo == "eMulti"]
     nao_cred = [e for e in emultis if not any(v["ine"] == e.ine for v in pg["equipes"])]
+    qcred = C.get("qtEmultiCredenciadas", qcred)
+    tetos_em = {"ampliada": C.get("qtTetoEmultiAmpliada"), "complementar": C.get("qtTetoEmultiComplementar"),
+                "estrategica": C.get("qtTetoEmultiEstrategica")}
+    pagas_em = {"ampliada": C.get("qtEmultiPagamentoAmpliada"), "complementar": C.get("qtEmultiPagamentoComplementar"),
+                "estrategica": C.get("qtEmultiPagamentoEstrategica")}
     if emultis and qcred is not None and len(emultis) > int(qcred):
         nomes = ", ".join(f"{e.nome} (INE {e.ine})" for e in nao_cred) or f"{len(emultis) - int(qcred)} equipe(s)"
         for mod in ("estrategica", "complementar", "ampliada"):
             x = next((v for k, v in custeios.items() if mod in _norm(k).lower()), None)
             if not x:
                 continue
+            t_mod, p_mod = tetos_em.get(mod), pagas_em.get(mod)
+            vaga = None if t_mod is None else int(_n(t_mod) - _n(p_mod))
+            if vaga is not None and vaga <= 0:
+                ops.append(_op(f"emulti_{mod}", f"eMulti {mod.capitalize()} — credenciamento da equipe cadastrada",
+                               elegibilidade="nao_elegivel", custeio_unitario=_n(x.get("vlCusteio")) or None,
+                               situacao_atual=f"Teto eMulti {mod.capitalize()}: {int(_n(t_mod))}; pagas: {int(_n(p_mod))}.",
+                               perfil="Sem vaga no teto do município para esta modalidade.", portaria=x.get("portaria"),
+                               fundamento="Teto por modalidade publicado no e-Gestor (relatório COMPLETO).",
+                               providencia=f"Modalidade {mod.capitalize()} indisponível (teto {int(_n(t_mod))})."))
+                continue
             ops.append(_op(f"emulti_{mod}", f"eMulti {mod.capitalize()} — credenciamento da equipe cadastrada",
                            quantidade=1, situacao_atual=f"SIAPS: {len(emultis)} eMulti; e-Gestor: {int(qcred)} credenciada(s). "
-                                                        f"Sem credenciamento: {nomes}.",
+                                                        f"Sem credenciamento: {nomes}."
+                                                        + (f" Teto {mod.capitalize()}: {int(_n(t_mod))} ({vaga} vaga(s))."
+                                                           if vaga is not None else ""),
                            perfil="Modalidade da equipe não identificável nas bases autorizadas.",
                            elegibilidade="potencial",
                            custeio_unitario=round(_n(x.get("vlCusteio")) + _n(V(f"qualidade.eMulti.{mod}.bom")), 2),
@@ -642,7 +717,7 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
                            pendencias=["Modalidade", "Ato de credenciamento", "Homologação"],
                            providencia="Prioridade: confirmar modalidade e solicitar credenciamento da 2ª eMulti.",
                            grupo_exclusivo="emulti_2"))
-    ops.extend(_oportunidades_esfr(comps, params, perfil))
+    ops.extend(_oportunidades_esfr(comps, params, perfil, C))
     # 4. eSB — modalidade II e novas equipes
     r5, ref5 = _res(comps, 5), _ref(comps, 5).get("valoresReferencia") or {}
     vI, vII = ref5.get("vlCusteioModalidadeI"), ref5.get("vlCusteioModalidadeII")
@@ -658,15 +733,53 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
                        providencia="Avaliar contratação de TSB por equipe.",
                        observacao="Custeio unitário = acréscimo por equipe que mudar de modalidade; a quantidade é o "
                                   "máximo possível (todas as eSB)."))
-    esb_cred = r5.get("qtCredenciado")
+    esb_cred = C.get("qtSb40hCredenciada", r5.get("qtCredenciado"))
+    teto_sb = C.get("qtTetoSb40h")
     base_esb = sum(cadastradas.get(t, 0) for t in ("eSF", "eAP", "eSFR"))
-    if esb_cred is not None:
+    v_quil = _n(r5.get("qtPagamentoEqpQuilombAssentModalI")) and qI and _n(r5.get("qtPagamentoEqpQuilombAssentModalI")) == qI
+    custeio_esb = round(_n(r5.get("vlPagamento")) / qI, 2) if qI and _n(r5.get("vlPagamento")) else vI
+    if esb_cred is not None and teto_sb is not None:
+        vagas_sb = int(_n(teto_sb) - _n(esb_cred))
+        if vagas_sb <= 0:
+            ops.append(_op("esb_nova", "eSB 40h — novas equipes", elegibilidade="nao_elegivel",
+                           situacao_atual=f"Teto eSB 40h: {int(_n(teto_sb))}; credenciadas: {int(_n(esb_cred))}.",
+                           perfil="Teto de eSB 40h do município já ocupado.", custeio_unitario=custeio_esb,
+                           portaria=ref5.get("portaria"), fundamento="Teto publicado no e-Gestor (relatório COMPLETO).",
+                           providencia="Sem vaga de eSB 40h; avaliar eSB de carga horária diferenciada."))
+        else:
+            ops.append(_op("esb_nova", "eSB 40h — novas equipes (vaga no teto)", quantidade=vagas_sb, elegibilidade="potencial",
+                           situacao_atual=f"Teto eSB 40h: {int(_n(teto_sb))}; credenciadas: {int(_n(esb_cred))}.",
+                           perfil=f"{base_esb} eSF/eAP/eSFR no SIAPS.", custeio_unitario=custeio_esb,
+                           implantacao_unitaria=V("implantacao.eSB40") or ref5.get("vlImplantacao"),
+                           portaria=ref5.get("portaria"), fundamento="Teto e valores de referência do e-Gestor.",
+                           pendencias=["Cirurgião-dentista e auxiliar/técnico", "Vinculação a eSF/eAP"],
+                           providencia="Solicitar credenciamento de eSB 40h dentro do teto."))
+    elif esb_cred is not None:
         ops.append(_op("esb_nova", "eSB 40h — novas equipes", elegibilidade="dados_insuficientes",
                        situacao_atual=f"{int(esb_cred)} eSB credenciadas; {base_esb} eSF/eAP/eSFR no SIAPS.",
-                       perfil="O teto de eSB não é publicado nas bases autorizadas.", custeio_unitario=vI,
+                       perfil="Teto de eSB ainda não gravado (rode “Atualizar agora”).", custeio_unitario=vI,
                        implantacao_unitaria=V("implantacao.eSB40") or ref5.get("vlImplantacao"),
                        portaria=ref5.get("portaria"), fundamento="Valores de referência do e-Gestor.",
                        pendencias=["Teto de eSB do município"], providencia="Consultar o teto de eSB no e-Gestor (Credenciamento)."))
+    teto_ch = C.get("qtTetoSbChDif")
+    ref37 = _ref(comps, 37).get("valoresReferencia") or {}
+    if teto_ch is not None and ref37:
+        cred_ch = _n(C.get("qtSb40hDifCredenciada"))
+        vagas_ch = int(_n(teto_ch) - cred_ch)
+        v20, v30 = ref37.get("vlCusteioModalidade20Horas"), ref37.get("vlCusteioModalidade30Horas")
+        if vagas_ch > 0 and (v30 or v20):
+            ops.append(_op("esb_ch_diferenciada", "eSB carga horária diferenciada (30h) — vagas no teto", quantidade=vagas_ch,
+                           elegibilidade="potencial", custeio_unitario=v30 or v20,
+                           situacao_atual=f"Teto eSB CH diferenciada: {int(_n(teto_ch))}; credenciadas: {int(cred_ch)}.",
+                           perfil="Alternativa quando o teto de eSB 40h está ocupado.", portaria=ref37.get("portaria"),
+                           fundamento=f"Teto do e-Gestor; custeio de referência 30h {_brl(_n(v30))} e 20h {_brl(_n(v20))} "
+                                      f"({ref37.get('portaria')}).",
+                           condicoes=["Cirurgião-dentista com carga horária de 20h ou 30h", "Vinculação a eSF/eAP"],
+                           etapas=["Cadastrar a equipe no SCNES", "Solicitar credenciamento no e-Gestor"],
+                           pendencias=["Profissionais", "Necessidade assistencial"],
+                           providencia="Avaliar eSB de carga horária diferenciada (20h/30h) dentro do teto.",
+                           observacao="Quantidade = vagas do teto (máximo); valor por equipe de 30h — 20h vale "
+                                      f"{_brl(_n(v20))}."))
     # 5. Programas publicados no e-Gestor sem recebimento (descoberta automática)
     conhecidos = {
         6: ("ecr", "Equipe de Consultório na Rua (eCR)", ["População em situação de rua no território (critério da portaria)"]),
@@ -704,8 +817,10 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
                        providencia="Verificar critérios na portaria e a abertura do programa no e-Gestor."))
     # 6. ACS — teto
     r12 = _res(comps, 12)
-    if r12.get("qtTeto") is not None:
-        t, c_, p_ = int(_n(r12.get("qtTeto"))), int(_n(r12.get("qtCredenciado"))), int(_n(r12.get("qtPagamento")))
+    if C.get("qtTetoAcs") is not None or r12.get("qtTeto") is not None:
+        t = int(_n(C.get("qtTetoAcs", r12.get("qtTeto"))))
+        c_ = int(_n(C.get("qtAcsDiretoCredenciado", r12.get("qtCredenciado"))))
+        p_ = int(_n(C.get("qtAcsDiretoPgto", r12.get("qtPagamento"))))
         vacs = (_ref(comps, 12).get("valoresReferencia") or {}).get("vlCusteio")
         ops.append(_op("acs", "Agentes Comunitários de Saúde — ampliação",
                        elegibilidade="nao_elegivel" if c_ >= t else "potencial",
@@ -720,32 +835,35 @@ def _oportunidades(comps, params, perfil, cadastradas, hv, pg, equipes_siaps, av
 AMAZONIA_LEGAL_PANTANAL = {"AC", "AM", "AP", "PA", "RO", "RR", "TO", "MT", "MA", "MS"}   # MS: Pantanal Sul-Mato-Grossense
 
 
-def _oportunidades_esfr(comps, params, perfil) -> list[dict]:
-    """Arranjo ribeirinho (PRT GM/MS 5.850/2024, Arts. 69–72; PRT 8.994/2025): o pagamento da eSFR no e-Gestor é
-    comparado com o custeio base. Se só o base é pago, profissionais adicionais e logística não estão sendo
-    custeados — oportunidade de adequação. Estruturas registradas (embarcações/unidades de apoio) vêm do e-Gestor."""
+def _oportunidades_esfr(comps, params, perfil, C=None) -> list[dict]:
+    """Arranjo ribeirinho (PRT GM/MS 5.850/2024, Arts. 69–72; PRT 8.994/2025). Os componentes extras já pagos
+    (embarcações, unidades de apoio, profissionais adicionais) vêm do consolidado oficial do e-Gestor; a oportunidade
+    é só o que falta até o limite da portaria, por eSFR paga."""
     V = lambda k: ap.valor(params, k)                                  # noqa: E731
+    C = C or {}
     r7 = _res(comps, 7)
-    if not r7 or not V("esfr.custeio"):
+    if not (r7 or C.get("qtRibeirinhaPagas")) or not V("esfr.custeio"):
         return []
     norma = params["esfr.custeio"]["norma"].split(",")[0]
-    qt = int(_n(r7.get("qtPagamento")))
-    pago_custeio = _n(r7.get("vlPagamento"))
-    base = V("esfr.custeio") * qt
-    so_base = qt and abs(pago_custeio - base) <= TOL
+    qt = int(_n(C.get("qtRibeirinhaPagas", r7.get("qtPagamento"))))
     est = _res(comps, 7).get("_estruturas") or _res(comps, 10).get("_estruturas") or {}
-    emb, apoio = est.get("embarcacoes") or [], est.get("unidades_apoio") or []
+    emb_reg, apoio_reg = est.get("embarcacoes") or [], est.get("unidades_apoio") or []
+    tem_c = bool(C)
+    pagos = {"embarcacao": int(_n(C.get("qtEmbarcacaoRibeirinha"))), "unidade_apoio": int(_n(C.get("qtUnidadeApoioRibeirinha"))),
+             "microscopista": int(_n(C.get("qtMicroscopistaRibeirinha"))), "aux_enf": int(_n(C.get("qtAuxEnfermagemRibeirinha"))),
+             "saude_bucal": int(_n(C.get("qtAuxSaudeBucalRibeirinha"))), "nivel_superior": int(_n(C.get("qtProfNivelSupRibeirinha")))}
+    extra = _n(C.get("vlPagamentoEsfrbExtra"))
     uf = perfil.get("uf")
     amazonia = uf in AMAZONIA_LEGAL_PANTANAL if uf else None
     fator = 1.0 if amazonia is not False else 0.5        # PRT 8.994/2025: 50% fora da Amazônia Legal/Pantanal
-    r14 = _res(comps, 14)
-    micro = int(_n(r14.get("qtPagamento")))
+    micro_mun = int(_n(C.get("qtMicroscopistaPgto", _res(comps, 14).get("qtPagamento"))))
     v_micro = (_ref(comps, 14).get("valoresReferencia") or {}).get("vlCusteio")
-    v_acs = (_ref(comps, 12).get("valoresReferencia") or {}).get("vlCusteio")
-    situacao = (f"{qt} eSFR paga(s): {_brl(pago_custeio)} de custeio "
-                + ("(só o valor base — sem profissionais adicionais nem logística)." if so_base else
-                   f"(base {_brl(base)} + adicionais/logística {_brl(pago_custeio - base)}).")
-                + f" Registradas no e-Gestor: {len(emb)} embarcação(ões), {len(apoio)} unidade(s) de apoio.")
+    descr = ", ".join(f"{n} {r}" for r, n in (("embarcação(ões)", pagos["embarcacao"]), ("unidade(s) de apoio", pagos["unidade_apoio"]),
+                                              ("aux./téc. enfermagem", pagos["aux_enf"]), ("saúde bucal", pagos["saude_bucal"]),
+                                              ("nível superior", pagos["nivel_superior"]), ("microscopista(s)", pagos["microscopista"])) if n)
+    situacao = (f"{qt} eSFR paga(s): custeio {_brl(_n(C.get('vlPagamentoEsfrb', r7.get('vlPagamento'))))}"
+                + (f" + extras {_brl(extra)} ({descr})." if extra else " (sem extras pagos).") if tem_c else
+                f"{qt} eSFR paga(s). Extras pagos não disponíveis (rode “Atualizar agora”).")
     etapas = ["Elaborar o projeto: território, população das comunidades, rios do circuito, programação anual de viagens "
               "(retorno a cada comunidade em até 60 dias), organização da oferta e da referência/urgência",
               "Aprovar a proposta na CIB/CIR e o Plano de Saúde no Conselho Municipal de Saúde",
@@ -754,61 +872,67 @@ def _oportunidades_esfr(comps, params, perfil) -> list[dict]:
               "Manter a produção mensal nos sistemas nacionais"]
     cond = ["Atendimento à população por no mínimo 14 dias/mês + 2 dias de educação permanente/planejamento",
             "Embarcações e unidades de apoio identificadas com a programação visual do SUS e cadastradas no SCNES"]
-    ops = []
     comum = dict(portaria=norma, condicoes=cond, etapas=etapas, situacao_atual=situacao,
                  perfil=(f"Município com eSFR credenciada e paga; UF {uf or '—'} "
                          + ("(Amazônia Legal/Pantanal: logística sem o limite de 50% da PRT 8.994/2025)." if amazonia else
                             "(logística limitada a 50% pela PRT 8.994/2025)." if amazonia is False else "(UF não identificada).")))
+    ops: list[dict] = []
     if not qt:
         return ops
-    # logística: embarcações já registradas sem incentivo
-    if so_base and emb:
+    elig = "potencial" if tem_c else "dados_insuficientes"
+    # embarcações registradas no e-Gestor e ainda sem incentivo
+    sem_inc = max(0, len(emb_reg) - pagos["embarcacao"]) if tem_c else 0
+    if sem_inc:
         ops.append(_op("esfr_embarcacao_registrada", "eSFR — incentivo de logística das embarcações já registradas",
-                       quantidade=min(4, len(emb)), custeio_unitario=round(V("esfr.logistica.embarcacao") * fator, 2), elegibilidade="potencial",
-                       fundamento=f"{params['esfr.logistica.embarcacao']['norma']}: R$ 6.000 por embarcação de pequeno porte "
-                                  "(até 4). O e-Gestor registra a embarcação, mas o custeio pago é só o valor base.",
-                       pendencias=["Aprovação CIB/CIR do arranjo", "Solicitação do incentivo de logística ao MS"],
-                       providencia="Adequar a eSFR à portaria: solicitar o incentivo de logística da(s) embarcação(ões) já registrada(s).",
-                       observacao="Embarcação(ões): " + "; ".join(f"nº {e.get('nuEmbarcacao', '—')} — {e.get('dsComunidadeAtendida', '')} "
-                                                                f"({e.get('noEmbarcacao', '')})" for e in emb[:4]),
-                       **comum))
-    rest_emb = max(0, 4 - len(emb))
-    for oid, nome, chave, qtd, txt in (
-            ("esfr_embarcacoes", "eSFR — novas embarcações de pequeno porte", "esfr.logistica.embarcacao", rest_emb, "até 4 embarcações"),
-            ("esfr_unidades_apoio", "eSFR — unidades de apoio (satélites)", "esfr.logistica.unidade_apoio", max(0, 4 - len(apoio)), "até 4 unidades de apoio"),
-            ("esfr_pickup", "eSFR — veículos pick-up 4x4", "esfr.logistica.pickup", 2, "até 2 pick-ups")):
-        if qtd:
-            ops.append(_op(oid, nome, quantidade=qtd, custeio_unitario=round(V(chave) * fator, 2), elegibilidade="potencial",
-                           fundamento=f"{params[chave]['norma']}: {_brl(V(chave))} por unidade ({txt})"
-                                      + ("" if fator == 1 else " — 50% fora da Amazônia Legal/Pantanal (PRT 8.994/2025)") + ".",
-                           pendencias=["Estrutura existente/adquirida", "Aprovação CIB/CIR", "Solicitação ao MS"],
-                           providencia=f"Avaliar necessidade do território e incluir {txt.replace('até ', 'até ')} no projeto da eSFR.",
-                           **comum))
-    # profissionais adicionais (só o base é pago → nenhum adicional custeado hoje)
-    if so_base:
-        for oid, nome, chave, qtd in (("esfr_aux_enf", "eSFR — auxiliares/técnicos de enfermagem adicionais", "esfr.prof.aux_tec_enfermagem", 11),
-                                      ("esfr_saude_bucal", "eSFR — auxiliar/técnico em saúde bucal", "esfr.prof.saude_bucal", 1),
-                                      ("esfr_nivel_superior", "eSFR — profissionais de nível superior adicionais", "esfr.prof.nivel_superior", 2)):
-            ops.append(_op(oid, nome, quantidade=qtd, custeio_unitario=V(chave), elegibilidade="potencial",
-                           fundamento=f"{params[chave]['norma']}: {_brl(V(chave))} por profissional/mês.",
-                           pendencias=["Profissionais contratados e cadastrados na eSFR no SCNES", "Aprovação CIB/CIR", "Solicitação ao MS"],
-                           providencia="Incluir os profissionais adicionais no projeto/solicitação da eSFR.",
-                           observacao="Quantidade = máximo da portaria; o e-Gestor paga hoje só o custeio base (nenhum adicional).",
-                           **comum))
-    if v_micro and micro < 12:
-        ops.append(_op("esfr_microscopistas", "eSFR — microscopistas adicionais (região endêmica)", quantidade=12 - micro,
-                       custeio_unitario=v_micro, elegibilidade="potencial",
-                       fundamento=f"PRT GM/MS 5.850/2024, Art. 70 (até 12, valor vigente por profissional); valor de referência "
-                                  f"do e-Gestor {_brl(v_micro)}. Hoje {micro} pagos.",
-                       pendencias=["Área endêmica de malária", "Profissionais cadastrados na eSFR"],
-                       providencia="Avaliar necessidade de microscopistas (área endêmica) até o limite de 12.", **comum))
-    # nova eSFR (usa vaga do teto de eSF)
+                       quantidade=sem_inc, custeio_unitario=round(V("esfr.logistica.embarcacao") * fator, 2), elegibilidade="potencial",
+                       fundamento=f"{params['esfr.logistica.embarcacao']['norma']}: R$ 6.000 por embarcação (até 4). "
+                                  f"Registradas: {len(emb_reg)}; com incentivo pago: {pagos['embarcacao']}.",
+                       pendencias=["Solicitação do incentivo de logística ao MS"],
+                       providencia="Solicitar o incentivo de logística das embarcações registradas sem pagamento.", **comum))
+    itens = [("esfr_embarcacoes", "eSFR — embarcações de pequeno porte", "esfr.logistica.embarcacao", 4, "embarcacao", True),
+             ("esfr_unidades_apoio", "eSFR — unidades de apoio (satélites)", "esfr.logistica.unidade_apoio", 4, "unidade_apoio", True),
+             ("esfr_aux_enf", "eSFR — auxiliares/técnicos de enfermagem adicionais", "esfr.prof.aux_tec_enfermagem", 11, "aux_enf", False),
+             ("esfr_saude_bucal", "eSFR — auxiliar/técnico em saúde bucal", "esfr.prof.saude_bucal", 1, "saude_bucal", False),
+             ("esfr_nivel_superior", "eSFR — profissionais de nível superior adicionais", "esfr.prof.nivel_superior", 2, "nivel_superior", False)]
+    for oid, nome, chave, limite, k, logistica in itens:
+        maximo = limite * qt
+        falta = max(0, maximo - pagos[k] - (sem_inc if k == "embarcacao" else 0))
+        unit = round(V(chave) * (fator if logistica else 1), 2)
+        if falta <= 0:
+            ops.append(_op(oid, nome, elegibilidade="nao_elegivel", custeio_unitario=unit,
+                           fundamento=f"{params[chave]['norma']}: limite {limite} por eSFR; já pagos {pagos[k]}.",
+                           providencia="Limite da portaria já atingido.", **{**comum, "situacao_atual": situacao}))
+            continue
+        ops.append(_op(oid, nome + f" (faltam {falta} de {maximo})", quantidade=falta, custeio_unitario=unit, elegibilidade=elig,
+                       fundamento=f"{params[chave]['norma']}: {_brl(V(chave))} por unidade/mês, limite {limite} por eSFR"
+                                  + ("" if fator == 1 or not logistica else " — 50% fora da Amazônia Legal/Pantanal")
+                                  + f"; já pagos {pagos[k]} (e-Gestor).",
+                       pendencias=(["Estrutura existente/adquirida"] if logistica else
+                                   ["Profissionais contratados e cadastrados na eSFR no SCNES"]) + ["Aprovação CIB/CIR", "Solicitação ao MS"],
+                       providencia=("Avaliar necessidade do território e incluir no projeto da eSFR." if logistica else
+                                    "Incluir os profissionais adicionais no projeto/solicitação da eSFR."),
+                       observacao=f"Quantidade = limite da portaria ({maximo}) − já pagos ({pagos[k]}).", **comum))
+    ops.append(_op("esfr_pickup", "eSFR — veículos pick-up 4x4", quantidade=2 * qt,
+                   custeio_unitario=round(V("esfr.logistica.pickup") * fator, 2), elegibilidade="dados_insuficientes",
+                   fundamento=f"{params['esfr.logistica.pickup']['norma']}: {_brl(V('esfr.logistica.pickup'))} por veículo (até 2).",
+                   pendencias=["Quantidade já paga não publicada no e-Gestor"],
+                   providencia="Conferir no e-Gestor se há pick-up custeada antes de solicitar.", **comum))
+    if v_micro:
+        falta_m = max(0, 12 * qt - pagos["microscopista"] - micro_mun)
+        if falta_m:
+            ops.append(_op("esfr_microscopistas", f"eSFR — microscopistas (região endêmica) (faltam {falta_m} de {12 * qt})",
+                           quantidade=falta_m, custeio_unitario=v_micro, elegibilidade=elig,
+                           fundamento=f"PRT GM/MS 5.850/2024, Art. 70 (até 12 por eSFR, valor vigente por profissional "
+                                      f"{_brl(v_micro)}). Pagos: {micro_mun} no programa de microscopistas + "
+                                      f"{pagos['microscopista']} como extra da eSFR.",
+                           pendencias=["Área endêmica de malária", "Profissionais cadastrados na eSFR"],
+                           providencia="Avaliar necessidade de microscopistas (área endêmica) até o limite de 12.", **comum))
     vq, vv = V("qualidade.eSFR.bom"), V("vinculo.eSFR.bom")
     ops.append(_op("esfr_nova", "eSFR — nova equipe ribeirinha (vaga do teto de eSF)", quantidade=1,
                    custeio_unitario=round(V("esfr.custeio") + (vq or 0) + (vv or 0), 2),
                    implantacao_unitaria=V("esfr.implantacao"), elegibilidade="potencial",
                    fundamento=f"{norma}: custeio {_brl(V('esfr.custeio'))} + vínculo e qualidade “Bom” por 12 parcelas "
-                              f"(Art. 69-D); implantação {_brl(V('esfr.implantacao'))} (Art. 69-A).",
+                              f"(Art. 69-D); implantação {_brl(V('esfr.implantacao'))} (Art. 69-A). Usa a vaga do teto de eSF.",
                    pendencias=["Comunidades acessadas por rio", "Vaga no teto de eSF", "Aprovação CIB/CIR"],
                    providencia="Se houver comunidades só acessíveis por rio, comparar nova eSFR × nova eSF na vaga do teto.",
                    grupo_exclusivo="esf_vaga", **comum))
@@ -819,13 +943,17 @@ GRUPOS_TIPO = [
     ("eSF", "Saúde da Família (eSF/eAP)", {48, 49, 72}, ("esf_", "eap_"), ("qualidade.eSF", "vinculo.eSF")),
     ("eSB", "Saúde Bucal (eSB)", {5, 37, 50, 9, 19, 18, 43}, ("esb_", "uom"), ("qualidade.eSB",)),
     ("eMulti", "Multiprofissional (eMulti)", {42, 51, 55, 73}, ("emulti_",), ("qualidade.eMulti",)),
-    ("eSFR", "Saúde da Família Ribeirinha (eSFR)", {7, 58, 61, 14, 10}, ("esfr", "ubsf"), ("qualidade.eSFR", "vinculo.eSFR")),
+    ("eSFR", "Saúde da Família Ribeirinha (eSFR)", {7, 58, 61, 14, 10, -7}, ("esfr", "ubsf"), ("qualidade.eSFR", "vinculo.eSFR")),
     ("ACS", "Agentes Comunitários de Saúde", {12, 31}, ("acs",), ()),
     ("Outros", "Demais programas e incentivos", None, (), ()),
 ]
 
 
-def resumo_por_tipo(componentes, por_equipe, regras, oportunidades) -> list[dict]:
+PLANO_TIPO = [("eSF", "SAUDE DA FAMILIA - ESF"), ("eSB", "BUCAL"), ("eMulti", "MULTIPROFISSIONA"), ("ACS", "AGENTES COMUNIT"),
+              ("eSFR", "DEMAIS PROGRAMAS")]
+
+
+def resumo_por_tipo(componentes, por_equipe, regras, oportunidades, planos=None) -> list[dict]:
     """Projeções organizadas por tipo de equipe: quanto recebe, o que muda com a próxima avaliação, ganho por
     melhoria de indicadores, efeito do fim da transição e oportunidades (com valores) — tudo do cálculo acima."""
     usados, ops_usadas, saida = set(), set(), []
@@ -836,6 +964,12 @@ def resumo_por_tipo(componentes, por_equipe, regras, oportunidades) -> list[dict
         ops_usadas |= {o["id"] for o in ops}
         eqs = [e for e in por_equipe if e.get("tipo") == tipo or (tipo == "eSF" and e.get("tipo") == "eAP")]
         pago = round(sum(_n(c["vl_total"]) for c in comps), 2)
+        if planos:
+            # valor recebido OFICIAL = efetivo repasse do(s) plano(s) do tipo (desconto contado uma vez)
+            def tipo_do_plano(ds):
+                n = _norm(ds)
+                return next((t for t, chave in PLANO_TIPO if chave in n), "Outros")
+            pago = round(sum(_n(x.get("vlEfetivoRepasse")) for x in planos if tipo_do_plano(x.get("dsPlanoOrcamentario")) == tipo), 2)
         variacao = round(sum(regras[k].get("variacao_mensal") or 0 for k in chaves if k in regras), 2)
         melhoria = {"proxima_avaliacao": 0.0, "apos_transicao": 0.0, "nao_confirmado": 0.0}
         for e in eqs:
