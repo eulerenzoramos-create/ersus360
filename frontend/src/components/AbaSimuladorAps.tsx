@@ -87,9 +87,11 @@ function CartaoTipo({ g }: { g: any }) {
           <tbody>{ativas.map(o => (
             <tr key={o.id}>
               <td style={{ ...td, fontSize: 12 }}>{o.programa.replace(/^[^—]+— /, "")}{o.quantidade ? ` (${o.quantidade})` : ""}
-                {o.grupo_exclusivo && <div style={{ fontSize: 10, color: "#9ca3af" }}>alternativa — conta uma vez</div>}
+                {o.vaga_contada_em
+                  ? <div style={{ fontSize: 10, color: "#9ca3af" }}>mesma vaga do teto já contada em {o.vaga_contada_em} — não soma</div>
+                  : o.grupo_exclusivo && <div style={{ fontSize: 10, color: "#9ca3af" }}>alternativa — conta uma vez</div>}
                 {o.implantacao_total ? <div style={{ fontSize: 10, color: "#6b7280" }}>+ implantação {brl(o.implantacao_total)} (única)</div> : null}</td>
-              <td style={{ ...td, fontSize: 12, whiteSpace: "nowrap", color: "#b45309", fontWeight: 700 }}>{o.incremento_mensal != null ? `+${brl(o.incremento_mensal)}` : "—"}</td>
+              <td style={{ ...td, fontSize: 12, whiteSpace: "nowrap", color: o.vaga_contada_em ? "#9ca3af" : "#b45309", fontWeight: 700 }}>{o.incremento_mensal != null ? `${o.vaga_contada_em ? "ou " : "+"}${brl(o.incremento_mensal)}` : "—"}</td>
               <td style={{ ...td, fontSize: 12, whiteSpace: "nowrap" }}>{o.incremento_anual != null ? brl(o.incremento_anual) : "—"}</td>
             </tr>))}</tbody>
         </table>
@@ -238,7 +240,8 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
                 <tr key={t.programa}>
                   <td style={td}>{t.programa}</td><td style={td}>{t.teto}</td><td style={td}>{t.credenciadas ?? "—"}</td><td style={td}>{t.pagas ?? "—"}</td>
                   <td style={{ ...td, fontWeight: 700, color: t.acima_do_teto ? "#dc2626" : t.vagas > 0 ? "#16a34a" : "#6b7280" }}>
-                    {t.acima_do_teto ? "acima do teto" : t.vagas}</td>
+                    {t.acima_do_teto ? "acima do teto" : t.vagas}
+                    {t.compartilhado_com && <div style={{ fontSize: 10, fontWeight: 400, color: "#6b7280" }}>mesma vaga da {t.compartilhado_com}</div>}</td>
                 </tr>))}</tbody>
             </table>
             <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>As oportunidades de credenciamento respeitam esses tetos; eSF, eAP e eSFR disputam a mesma vaga do teto de eSF.</div>

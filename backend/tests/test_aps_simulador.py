@@ -91,6 +91,8 @@ async def test_situacao_atual_regra_identificada_e_desempenho(ambiente, monkeypa
     assert (tetos["eSF"]["teto"], tetos["eSF"]["vagas"]) == (11, 1)
     assert tetos["eMulti Ampliada"]["teto"] == 0 and tetos["eSB 40h"]["vagas"] == 0
     assert tetos["eSB carga horária diferenciada"]["vagas"] == 20 and tetos["ACS"]["acima_do_teto"]
+    eap = next(t for n, t in tetos.items() if n.startswith("eAP"))
+    assert (eap["teto"], eap["vagas"], eap["compartilhado_com"]) == (22, 1, "eSF")   # mesma vaga da eSF, não 22
     # regra identificada no próprio pagamento
     regras = {r["chave"]: r for r in d["desempenho"]["regras"]}
     assert (regras["qualidade.eSF"]["regra"], regras["qualidade.eSF"]["quadrimestre"]) == ("classificacao", "2026Q1")
@@ -192,6 +194,13 @@ async def test_oportunidades_apui(ambiente, monkeypatch):
     assert pt["eSF"]["recebe_mensal"] == 227826           # plano eSF/eAP com o desconto uma vez
     assert {o["id"] for o in pt["eSFR"]["oportunidades"]} >= {"esfr_embarcacoes", "esfr_nova"}
     assert pt["eMulti"]["credenciamento_a_confirmar_mensal"] == 28500         # Complementar (Ampliada fora do teto)
+    # vaga do teto de eSF: conta no cartão eSF; no cartão eSFR aparece como alternativa, sem somar de novo
+    op_r = {o["id"]: o for o in pt["eSFR"]["oportunidades"]}
+    assert op_r["esfr_nova"]["vaga_contada_em"] == "eSF"
+    assert all(o["vaga_contada_em"] is None for o in pt["eSF"]["oportunidades"])
+    assert pt["eSFR"]["credenciamento_a_confirmar_mensal"] == sum(
+        o["incremento_mensal"] or 0 for o in pt["eSFR"]["oportunidades"]
+        if o["elegibilidade"] in ("confirmada", "potencial") and not o["vaga_contada_em"])
     assert pt["eSF"]["equipes"] == 9 and pt["ACS"]["oportunidades"][0]["elegibilidade"] == "nao_elegivel"
     assert pt["eSB"]["recebe_mensal"] == 113820
     prov = d["respostas"][5]["resposta"]

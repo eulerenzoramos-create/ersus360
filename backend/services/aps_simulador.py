@@ -594,7 +594,16 @@ def _tetos(C: dict, comps: dict) -> list[dict]:
             continue
         usado = cred if cred is not None else pag
         out.append({"programa": nome, "teto": teto, "credenciadas": cred, "pagas": pag,
-                    "vagas": max(0, int(_n(teto) - _n(usado))), "acima_do_teto": _n(usado) > _n(teto)})
+                    "vagas": max(0, int(_n(teto) - _n(usado))), "acima_do_teto": _n(usado) > _n(teto),
+                    "compartilhado_com": None})
+    # a eAP não tem vaga própria: ocupa a vaga do teto de eSF (o e-Gestor publica o teto eAP em separado,
+    # mas cada eAP credenciada reduz a vaga da eSF) — exibe a mesma vaga, sem somar
+    esf = next((t for t in out if t["programa"] == "eSF"), None)
+    for t in out:
+        if t["programa"].startswith("eAP") and esf:
+            t["vagas"] = esf["vagas"]
+            t["acima_do_teto"] = False
+            t["compartilhado_com"] = "eSF"
     return out
 
 
@@ -957,6 +966,7 @@ def resumo_por_tipo(componentes, por_equipe, regras, oportunidades, planos=None)
     """Projeções organizadas por tipo de equipe: quanto recebe, o que muda com a próxima avaliação, ganho por
     melhoria de indicadores, efeito do fim da transição e oportunidades (com valores) — tudo do cálculo acima."""
     usados, ops_usadas, saida = set(), set(), []
+    grupo_dono: dict[str, str] = {}      # vaga excludente (ex.: teto eSF para eSF/eAP/eSFR) conta só no 1º cartão
     for tipo, nome, cos, prefixos, chaves in GRUPOS_TIPO:
         comps = [c for c in componentes if (c["co"] in cos if cos is not None else c["co"] not in usados)]
         usados |= {c["co"] for c in comps}
@@ -980,10 +990,16 @@ def resumo_por_tipo(componentes, por_equipe, regras, oportunidades, planos=None)
         perdas = round(sum(f["variacao_mensal"] for e in eqs for f in e.get("fim_transicao", []) if f["variacao_mensal"] < 0), 2)
         ganhos = round(sum(f["variacao_mensal"] for e in eqs for f in e.get("fim_transicao", []) if f["variacao_mensal"] > 0), 2)
         grupos: dict[str, float] = {}
+        compartilhada: dict[str, str] = {}
         for o in ops:
             if o["elegibilidade"] in ("confirmada", "potencial") and o.get("incremento_mensal"):
                 g = o.get("grupo_exclusivo") or o["id"]
+                if o.get("grupo_exclusivo") and grupo_dono.get(g, tipo) != tipo:
+                    compartilhada[o["id"]] = grupo_dono[g]          # mesma vaga já contada em outro cartão
+                    continue
                 grupos[g] = max(grupos.get(g, 0), o["incremento_mensal"])
+        for g in grupos:
+            grupo_dono.setdefault(g, tipo)
         if not comps and not ops and not eqs:
             continue
         destaque = []
@@ -1007,7 +1023,8 @@ def resumo_por_tipo(componentes, por_equipe, regras, oportunidades, planos=None)
                                "elegibilidade_rotulo": o["elegibilidade_rotulo"], "quantidade": o.get("quantidade"),
                                "incremento_mensal": o.get("incremento_mensal"), "incremento_anual": o.get("incremento_anual"),
                                "custeio_unitario": o.get("custeio_unitario"), "implantacao_total": o.get("implantacao_total"),
-                               "grupo_exclusivo": o.get("grupo_exclusivo")} for o in ops],
+                               "grupo_exclusivo": o.get("grupo_exclusivo"),
+                               "vaga_contada_em": compartilhada.get(o["id"])} for o in ops],
             "providencias": list(dict.fromkeys(o["providencia"] for o in ops
                                                if o["providencia"] and o["elegibilidade"] in ("confirmada", "potencial"))),
             "atencao": destaque,
