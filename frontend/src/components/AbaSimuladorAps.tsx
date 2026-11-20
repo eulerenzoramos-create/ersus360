@@ -229,6 +229,21 @@ export default function AbaSimuladorAps({ parcelaGlobal }: { parcelaGlobal?: str
             <tr key={e.tipo}><td style={td}>{e.tipo}</td><td style={td}>{e.cadastradas_siaps}</td>
               <td style={td}>{e.homologadas_siaps ?? "—"}</td><td style={td}>{e.validas_siaps ?? "—"}</td></tr>))}</tbody>
         </table>
+        {(d.tetos ?? []).length > 0 && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, margin: "12px 0 6px", color: "#1e3a8a" }}>Tetos do município (e-Gestor)</div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Programa</th><th style={th}>Teto</th><th style={th}>Credenciadas</th><th style={th}>Pagas</th><th style={th}>Vagas</th></tr></thead>
+              <tbody>{d.tetos.map((t: any) => (
+                <tr key={t.programa}>
+                  <td style={td}>{t.programa}</td><td style={td}>{t.teto}</td><td style={td}>{t.credenciadas ?? "—"}</td><td style={td}>{t.pagas ?? "—"}</td>
+                  <td style={{ ...td, fontWeight: 700, color: t.acima_do_teto ? "#dc2626" : t.vagas > 0 ? "#16a34a" : "#6b7280" }}>
+                    {t.acima_do_teto ? "acima do teto" : t.vagas}</td>
+                </tr>))}</tbody>
+            </table>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>As oportunidades de credenciamento respeitam esses tetos; eSF, eAP e eSFR disputam a mesma vaga do teto de eSF.</div>
+          </>
+        )}
         <div style={{ fontSize: 12, color: "#475569", marginTop: 10, background: "#f8fafc", padding: 10, borderRadius: 8 }}>
           <b>Regra de pagamento identificada nesta parcela:</b>
           <ul style={{ margin: "6px 0 6px 18px", padding: 0 }}>

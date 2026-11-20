@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 
 from database import Base
 
@@ -51,3 +51,19 @@ class EgestorValidacaoEquipe(Base):
     pendencias       = Column(Text, nullable=False, default="[]")   # situações diferentes de válido/ativo (JSON)
     payload          = Column(Text, nullable=False, default="{}")
     coletado_em      = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class EgestorPagamentoConsolidado(Base):
+    """Consolidado OFICIAL da parcela no relatório COMPLETO do e-Gestor (mesma consulta já feita na sincronização):
+    `consolidado` = registro de `pagamentos` (tetos, quantitativos e valores por programa, inclusive extras da
+    eSFR); `planos` = `resumosPlanosOrcamentarios` (valor integral, ajuste, desconto e efetivo repasse por plano,
+    com o desconto contado uma única vez). Mantido por parcela, sem dados pessoais."""
+    __tablename__ = "egestor_pagamento_consolidado"
+    __table_args__ = (UniqueConstraint("municipio_id", "nu_parcela", name="uq_egestor_pgto_consolidado"),)
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    municipio_id  = Column(Integer, ForeignKey("municipios.id"), nullable=False, index=True)
+    nu_parcela    = Column(String(6), nullable=False)
+    consolidado   = Column(JSON, nullable=False)
+    planos        = Column(JSON, nullable=False)
+    coletado_em   = Column(DateTime, default=datetime.utcnow, nullable=False)
