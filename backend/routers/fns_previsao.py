@@ -326,3 +326,26 @@ async def painel(
     return await pf.painel(db, current.municipio_id, pf.Filtros(
         exercicio=exercicio, mes_inicio=mes_inicio, mes_fim=mes_fim,
         grupo=grupo, tipo_incentivo=tipo_incentivo, busca=busca))
+
+
+@router.get("/emendas")
+async def previsto_emendas(
+    current: SessaoMunicipal,
+    exercicio: int = Query(..., ge=2000, le=2100),
+    mes_inicio: int = Query(1, ge=1, le=12),
+    mes_fim: int = Query(12, ge=1, le=12),
+    db: AsyncSession = Depends(get_db),
+):
+    """Previsto × Recebido das emendas parlamentares (RP 6/7/8) e programas do MS, pelo InvestSUS."""
+    from models.investsus import PropostaInvestSUS
+    from models.municipio import Municipio
+    from services import previsao_emendas as pe
+    if mes_fim < mes_inicio:
+        raise HTTPException(422, "Mês final anterior ao inicial.")
+    props = (await db.execute(
+        select(PropostaInvestSUS)
+        .options(selectinload(PropostaInvestSUS.programa), selectinload(PropostaInvestSUS.pagamentos_investsus))
+        .where(PropostaInvestSUS.municipio_id == current.municipio_id)
+    )).scalars().all()
+    uf = (await db.execute(select(Municipio.uf).where(Municipio.id == current.municipio_id))).scalar_one_or_none()
+    return pe.montar(props, pe.modalidade_gravada, exercicio, mes_inicio, mes_fim, uf)

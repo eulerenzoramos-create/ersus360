@@ -7,7 +7,7 @@
  * Respeita os mesmos filtros da tela (exercício, período, grupo, tipo, busca)
  * e o município da sessão.
  */
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Link2, Plus, RefreshCw, Trash2, Unlink, X } from "lucide-react";
 import { api, apiGetEnvelope as apiGet } from "../lib/api";
@@ -312,6 +312,7 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
     <div>
       {data && <CardsPrevisto cards={data.cards} periodo={data.periodo} />}
       {data && <PorGrupoPrevisto data={data} />}
+      <EmendasPrevisto filtros={filtros} />
 
       {data?.alertas?.length > 0 && (
         <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
@@ -547,6 +548,114 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
   );
 }
 
+// ── Emendas parlamentares e programas do MS (InvestSUS) ───────────────────────
+const AREA_COR: Record<string, string> = { PAP: "#1d4ed8", MAC: "#7c3aed", Outros: "#64748b" };
+const TIPO_COR: Record<string, string> = { individual: "#0369a1", coletiva: "#b45309", programa: "#15803d", outras: "#64748b" };
+
+export function EmendasPrevisto({ filtros }: { filtros: FiltrosFns }) {
+  const qs = new URLSearchParams({ exercicio: String(filtros.exercicio), mes_inicio: String(filtros.mesInicio),
+    mes_fim: String(filtros.mesFim) }).toString();
+  const { data, isLoading, error } = useQuery<any>({
+    queryKey: ["fns-previsto-emendas", qs],
+    queryFn: () => apiGet(`/api/fns-previsao/emendas?${qs}`),
+    staleTime: 120_000,
+  });
+  if (isLoading) return <div style={{ fontSize: 12, color: C.gray, margin: "8px 0" }}>Carregando emendas do InvestSUS…</div>;
+  if (error || !data) return <div style={{ fontSize: 12, color: C.red, margin: "8px 0" }}>Emendas do InvestSUS indisponíveis agora. {erroDe(error)}</div>;
+  const linhas: any[] = data.linhas ?? [];
+  const per = data.periodo;
+  const rotPer = per.mes_inicio === 1 && per.mes_fim === 12 ? String(data.exercicio) : `${MESES[per.mes_inicio - 1]}–${MESES[per.mes_fim - 1]}/${data.exercicio}`;
+  const th: React.CSSProperties = { padding: "6px 8px", fontSize: 10.5, fontWeight: 700, color: C.gray, textAlign: "right",
+    textTransform: "uppercase", letterSpacing: 0.4, whiteSpace: "nowrap", borderBottom: `1px solid ${C.grayBdr}` };
+  const td: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, textAlign: "right", whiteSpace: "nowrap",
+    fontVariantNumeric: "tabular-nums", borderBottom: `1px solid ${C.grayBdr}` };
+  const valores = (t: any, peso = 600) => (
+    <>
+      <td style={{ ...td, fontWeight: peso }}>{t.qtd || "—"}</td>
+      <td style={{ ...td, fontWeight: peso }}>{t.qtd ? brl(t.previsto) : "—"}</td>
+      <td style={{ ...td, fontWeight: peso, color: C.green }}>{t.qtd ? brl(t.recebido) : "—"}</td>
+      <td style={{ ...td, fontWeight: peso, color: t.a_receber > 0 ? C.red : C.green }}>{t.qtd ? brl(t.a_receber) : "—"}</td>
+      <td style={{ ...td, fontWeight: peso, color: C.blue }}>{pct(t.pct_recebido)}</td>
+      <td style={{ ...td, fontWeight: peso }}>{brl(t.pago_periodo)}</td>
+    </>
+  );
+  const totalLinha = (rotulo: string, t: any, fundo: string, cor = C.text) => (
+    <tr style={{ background: fundo }}>
+      <td style={{ ...td, textAlign: "left", fontWeight: 800, color: cor }}>{rotulo}</td>
+      {valores(t, 800)}
+    </tr>
+  );
+  const tot = data.total;
+  return (
+    <div style={{ marginBottom: 12, marginTop: 6 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", margin: "2px 0 6px" }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>Emendas parlamentares e programas do MS — exercício {data.exercicio}</span>
+        <span style={{ fontSize: 11, color: C.gray }}>fonte: {data.fonte}</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 10 }}>
+        <Card rotulo={`Previsto emendas ${data.exercicio}`} valor={brl(tot.previsto)} cor={C.text} />
+        <Card rotulo="Recebido (pago)" valor={brl(tot.recebido)} cor={C.green} />
+        <Card rotulo="A receber" valor={brl(tot.a_receber)} cor={tot.a_receber > 0 ? C.red : C.green} />
+        <Card rotulo="% Recebido" valor={pct(tot.pct_recebido)} cor={C.blue} />
+      </div>
+      <div style={{ overflowX: "auto", border: `1px solid ${C.grayBdr}`, borderRadius: 8 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 820 }}>
+          <thead style={{ background: C.grayL }}>
+            <tr>
+              <th style={{ ...th, textAlign: "left" }}>Tipo de recurso</th>
+              <th style={th}>Qtd</th>
+              <th style={th}>Previsto</th>
+              <th style={th}>Recebido</th>
+              <th style={th}>A receber</th>
+              <th style={th}>% recebido</th>
+              <th style={th} title="Pagamentos do InvestSUS com data no período filtrado, de qualquer exercício">Pago no período ({rotPer})</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map(l => (
+              <Fragment key={l.chave}>
+                <tr style={{ background: "#fafafa" }}>
+                  <td style={{ ...td, textAlign: "left", fontWeight: 800, color: TIPO_COR[l.tipo] ?? C.text }}>
+                    {l.rotulo}
+                    {l.tipo === "coletiva" && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: C.amber, background: C.amberL, borderRadius: 8, padding: "1px 6px" }}>coletiva</span>}
+                  </td>
+                  {valores(l.total, 700)}
+                </tr>
+                {l.areas.map((a: any) => (
+                  <tr key={a.area}>
+                    <td style={{ ...td, textAlign: "left", paddingLeft: 26 }}>
+                      <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: AREA_COR[a.area], marginRight: 6 }} />
+                      {a.area === "Outros" ? "Outros (sem PAP/MAC oficial)" : a.area}
+                    </td>
+                    {valores(a, 500)}
+                  </tr>
+                ))}
+                {l.areas.length === 0 && (
+                  <tr><td colSpan={7} style={{ ...td, textAlign: "left", paddingLeft: 26, color: C.gray }}>Nenhuma proposta no exercício.</td></tr>
+                )}
+              </Fragment>
+            ))}
+            {totalLinha("Emendas coletivas (Bancada RP 7 + Comissão RP 8)", data.coletivas, C.amberL, C.amber)}
+            {totalLinha("Total emendas parlamentares (RP 6 + RP 7 + RP 8)", data.emendas, C.blueL, C.blue)}
+            {totalLinha("Total geral (emendas + programas)", data.total, C.grayL)}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11.5, color: C.text, marginTop: 6 }}>
+        {(["PAP", "MAC", "Outros"] as const).map(a => data.por_area?.[a]?.qtd > 0 && (
+          <span key={a}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: AREA_COR[a], marginRight: 4 }} />
+            <b>{a}</b>: previsto {brl(data.por_area[a].previsto)} · recebido {brl(data.por_area[a].recebido)}</span>
+        ))}
+        {data.canceladas?.qtd > 0 && <span style={{ color: C.gray }}>{data.canceladas.qtd} cancelada(s)/rejeitada(s) fora do previsto ({brl(data.canceladas.valor)})</span>}
+      </div>
+      <div style={{ fontSize: 11, color: C.gray, marginTop: 5 }}>
+        {data.nota}
+        {!data.tem_pagamentos_com_data && " Ainda não há pagamentos com data sincronizados do InvestSUS: “Pago no período” fica zerado até a próxima sincronização."}
+      </div>
+    </div>
+  );
+}
+
 /** Bloco para o Relatório Mensal: aparece só quando há previsão cadastrada. */
 export function ResumoPrevistoRelatorio({ filtros, onAbrir }: { filtros: FiltrosFns; onAbrir: () => void }) {
   const { data } = usePainelPrevisto(filtros);
@@ -561,6 +670,7 @@ export function ResumoPrevistoRelatorio({ filtros, onAbrir }: { filtros: Filtros
       </div>
       <CardsPrevisto cards={data.cards} periodo={data.periodo} />
       <PorGrupoPrevisto data={data} />
+      <EmendasPrevisto filtros={filtros} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {Object.entries(cont).map(([s, n]) => <span key={s} style={{ fontSize: 11.5 }}><Situacao s={s} /> {n}</span>)}
       </div>
