@@ -416,12 +416,62 @@ async def detalhar_completo(nu_parcela: str):
                 "acao_sugerida": "Consulte relatorioaps.saude.gov.br diretamente.",
             },
         )
+    detalhado = resultado["detalhado"]
+    esb = detalhado.get("esb")
+    if isinstance(esb, dict) and not _lrpd_da_parcela(esb):
+        esb["lrpd_ultimo_pago"] = await _lrpd_ultimo_pago(nu_parcela)
     return {
         "meta": _meta(),
         "data_consulta_egestor": resultado["data_consulta"],
         "coletado_em": resultado["coletado_em"],
-        **resultado["detalhado"],
+        **detalhado,
     }
+
+
+# ── LRPD: último valor pago quando a parcela vem zerada ─────────────────────────
+# O LRPD depende da produção de próteses e pode vir R$ 0,00 numa parcela. Para não
+# sumir da tela, informamos a última parcela em que o e-Gestor publicou valor —
+# apenas como referência: NÃO entra no total da parcela consultada.
+_LRPD_JANELA = 6
+_LRPD_CACHE: dict[str, tuple[float, dict | None]] = {}
+_LRPD_TTL = 3600.0
+
+
+def _lrpd_da_parcela(esb: dict) -> float:
+    return float(esb.get("vl_lrpd_municipal") or 0) + float(esb.get("vl_lrpd_estadual") or 0)
+
+
+def parcelas_anteriores(nu_parcela: str, n: int = _LRPD_JANELA) -> list[str]:
+    """'202611' → ['202610', '202609', ...] (n parcelas, voltando ao ano anterior após 01)."""
+    ano, mes = int(nu_parcela[:4]), int(nu_parcela[4:])
+    saida = []
+    for _ in range(n):
+        ano, mes = (ano - 1, 12) if mes == 1 else (ano, mes - 1)
+        saida.append(f"{ano}{mes:02d}")
+    return saida
+
+
+async def _lrpd_ultimo_pago(nu_parcela: str) -> dict | None:
+    import time as _t
+    agora = _t.monotonic()
+    em_cache = _LRPD_CACHE.get(nu_parcela)
+    if em_cache and agora - em_cache[0] < _LRPD_TTL:
+        return em_cache[1]
+    achado = None
+    for anterior in parcelas_anteriores(nu_parcela):
+        try:
+            r = await buscar_completo(co_municipio=IBGE, co_uf=CO_UF,
+                                      parcela_inicio=anterior, parcela_fim=anterior)
+        except EGestorAPIError:
+            continue
+        esb_ant = (r.get("detalhado") or {}).get("esb") or {}
+        valor = _lrpd_da_parcela(esb_ant)
+        if valor:
+            achado = {"nu_parcela": anterior, "parcela": (r.get("detalhado") or {}).get("parcela"),
+                      "valor": round(valor, 2)}
+            break
+    _LRPD_CACHE[nu_parcela] = (agora, achado)
+    return achado
 
 
 @router.get("/inconsistencias")
