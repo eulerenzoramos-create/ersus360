@@ -1239,7 +1239,7 @@ export default function MatrizFns() {
       {/* ── Visão: Evolução Gráfica ── */}
       {viewMode === "evolucao" && data && (
         <EvolucaoFnsGrafico
-          data={data}
+          data={dataEvo ?? data}
           exercicio={exercicio}
           onVoltar={() => setViewMode("tabela")}
           onSincronizar={sincronizar}

@@ -125,7 +125,9 @@ function derivarPontos(
   mesesVisiveis: number[]
 ): PontoMensal[] {
   const pts: PontoMensal[] = mesesVisiveis.map(m => {
-    const status = (mesesStatus[String(m)] ?? "nao_coletado") as StatusMes;
+    // O backend (/api/repasses-fns/matriz-tabela) grava o mês coletado como "ok"; aqui o nome é "coletado".
+    const bruto = mesesStatus[String(m)] ?? "nao_coletado";
+    const status = (bruto === "ok" ? "coletado" : bruto) as StatusMes;
     const temValor = (totais[String(m)] ?? 0) > 0;
     const valido = status === "coletado" || (status === "incompleto" && temValor);
     const valor = valido ? (totais[String(m)] ?? null) : null;
