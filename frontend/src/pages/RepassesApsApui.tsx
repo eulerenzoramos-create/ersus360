@@ -8,7 +8,7 @@
  *
  * Design: inline styles exclusivamente (sem Tailwind — não instalado no projeto).
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { lazy, Suspense } from "react";
 import RepassesFnsPanel from "./RepassesFnsPanel";
 import ConciliacaoFnsPanel from "./ConciliacaoFnsPanel";
@@ -28,7 +28,7 @@ import {
   ChevronDown, ChevronRight, CheckCircle, CheckCircle2, AlertTriangle,
   XCircle, ExternalLink, RefreshCw, TrendingUp, TrendingDown,
   DollarSign, Calendar, BarChart2, FileText, Download,
-  Search, Filter, X,
+  Search, Filter, X, Clock,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
 
@@ -38,7 +38,8 @@ const C = {
   blueDark:  "#0f1b2d",
   blueMid:   "#1e3a5f",
   blueLight: "#e3f0ff",
-  green:     "#16a34a",
+  blueBdr:   "#bfdbfe",
+  green:    "#16a34a",
   greenBg:   "#f0fdf4",
   greenBdr:  "#bbf7d0",
   amber:     "#d97706",
@@ -61,9 +62,26 @@ const C = {
 };
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
+type SituacaoFns = "pago_confere" | "pago_com_diferenca" | "aguardando_pagamento_fns" | "fns_indisponivel";
+interface PagamentoFnsResumo {
+  situacao: SituacaoFns; total_pago_fns: number | null; diferenca: number | null;
+  datas_pagamento?: string[]; mes_pagamento_previsto: string;
+}
 interface CompetenciaResumo {
   competencia: string; mes: string; parcela: string; nu_parcela: string;
   total_oficial: number; conciliado: boolean; fonte_situacao: string; coletado_em: string;
+  listada_portal?: boolean | null; pagamento_fns?: PagamentoFnsResumo | null;
+}
+interface OrdemFns { ob: string; data?: string; valor: number; competencia_fns?: string; portaria?: string; descricao?: string }
+interface PlanoConferencia {
+  co_seq: number; descricao: string; vl_egestor: number; vl_fns: number | null;
+  diferenca: number | null; situacao: "confere" | "diferenca" | "aguardando_pagamento" | "fns_indisponivel";
+  ordens: OrdemFns[];
+}
+interface ConferenciaFns extends PagamentoFnsResumo {
+  nu_parcela: string; competencia_cnes: string; total_egestor: number;
+  meses_consultados: string[]; planos: PlanoConferencia[];
+  outros_creditos_aps: OrdemFns[]; total_outros_creditos_aps?: number;
 }
 interface Componente {
   co_seq: number; descricao: string; descricao_original: string;
@@ -83,7 +101,10 @@ interface DetalhadoData {
   esf: { qt_pagas: number; qt_100pct: number; qt_75pct: number; qt_teto?: number;
     vl_fixo: number; vl_vinculo: number; vl_qualidade: number; vl_total_bruto: number; };
   eap: { qt_pagas: number; vl_total_bruto: number };
-  emulti: { qt_pagas: number; qt_estrategica: number; qt_atend_remoto: number; vl_custeio: number; vl_qualidade: number; vl_atend_remoto: number; vl_total: number; };
+  emulti: { qt_pagas: number; qt_estrategica: number; qt_atend_remoto: number; vl_custeio: number; vl_qualidade: number; vl_atend_remoto: number; vl_total: number;
+    qt_ampliada?: number; qt_complementar?: number; qt_intermunicipal?: number;
+    vl_implantacao?: number; vl_qualidade_adicional?: number; vl_padi?: number;
+    qt_teto_complementar?: number; qt_teto_ampliada?: number; };
   esb: { qt_40h_pagas_modal_i: number; qt_uom: number; vl_esb_40h: number;
     vl_qualidade_40h: number; vl_uom: number; vl_lrpd_municipal: number; vl_total_sb_calculado: number; };
   acs: { qt_teto: number; qt_direto_pago: number; vl_total: number };
@@ -91,11 +112,13 @@ interface DetalhadoData {
   microscopistas: { qt_pagos: number; vl_total: number };
   per_capita: { populacao: number; vl_pagamento: number };
   tetos: { esf: number; eap: number; emulti_estrategica: number; sb_40h: number };
+  resumo_planos?: { plano: string; vl_integral: number | null; vl_ajuste: number | null; vl_desconto: number | null; vl_efetivo: number | null }[];
   fonte_situacao: string; coletado_em: string;
 }
 interface ListaResponse {
   meta: Record<string, unknown>; ano_ciclo: number; data_consulta_egestor: string;
   coletado_em: string; total_periodo: number; competencias: CompetenciaResumo[];
+  total_pago?: number; parcelas_aguardando_fns?: string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -127,6 +150,17 @@ function BadgeConciliacao({ ok }: { ok: boolean }) {
   return ok
     ? <Badge cor={C.green} bg={C.greenBg} bdr={C.greenBdr}><CheckCircle size={11} /> Conciliado</Badge>
     : <Badge cor={C.red} bg={C.redBg} bdr={C.redBdr}><XCircle size={11} /> Divergência</Badge>;
+}
+
+function BadgePagamentoFns({ p }: { p?: PagamentoFnsResumo | null }) {
+  if (!p) return null;
+  if (p.situacao === "pago_confere")
+    return <Badge cor={C.green} bg={C.greenBg} bdr={C.greenBdr}><CheckCircle size={11} /> FNS confere</Badge>;
+  if (p.situacao === "pago_com_diferenca")
+    return <Badge cor={C.amber} bg={C.amberBg} bdr={C.amberBdr}><AlertTriangle size={11} /> FNS ≠ e-Gestor</Badge>;
+  if (p.situacao === "aguardando_pagamento_fns")
+    return <Badge cor={C.blue} bg={C.blueLight} bdr={C.blueBdr}><Clock size={11} /> Aguardando FNS</Badge>;
+  return <Badge cor={C.gray} bg={C.grayLight} bdr={C.grayBdr}>FNS indisponível</Badge>;
 }
 
 function BadgeFonte() {
@@ -235,6 +269,9 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
   );
 
   const { esf, eap, emulti, esb, acs, esfrb, microscopistas, per_capita, tetos } = data;
+  // Desconto oficial do plano eSF/eAP publicado pelo e-Gestor (resumo por plano orçamentário)
+  const descontoEsf = (data.resumo_planos ?? []).find(r =>
+    /sa[uú]de da fam[ií]lia/i.test(r.plano) && (r.vl_desconto ?? 0) !== 0);
 
   const indicadores = [
     { label: "Equidade eSF",     val: data.faixa_equidade_esf },
@@ -246,10 +283,20 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
   const equipes = [
     { cor: "#1565c0", nome: "eSF — Saúde da Família",   qtd: `${esf.qt_pagas}`, teto: tetos.esf,   vl: esf.vl_total_bruto,      det: `F ${BRL(esf.vl_fixo)} · V ${BRL(esf.vl_vinculo)} · Q ${BRL(esf.vl_qualidade)}` },
     { cor: "#93c5fd", nome: "eAP — Atenção Primária",   qtd: `${eap.qt_pagas}`, teto: tetos.eap,   vl: eap.vl_total_bruto,     det: eap.qt_pagas === 0 ? "Sem equipes pagas" : "", dim: true },
-    { cor: "#7c3aed", nome: "eMulti — Multiprofissional",qtd: `${emulti.qt_pagas} (${emulti.qt_estrategica} est.)`, teto: tetos.emulti_estrategica, vl: emulti.vl_total, det: [
+    { cor: "#7c3aed", nome: "eMulti — Multiprofissional", qtd: `${emulti.qt_pagas} (${[
+        emulti.qt_estrategica ? `${emulti.qt_estrategica} estratégica` : "",
+        emulti.qt_ampliada ? `${emulti.qt_ampliada} ampliada` : "",
+        emulti.qt_complementar ? `${emulti.qt_complementar} complementar` : "",
+        emulti.qt_intermunicipal ? `${emulti.qt_intermunicipal} intermunicipal` : "",
+      ].filter(Boolean).join(", ") || "—"}${emulti.qt_atend_remoto ? ` · ${emulti.qt_atend_remoto} c/ atend. remoto` : ""})`,
+      teto: `${tetos.emulti_estrategica} estr.${emulti.qt_teto_complementar ? ` + ${emulti.qt_teto_complementar} compl.` : ""}${emulti.qt_teto_ampliada ? ` + ${emulti.qt_teto_ampliada} ampl.` : ""}`,
+      vl: emulti.vl_total, det: [
         `C ${BRL(emulti.vl_custeio)}`,
         `Q ${BRL(emulti.vl_qualidade)}`,
+        ...(emulti.vl_qualidade_adicional ? [`Q adic. ${BRL(emulti.vl_qualidade_adicional)}`] : []),
         ...(emulti.vl_atend_remoto > 0 ? [`AR ${BRL(emulti.vl_atend_remoto)}`] : []),
+        ...(emulti.vl_implantacao ? [`Impl. ${BRL(emulti.vl_implantacao)}`] : []),
+        ...(emulti.vl_padi ? [`PADI ${BRL(emulti.vl_padi)}`] : []),
       ].join(" · ") },
     { cor: "#059669", nome: "eSB — Saúde Bucal",         qtd: `${esb.qt_40h_pagas_modal_i}+${esb.qt_uom} UOM`, teto: tetos.sb_40h, vl: esb.vl_total_sb_calculado, det: `C ${BRL(esb.vl_esb_40h)} · Q ${BRL(esb.vl_qualidade_40h)} · LRPD ${BRL(esb.vl_lrpd_municipal)}` },
     { cor: "#d97706", nome: "ACS — Agentes Comunitários",qtd: `${acs.qt_direto_pago}`, teto: acs.qt_teto, vl: acs.vl_total, det: acs.qt_direto_pago > 0 ? `${BRL(acs.vl_total / acs.qt_direto_pago)}/ACS` : "—" },
@@ -315,7 +362,10 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
       <DiagnosticoInconsistencias data={data} />
 
       <p style={{ fontSize: 11, color: C.textMut }}>
-        Fonte: e-Gestor APS (tipoRelatorio=COMPLETO) · {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : ""}
+        Valores da tabela = cálculo integral do e-Gestor por equipe (antes de ajustes e descontos).
+        {descontoEsf ? ` eSF/eAP nesta parcela: integral ${BRL(descontoEsf.vl_integral)}, desconto ${BRL(descontoEsf.vl_desconto)}, efetivo ${BRL(descontoEsf.vl_efetivo)}.` : ""}
+        {" "}O valor efetivo e o creditado pelo FNS estão na Conferência acima.
+        {" "}Fonte: e-Gestor APS (tipoRelatorio=COMPLETO) · {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : ""}
       </p>
     </div>
   );
@@ -478,6 +528,119 @@ function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
   );
 }
 
+// ─── Conferência e-Gestor × FNS da parcela ───────────────────────────────────
+const SIT_PLANO: Record<PlanoConferencia["situacao"], [string, string]> = {
+  confere: ["Confere", C.green],
+  diferenca: ["Diferença", C.amber],
+  aguardando_pagamento: ["Aguardando FNS", C.blue],
+  fns_indisponivel: ["FNS indisponível", C.gray],
+};
+
+function ConferenciaFnsPanel({ nuParcela }: { nuParcela: string }) {
+  const { data, isLoading, error } = useQuery<ConferenciaFns>({
+    queryKey: ["repasse-conferencia-fns", nuParcela],
+    queryFn: () => apiGet(`/api/repasses-aps/conferencia-fns/${nuParcela}`),
+    staleTime: 600_000,
+  });
+
+  const caixa = { background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 10, padding: "14px 16px", marginBottom: 16 };
+  if (isLoading) return (
+    <div style={{ ...caixa, fontSize: 12, color: C.textSec, display: "flex", gap: 8, alignItems: "center" }}>
+      <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} /> Conferindo com o crédito do FNS…
+    </div>
+  );
+  if (error || !data) return (
+    <div style={{ ...caixa, fontSize: 12, color: C.textSec }}>Conferência com o FNS indisponível no momento.</div>
+  );
+
+  const datas = data.datas_pagamento?.length ? ` (OBs de ${data.datas_pagamento.join(", ")})` : "";
+  const titulo = {
+    pago_confere: `Paga pelo FNS em ${data.mes_pagamento_previsto}${datas} — confere com o e-Gestor`,
+    pago_com_diferenca: `Paga pelo FNS em ${data.mes_pagamento_previsto}${datas} — valor creditado diferente do e-Gestor`,
+    aguardando_pagamento_fns: `Aguardando pagamento do FNS (previsto para ${data.mes_pagamento_previsto}) — valores do e-Gestor ainda não creditados`,
+    fns_indisponivel: "Consulta ao FNS indisponível — não foi possível conferir o crédito",
+  }[data.situacao];
+  const corTitulo = { pago_confere: C.green, pago_com_diferenca: C.amber, aguardando_pagamento_fns: C.blue, fns_indisponivel: C.gray }[data.situacao];
+  const th = { padding: "8px 10px", fontSize: 10.5, fontWeight: 700, color: C.textSec, borderBottom: `1px solid ${C.grayBdr}`, textTransform: "uppercase" as const, letterSpacing: "0.04em" };
+  const td = { padding: "8px 10px", fontVariantNumeric: "tabular-nums" as const, borderTop: `1px solid ${C.grayBdr}` };
+  const outros = data.outros_creditos_aps ?? [];
+
+  return (
+    <div style={caixa}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" as const }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: corTitulo }}>{titulo}</span>
+      </div>
+      <div style={{ overflowX: "auto" as const }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: "#f8fafc" }}>
+              <th style={{ ...th, textAlign: "left" }}>Componente</th>
+              <th style={{ ...th, textAlign: "right" }}>e-Gestor (efetivo)</th>
+              <th style={{ ...th, textAlign: "right" }}>Creditado FNS</th>
+              <th style={{ ...th, textAlign: "right" }}>Diferença</th>
+              <th style={{ ...th, textAlign: "center" }}>Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.planos.map(p => {
+              const [rot, cor] = SIT_PLANO[p.situacao];
+              return (
+                <tr key={p.co_seq}>
+                  <td style={{ ...td, color: C.textPri }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: "50%", background: COMP_COLORS[p.co_seq] ?? C.gray, flexShrink: 0 }} />
+                      {p.descricao}
+                    </span>
+                    {p.ordens.length > 0 && (
+                      <div style={{ fontSize: 10.5, color: C.textMut, marginLeft: 16 }}>
+                        {p.ordens.map(o => `OB ${o.ob} · ${o.data ?? ""} · ${BRL(o.valor)}`).join(" | ")}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ ...td, textAlign: "right" }}>{BRL(p.vl_egestor)}</td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{p.vl_fns ? BRL(p.vl_fns) : "—"}</td>
+                  <td style={{ ...td, textAlign: "right", color: p.situacao === "diferenca" ? C.amber : C.textMut, fontWeight: p.situacao === "diferenca" ? 700 : 400 }}>
+                    {p.situacao === "diferenca" && p.diferenca != null ? `${p.diferenca > 0 ? "+" : ""}${BRL(p.diferenca)}` : "—"}
+                  </td>
+                  <td style={{ ...td, textAlign: "center", color: cor, fontWeight: 700, fontSize: 11 }}>{rot}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr style={{ background: "#f1f5f9", fontWeight: 800 }}>
+              <td style={{ ...td, color: C.textPri }}>Total da parcela</td>
+              <td style={{ ...td, textAlign: "right" }}>{BRL(data.total_egestor)}</td>
+              <td style={{ ...td, textAlign: "right", color: C.money }}>{data.total_pago_fns ? BRL(data.total_pago_fns) : "—"}</td>
+              <td style={{ ...td, textAlign: "right", color: data.diferenca ? C.amber : C.textMut }}>
+                {data.diferenca ? `${data.diferenca > 0 ? "+" : ""}${BRL(data.diferenca)}` : "—"}
+              </td>
+              <td style={td} />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {outros.length > 0 && (
+        <p style={{ fontSize: 11.5, color: C.textSec, margin: "10px 0 0" }}>
+          Também entraram no bloco Atenção Primária em {data.mes_pagamento_previsto} créditos de outra parcela/portaria
+          (não fazem parte desta parcela do e-Gestor): {outros.map(o => `${o.descricao ?? ""} — ${BRL(o.valor)} (${o.competencia_fns ?? "—"}, Portaria ${o.portaria ?? "—"})`).join("; ")}.
+          {" "}Recebido de APS no mês = {BRL((data.total_pago_fns ?? 0) + (data.total_outros_creditos_aps ?? 0))}.
+        </p>
+      )}
+      {data.situacao === "pago_com_diferenca" && (
+        <p style={{ fontSize: 11.5, color: C.textSec, margin: "8px 0 0" }}>
+          O FNS creditou esta parcela com valor diferente do que o e-Gestor APS mostra hoje para a mesma parcela
+          (o relatório do e-Gestor pode ter sido recalculado depois do pagamento). Acompanhe se a diferença aparece
+          como ajuste ou desconto nas próximas parcelas e confira em "Detalhar pagamento" no consultafns.
+        </p>
+      )}
+      <p style={{ fontSize: 10.5, color: C.textMut, margin: "8px 0 0" }}>
+        Fontes: e-Gestor APS (/financiamento/pagamento) × consultafns.saude.gov.br (Comp./Parcela {Number(nuParcela.slice(4))} em {nuParcela.slice(0, 4)}) · meses consultados: {data.meses_consultados?.join(", ") || "—"}
+      </p>
+    </div>
+  );
+}
+
 // ─── Painel de detalhe de competência ─────────────────────────────────────────
 function DetalhePanel({ nuParcela, competencia }: { nuParcela: string; competencia: string }) {
   const [aba, setAba] = useState<"componentes" | "equipes">("componentes");
@@ -550,6 +713,9 @@ function DetalhePanel({ nuParcela, competencia }: { nuParcela: string; competenc
           ))}
         </div>
       )}
+
+      {/* Conferência com o crédito do FNS da mesma parcela */}
+      <ConferenciaFnsPanel nuParcela={nuParcela} />
 
       {/* Abas */}
       <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${C.grayBdr}`, marginBottom: 16 }}>
@@ -702,7 +868,13 @@ function LinhaCompetencia({
           <BadgeConciliacao ok={c.conciliado} />
         </td>
         <td style={{ padding: "12px 16px", textAlign: "center" }}>
-          <BadgeFonte />
+          <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 4 }}>
+            <BadgeFonte />
+            <BadgePagamentoFns p={c.pagamento_fns} />
+            {c.listada_portal === false && (
+              <span style={{ fontSize: 10, color: C.textMut }}>ainda não listada no portal</span>
+            )}
+          </div>
         </td>
         <td style={{ padding: "12px 16px", textAlign: "center" }}>
           <button
@@ -763,22 +935,34 @@ function ApsPanel() {
   };
 
   const competencias = data?.competencias ?? [];
-  const total = data?.total_periodo ?? 0;
-  const media = competencias.length > 0 ? total / competencias.length : 0;
-  const ultima = competencias[competencias.length - 1];
-  const penultima = competencias[competencias.length - 2];
+  // Parcelas já processadas no e-Gestor mas ainda não creditadas pelo FNS ficam fora dos totais
+  const aguardando = competencias.filter(c => c.pagamento_fns?.situacao === "aguardando_pagamento_fns");
+  const pagas = competencias.filter(c => c.pagamento_fns?.situacao !== "aguardando_pagamento_fns");
+  const total = data?.total_pago ?? data?.total_periodo ?? 0;
+  const media = pagas.length > 0 ? total / pagas.length : 0;
+  const ultima = pagas[pagas.length - 1];
+  const penultima = pagas[pagas.length - 2];
+
+  // Abre automaticamente a parcela paga mais recente (uma vez, ao carregar)
+  const [abriuUltima, setAbriuUltima] = useState(false);
+  useEffect(() => {
+    if (!abriuUltima && ultima) {
+      setExpandidos(prev => new Set(prev).add(ultima.nu_parcela));
+      setAbriuUltima(true);
+    }
+  }, [abriuUltima, ultima]);
   const variacaoUltima = ultima && penultima
     ? ((ultima.total_oficial - penultima.total_oficial) / penultima.total_oficial) * 100
     : null;
 
   // Dados do gráfico
   const dadosGrafico = useMemo(() =>
-    competencias.map(c => ({
+    pagas.map(c => ({
       competencia: mesPagamento(c.nu_parcela).replace("/20", "/"),
       referencia: c.competencia,
       valor: c.total_oficial,
       nu_parcela: c.nu_parcela,
-    })), [competencias]);
+    })), [pagas]);
 
   // Filtros
   const competenciasFiltradas = useMemo(() =>
@@ -937,15 +1121,17 @@ function ApsPanel() {
             <SummaryCard
               titulo="Total acumulado"
               valor={BRL(total)}
-              subtitulo="Ciclo 2026 — dados oficiais"
+              subtitulo={aguardando.length ? "Ciclo 2026 — parcelas pagas (valores e-Gestor)" : "Ciclo 2026 — dados oficiais"}
               Icon={DollarSign}
               cor={C.money}
               corBg="#dcfce7"
             />
             <SummaryCard
-              titulo="Competências disponíveis"
-              valor={`${competencias.length} de 12`}
-              subtitulo={`${12 - competencias.length} ainda não publicadas`}
+              titulo="Parcelas pagas"
+              valor={`${pagas.length} de 12`}
+              subtitulo={aguardando.length
+                ? `${aguardando.length} processada(s) aguardando FNS · ${12 - competencias.length} não publicada(s)`
+                : `${12 - competencias.length} ainda não publicadas`}
               Icon={Calendar}
               cor={C.blue}
               corBg={C.blueLight}
@@ -953,7 +1139,7 @@ function ApsPanel() {
             <SummaryCard
               titulo="Média mensal"
               valor={BRL(media)}
-              subtitulo="Por competência disponível"
+              subtitulo="Por parcela paga"
               Icon={BarChart2}
               cor="#7c3aed"
               corBg="#f3e8ff"
@@ -961,12 +1147,31 @@ function ApsPanel() {
             <SummaryCard
               titulo={`Última: paga em ${mesPagamento(ultima?.nu_parcela)}`}
               valor={ultima ? BRL(ultima.total_oficial) : "—"}
-              subtitulo={`CNES ${ultima?.competencia ?? "—"} · vs. parcela anterior`}
+              subtitulo={ultima?.pagamento_fns?.situacao === "pago_com_diferenca" && ultima.pagamento_fns.total_pago_fns != null
+                ? `e-Gestor · FNS creditou ${BRL(ultima.pagamento_fns.total_pago_fns)}`
+                : `CNES ${ultima?.competencia ?? "—"} · vs. parcela anterior`}
               variacao={variacaoUltima}
               Icon={TrendingUp}
               cor={C.money}
               corBg="#dcfce7"
             />
+          </div>
+        )}
+
+        {/* ── PARCELAS PROCESSADAS NO e-GESTOR, AINDA NÃO CREDITADAS PELO FNS ── */}
+        {!isLoading && aguardando.length > 0 && (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: C.blueLight,
+            border: `1px solid ${C.blueBdr}`, borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
+            <Clock size={16} color={C.blue} style={{ marginTop: 1, flexShrink: 0 }} />
+            <span style={{ fontSize: 12.5, color: C.textPri }}>
+              {aguardando.map(c => (
+                <span key={c.nu_parcela} style={{ display: "block" }}>
+                  <b>Parcela {c.parcela}</b> (competência CNES {c.competencia}) já calculada no e-Gestor APS: {BRL(c.total_oficial)} —
+                  {" "}<b>aguardando pagamento do FNS</b> (previsto para {c.pagamento_fns?.mes_pagamento_previsto ?? mesPagamento(c.nu_parcela)}).
+                  {" "}Não entra nos totais até o crédito.
+                </span>
+              ))}
+            </span>
           </div>
         )}
 

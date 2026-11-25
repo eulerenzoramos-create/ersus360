@@ -284,6 +284,12 @@ async def buscar_completo(
             "vl_atend_remoto": _v("vlPagamentoEmultiAtendimentoRemoto"),
             "vl_total": _v("vlTotalEmulti"),
             "vl_implantacao": _v("vlPagamentoEmultiImplantacao"),
+            # Campos que o e-Gestor também soma em vlTotalEmulti (ex.: parcela 202612 traz
+            # vlPagamentoQualidadeEmulti); sem eles o detalhe não fecha com o total oficial.
+            "vl_qualidade_adicional": _v("vlPagamentoQualidadeEmulti"),
+            "vl_padi": _v("vlPagamentoEmultiPadi"),
+            "qt_teto_complementar": _i("qtTetoEmultiComplementar"),
+            "qt_teto_ampliada": _i("qtTetoEmultiAmpliada"),
         },
         # eSB (Saúde Bucal)
         "esb": {

@@ -20,6 +20,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Any
 
 from services.egestor_aps import buscar_pagamentos, buscar_completo, listar_parcelas, EGestorAPIError
+from services.egestor_fns_conferencia import conferir, creditos_fns_mes, meses_de_busca
 
 router = APIRouter(prefix="/api/repasses-aps", tags=["repasses_aps"])
 
@@ -73,6 +74,30 @@ def _meta() -> dict[str, Any]:
     }
 
 
+async def _creditos_fns(nu_parcela: str) -> dict | None:
+    """Créditos do FNS (consultafns, público) nos meses em que a parcela é paga.
+    None quando o consultafns não responde — a tela mostra "FNS indisponível"."""
+    from services.fns_parcelas import _buscar
+
+    cnpj = "".join(ch for ch in CNPJ_FMS if ch.isdigit())
+    meses = meses_de_busca(nu_parcela)
+    if not meses:
+        return {}
+    try:
+        res = await asyncio.wait_for(asyncio.gather(*[
+            creditos_fns_mes(lambda a, m: _buscar(a, m, cnpj, UF, IBGE), IBGE, a, m)
+            for a, m in meses
+        ]), timeout=40)
+    except Exception:  # noqa: BLE001 — fonte externa fora do ar não derruba a tela
+        return None
+    return dict(zip(meses, res))
+
+
+def _resumo_pagamento(conf: dict) -> dict:
+    return {k: conf.get(k) for k in (
+        "situacao", "total_pago_fns", "diferenca", "datas_pagamento", "mes_pagamento_previsto")}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
@@ -82,37 +107,23 @@ async def listar_competencias(
     ano: int = Query(2026, ge=2020, le=2030, description="Ano do ciclo financeiro"),
 ):
     """
-    Lista todas as competências (parcelas) disponíveis para o município.
-    Consulta ao vivo a API do e-Gestor APS.
+    Lista todas as competências (parcelas) do ciclo que a API de pagamento do e-Gestor
+    APS já publica. A lista do portal (/data/parcelas) atrasa em relação à API de
+    pagamento, por isso o ciclo inteiro (AAAA01–AAAA12) é consultado e cada parcela
+    indica se já aparece no portal. As parcelas mais recentes são conferidas com o
+    crédito do FNS da mesma parcela (pago / aguardando pagamento).
     """
     try:
-        parcelas_raw = await listar_parcelas(ano=ano, co_uf=CO_UF)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "erro": "Integração pendente",
-                "descricao": f"Não foi possível consultar a API do e-Gestor APS: {exc}",
-                "acao_sugerida": "Tente novamente em instantes ou consulte relatorioaps.saude.gov.br",
-            },
-        )
-
-    # Determina parcela início e fim com base nas disponíveis
-    if not parcelas_raw:
-        raise HTTPException(
-            status_code=404,
-            detail={"erro": "Nenhuma parcela disponível para este ano."},
-        )
-
-    inicio = min(parcelas_raw)
-    fim = max(parcelas_raw)
+        listadas = set(await listar_parcelas(ano=ano, co_uf=CO_UF))
+    except Exception:  # noqa: BLE001
+        listadas = set()
 
     try:
         resultado = await buscar_pagamentos(
             co_municipio=IBGE,
             co_uf=CO_UF,
-            parcela_inicio=inicio,
-            parcela_fim=fim,
+            parcela_inicio=f"{ano}01",
+            parcela_fim=f"{ano}12",
         )
     except EGestorAPIError as exc:
         raise HTTPException(
@@ -124,9 +135,26 @@ async def listar_competencias(
             },
         )
 
+    comps = sorted(resultado["competencias"], key=lambda c: c["nu_parcela"])
+    if not comps:
+        raise HTTPException(
+            status_code=404,
+            detail={"erro": "Nenhuma parcela disponível para este ano."},
+        )
+
+    # Confere com o FNS as parcelas fora da lista do portal e a última listada
+    ultima_listada = max(listadas) if listadas else None
+    a_conferir = [c for c in comps
+                  if c["nu_parcela"] not in listadas or c["nu_parcela"] == ultima_listada][-3:]
+    creditos = await asyncio.gather(*[_creditos_fns(c["nu_parcela"]) for c in a_conferir])
+    pagamento = {
+        c["nu_parcela"]: _resumo_pagamento(conferir(c, cr))
+        for c, cr in zip(a_conferir, creditos)
+    }
+
     # Resumo por competência (sem detalhar componentes na listagem)
     resumo = []
-    for c in resultado["competencias"]:
+    for c in comps:
         resumo.append(
             {
                 "competencia": c["competencia"],
@@ -137,10 +165,14 @@ async def listar_competencias(
                 "conciliado": c["conciliado"],
                 "fonte_situacao": c["fonte_situacao"],
                 "coletado_em": c["coletado_em"],
+                "listada_portal": (c["nu_parcela"] in listadas) if listadas else None,
+                "pagamento_fns": pagamento.get(c["nu_parcela"]),
             }
         )
 
-    total_periodo = sum(c["total_oficial"] for c in resultado["competencias"])
+    aguardando = [r for r in resumo
+                  if (r["pagamento_fns"] or {}).get("situacao") == "aguardando_pagamento_fns"]
+    total_periodo = sum(c["total_oficial"] for c in comps)
 
     return {
         "meta": _meta(),
@@ -148,6 +180,9 @@ async def listar_competencias(
         "data_consulta_egestor": resultado["data_consulta"],
         "coletado_em": resultado["coletado_em"],
         "total_periodo": round(total_periodo, 2),
+        # Total das parcelas já creditadas (exclui as que o FNS ainda não pagou)
+        "total_pago": round(total_periodo - sum(r["total_oficial"] for r in aguardando), 2),
+        "parcelas_aguardando_fns": [r["nu_parcela"] for r in aguardando],
         "competencias": resumo,
     }
 
@@ -210,27 +245,14 @@ async def resumo_executivo():
     Resumo executivo do ciclo 2026 completo (NOV/2025 – OUT/2026).
     Consulta ao vivo o e-Gestor APS para todas as parcelas disponíveis.
     """
-    try:
-        parcelas_raw = await listar_parcelas(ano=2026, co_uf=CO_UF)
-    except Exception:
-        parcelas_raw = []
-
-    if not parcelas_raw:
-        # Tenta com parcelas conhecidas como fallback
-        parcelas_raw = [
-            "202601", "202602", "202603", "202604",
-            "202605", "202606", "202607", "202608",
-        ]
-
-    inicio = min(parcelas_raw)
-    fim = max(parcelas_raw)
-
+    # Ciclo inteiro: a API de pagamento devolve só as parcelas já processadas
+    # (a lista do portal /data/parcelas atrasa e escondia as parcelas recentes).
     try:
         resultado = await buscar_pagamentos(
             co_municipio=IBGE,
             co_uf=CO_UF,
-            parcela_inicio=inicio,
-            parcela_fim=fim,
+            parcela_inicio=PARCELA_INICIO_2026,
+            parcela_fim=PARCELA_FIM_2026,
         )
     except EGestorAPIError as exc:
         raise HTTPException(
@@ -289,6 +311,47 @@ async def resumo_executivo():
             for c in comps
         ],
         "competencias_pendentes": parcelas_pendentes,
+    }
+
+
+@router.get("/conferencia-fns/{nu_parcela}")
+async def conferencia_fns(nu_parcela: str):
+    """
+    Confere uma parcela do e-Gestor APS com o crédito do FNS da mesma parcela
+    (campo "Comp./Parcela" do consultafns), componente a componente. Lista também
+    créditos de APS do mês que pertencem a outra parcela/portaria, para fechar com
+    o "Recebido FNS no período".
+    """
+    if len(nu_parcela) != 6 or not nu_parcela.isdigit():
+        raise HTTPException(
+            status_code=400,
+            detail={"erro": "Formato inválido. Use YYYYPP (ex: 202611)."},
+        )
+    try:
+        resultado = await buscar_pagamentos(
+            co_municipio=IBGE,
+            co_uf=CO_UF,
+            parcela_inicio=nu_parcela,
+            parcela_fim=nu_parcela,
+        )
+    except EGestorAPIError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "erro": "Integração pendente",
+                "descricao": str(exc),
+                "acao_sugerida": "Consulte relatorioaps.saude.gov.br diretamente.",
+            },
+        )
+    if not resultado["competencias"]:
+        raise HTTPException(
+            status_code=404,
+            detail={"erro": "Parcela ainda não publicada pelo e-Gestor APS.", "nu_parcela": nu_parcela},
+        )
+    return {
+        "meta": _meta(),
+        "coletado_em": _now_iso(),
+        **conferir(resultado["competencias"][0], await _creditos_fns(nu_parcela)),
     }
 
 
