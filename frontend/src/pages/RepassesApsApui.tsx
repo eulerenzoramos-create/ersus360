@@ -110,7 +110,8 @@ interface DetalhadoData {
     qt_40h_pagas_modal_ii?: number; qt_ch_dif_20h_pagas?: number; qt_ch_dif_30h_pagas?: number;
     vl_ch_diferenciada?: number; vl_ch_dif_qualidade?: number; vl_qualidade_extra_40h?: number;
     vl_implantacao?: number; vl_uom_implantacao?: number; vl_ceo_municipal?: number; vl_ceo_estadual?: number;
-    vl_lrpd_estadual?: number; vl_sesb?: number; vl_sesb_desempenho?: number; };
+    vl_lrpd_estadual?: number; vl_sesb?: number; vl_sesb_desempenho?: number;
+    lrpd_ultimo_pago?: { nu_parcela: string; parcela?: string; valor: number } | null; };
   acs: { qt_teto: number; qt_direto_pago: number; vl_total: number };
   esfrb: { qt_pagas: number; vl_custeio: number; vl_qualidade: number; vl_vinculo: number; vl_extra: number; vl_total: number };
   microscopistas: { qt_pagos: number; vl_total: number };
@@ -139,7 +140,10 @@ function detalheEsb(e: DetalhadoData["esb"]): string {
     ["LRPD", (e.vl_lrpd_municipal || 0) + (e.vl_lrpd_estadual || 0), true],
     ["Sesb", (e.vl_sesb || 0) + (e.vl_sesb_desempenho || 0)],
   ];
-  return partes.filter(([, v, sempre]) => sempre || v).map(([r, v]) => `${r} ${BRL(v || 0)}`).join(" · ");
+  const txt = partes.filter(([, v, sempre]) => sempre || v).map(([r, v]) => `${r} ${BRL(v || 0)}`).join(" · ");
+  // LRPD zerado na parcela: mostra o último pago como referência (não entra no total).
+  const ult = e.lrpd_ultimo_pago;
+  return ult ? `${txt} (último LRPD pago: ${ult.parcela || ult.nu_parcela} ${BRL(ult.valor)}, fora do total)` : txt;
 }
 
 const BRL = (v: number | null | undefined) =>
