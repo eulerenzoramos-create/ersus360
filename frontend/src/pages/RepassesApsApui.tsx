@@ -106,7 +106,11 @@ interface DetalhadoData {
     vl_implantacao?: number; vl_qualidade_adicional?: number; vl_padi?: number;
     qt_teto_complementar?: number; qt_teto_ampliada?: number; };
   esb: { qt_40h_pagas_modal_i: number; qt_uom: number; vl_esb_40h: number;
-    vl_qualidade_40h: number; vl_uom: number; vl_lrpd_municipal: number; vl_total_sb_calculado: number; };
+    vl_qualidade_40h: number; vl_uom: number; vl_lrpd_municipal: number; vl_total_sb_calculado: number;
+    qt_40h_pagas_modal_ii?: number; qt_ch_dif_20h_pagas?: number; qt_ch_dif_30h_pagas?: number;
+    vl_ch_diferenciada?: number; vl_ch_dif_qualidade?: number; vl_qualidade_extra_40h?: number;
+    vl_implantacao?: number; vl_uom_implantacao?: number; vl_ceo_municipal?: number; vl_ceo_estadual?: number;
+    vl_lrpd_estadual?: number; vl_sesb?: number; vl_sesb_desempenho?: number; };
   acs: { qt_teto: number; qt_direto_pago: number; vl_total: number };
   esfrb: { qt_pagas: number; vl_custeio: number; vl_qualidade: number; vl_vinculo: number; vl_extra: number; vl_total: number };
   microscopistas: { qt_pagos: number; vl_total: number };
@@ -122,6 +126,22 @@ interface ListaResponse {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+// Detalhe da eSB: todos os recursos de saúde bucal da parcela (custeio, qualidade, UOM, CEO, LRPD,
+// Sesb...), para a soma das partes fechar com o valor total. LRPD aparece mesmo zerado.
+function detalheEsb(e: DetalhadoData["esb"]): string {
+  const partes: [string, number | undefined, boolean?][] = [
+    ["C", e.vl_esb_40h, true],
+    ["Q", (e.vl_qualidade_40h || 0) + (e.vl_qualidade_extra_40h || 0), true],
+    ["Impl.", e.vl_implantacao],
+    ["CH dif.", (e.vl_ch_diferenciada || 0) + (e.vl_ch_dif_qualidade || 0)],
+    ["UOM", (e.vl_uom || 0) + (e.vl_uom_implantacao || 0)],
+    ["CEO", (e.vl_ceo_municipal || 0) + (e.vl_ceo_estadual || 0)],
+    ["LRPD", (e.vl_lrpd_municipal || 0) + (e.vl_lrpd_estadual || 0), true],
+    ["Sesb", (e.vl_sesb || 0) + (e.vl_sesb_desempenho || 0)],
+  ];
+  return partes.filter(([, v, sempre]) => sempre || v).map(([r, v]) => `${r} ${BRL(v || 0)}`).join(" · ");
+}
+
 const BRL = (v: number | null | undefined) =>
   v == null ? "—" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 const BRLc = (v: number) =>
@@ -298,7 +318,11 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
         ...(emulti.vl_implantacao ? [`Impl. ${BRL(emulti.vl_implantacao)}`] : []),
         ...(emulti.vl_padi ? [`PADI ${BRL(emulti.vl_padi)}`] : []),
       ].join(" · ") },
-    { cor: "#059669", nome: "eSB — Saúde Bucal",         qtd: `${esb.qt_40h_pagas_modal_i}+${esb.qt_uom} UOM`, teto: tetos.sb_40h, vl: esb.vl_total_sb_calculado, det: `C ${BRL(esb.vl_esb_40h)} · Q ${BRL(esb.vl_qualidade_40h)} · LRPD ${BRL(esb.vl_lrpd_municipal)}` },
+    { cor: "#059669", nome: "eSB — Saúde Bucal",         qtd: [
+        `${(esb.qt_40h_pagas_modal_i || 0) + (esb.qt_40h_pagas_modal_ii || 0)}`,
+        (esb.qt_ch_dif_20h_pagas || 0) + (esb.qt_ch_dif_30h_pagas || 0) ? `${(esb.qt_ch_dif_20h_pagas || 0) + (esb.qt_ch_dif_30h_pagas || 0)} CH dif.` : "",
+        esb.qt_uom ? `${esb.qt_uom} UOM` : "",
+      ].filter(Boolean).join(" + "), teto: tetos.sb_40h, vl: esb.vl_total_sb_calculado, det: detalheEsb(esb) },
     { cor: "#d97706", nome: "ACS — Agentes Comunitários",qtd: `${acs.qt_direto_pago}`, teto: acs.qt_teto, vl: acs.vl_total, det: acs.qt_direto_pago > 0 ? `${BRL(acs.vl_total / acs.qt_direto_pago)}/ACS` : "—" },
     ...(esfrb.qt_pagas > 0 ? [{ cor: "#ea580c", nome: "eSFRB — Ribeirinha", qtd: `${esfrb.qt_pagas}`, teto: null as number | null, vl: esfrb.vl_total, det: `C ${BRL(esfrb.vl_custeio)} · Q ${BRL(esfrb.vl_qualidade)} · V ${BRL(esfrb.vl_vinculo)} · Ext ${BRL(esfrb.vl_extra)}` }] : []),
     ...(microscopistas.qt_pagos > 0 ? [{ cor: "#f97316", nome: "Microscopistas", qtd: `${microscopistas.qt_pagos}`, teto: null as number | null, vl: microscopistas.vl_total, det: microscopistas.qt_pagos > 0 ? `${BRL(microscopistas.vl_total / microscopistas.qt_pagos)}/mic` : "—" }] : []),

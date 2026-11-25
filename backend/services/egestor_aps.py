@@ -82,6 +82,26 @@ class EGestorAPIError(Exception):
     pass
 
 
+# Campos de valor da saúde bucal no relatório COMPLETO (eSB 40h, carga horária diferenciada,
+# qualidade, implantação, UOM, CEO e LRPD municipal/estadual). O Sesb entra à parte, pelo total
+# oficial quando publicado, para não somar custeio + desempenho duas vezes.
+_CAMPOS_SAUDE_BUCAL = (
+    "vlPagamentoEsb40h", "vlPagamentoEsb40hQualidade", "vlPagamentoQualidadeExtraEsb40H",
+    "vlPagamentoImplantacaoEsb40h", "vlPagamentoEsbChDiferenciada", "vlPagamentoEsbChDifQualidade",
+    "vlPagamentoUom", "vlPagamentoUomImplantacao",
+    "vlPagamentoCeoMunicipal", "vlPagamentoCeoEstadual",
+    "vlPagamentoLrpdMunicipal", "vlPagamentoLrpdEstadual",
+)
+
+
+def _total_saude_bucal(pg: dict) -> float:
+    """Total da saúde bucal na parcela: soma de todos os recursos de eSB publicados."""
+    def v(k: str) -> float:
+        return float(pg.get(k) or 0)
+    sesb = v("vlTotalPagamentoSesb") or (v("vlPagamentoSesb") + v("vlPagamentoDesempenhoSesb"))
+    return round(sum(v(k) for k in _CAMPOS_SAUDE_BUCAL) + sesb, 2)
+
+
 async def buscar_pagamentos(
     co_municipio: str = "130014",
     co_uf: str = "13",
@@ -308,11 +328,18 @@ async def buscar_completo(
             "vl_uom": _v("vlPagamentoUom"),
             "vl_lrpd_municipal": _v("vlPagamentoLrpdMunicipal"),
             "vl_ceo_municipal": _v("vlPagamentoCeoMunicipal"),
-            "vl_total_sb_calculado": (
-                _v("vlPagamentoEsb40h") + _v("vlPagamentoEsb40hQualidade") +
-                _v("vlPagamentoEsbChDiferenciada") + _v("vlPagamentoUom") +
-                _v("vlPagamentoLrpdMunicipal") + _v("vlPagamentoCeoMunicipal")
-            ),
+            # Demais recursos de saúde bucal publicados no COMPLETO (componentes 5, 37, 50, 9,
+            # 18, 19 e 43 do relatório) — sem eles o total da eSB fica abaixo do e-Gestor.
+            "qt_ch_dif_20h_pagas": _i("qtSbPagamentoDifModalidade20Horas"),
+            "qt_ch_dif_30h_pagas": _i("qtSbPagamentoDifModalidade30Horas"),
+            "vl_ch_dif_qualidade": _v("vlPagamentoEsbChDifQualidade"),
+            "vl_qualidade_extra_40h": _v("vlPagamentoQualidadeExtraEsb40H"),
+            "vl_uom_implantacao": _v("vlPagamentoUomImplantacao"),
+            "vl_ceo_estadual": _v("vlPagamentoCeoEstadual"),
+            "vl_lrpd_estadual": _v("vlPagamentoLrpdEstadual"),
+            "vl_sesb": _v("vlPagamentoSesb"),
+            "vl_sesb_desempenho": _v("vlPagamentoDesempenhoSesb"),
+            "vl_total_sb_calculado": _total_saude_bucal(pg),
         },
         # ACS
         "acs": {
