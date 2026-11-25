@@ -137,13 +137,11 @@ function detalheEsb(e: DetalhadoData["esb"]): string {
     ["CH dif.", (e.vl_ch_diferenciada || 0) + (e.vl_ch_dif_qualidade || 0)],
     ["UOM", (e.vl_uom || 0) + (e.vl_uom_implantacao || 0)],
     ["CEO", (e.vl_ceo_municipal || 0) + (e.vl_ceo_estadual || 0)],
-    ["LRPD", (e.vl_lrpd_municipal || 0) + (e.vl_lrpd_estadual || 0), true],
+    // LRPD zerado na parcela: exibe o último LRPD pago pelo e-Gestor (só no detalhe).
+    ["LRPD", ((e.vl_lrpd_municipal || 0) + (e.vl_lrpd_estadual || 0)) || e.lrpd_ultimo_pago?.valor || 0, true],
     ["Sesb", (e.vl_sesb || 0) + (e.vl_sesb_desempenho || 0)],
   ];
-  const txt = partes.filter(([, v, sempre]) => sempre || v).map(([r, v]) => `${r} ${BRL(v || 0)}`).join(" · ");
-  // LRPD zerado na parcela: mostra o último pago como referência (não entra no total).
-  const ult = e.lrpd_ultimo_pago;
-  return ult ? `${txt} (último LRPD pago: ${ult.parcela || ult.nu_parcela} ${BRL(ult.valor)}, fora do total)` : txt;
+  return partes.filter(([, v, sempre]) => sempre || v).map(([r, v]) => `${r} ${BRL(v || 0)}`).join(" · ");
 }
 
 const BRL = (v: number | null | undefined) =>
