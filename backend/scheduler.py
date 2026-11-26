@@ -385,6 +385,12 @@ async def _job_cnes_retrato() -> None:
                     logger.info("[Scheduler] CNES retrato %s: iniciando", mun.codigo_ibge)
                     r = await cp.sincronizar(db, mun.id, mun.codigo_ibge, "agendador")
                     logger.info("[Scheduler] CNES retrato %s: %s", mun.codigo_ibge, r)
+                    from services import cnes_relatorio as rel
+                    from services import cnes_validacao as cv
+                    v = await cv.montar(db, mun.id)
+                    if v is not None:   # alertas também acompanham a nova parcela do e-Gestor
+                        logger.info("[Scheduler] CNES alertas %s: %s", mun.codigo_ibge,
+                                    await rel.sincronizar_alertas(db, mun.id, v))
                 except cp.CnesIndisponivel as exc:
                     logger.warning("[Scheduler] CNES retrato %s: %s", mun.codigo_ibge, exc)
     except Exception as exc:

@@ -323,7 +323,7 @@ def documento_reuniao(municipio: str, plano: dict, r: dict) -> Documento:
 
 # ── Desenho ───────────────────────────────────────────────────────────────────
 
-def pdf(doc: Documento, gerado_por: str) -> bytes:
+def pdf(doc: Documento, gerado_por: str, modulo: str = "PMS Vivo") -> bytes:
     from xml.sax.saxutils import escape
 
     from reportlab.lib import colors
@@ -341,7 +341,7 @@ def pdf(doc: Documento, gerado_por: str) -> bytes:
     aviso = ParagraphStyle("av", parent=ss["BodyText"], textColor=colors.HexColor("#92400e"))
     largura = tam[0] - 3 * cm
     el = [Paragraph(escape(doc.titulo), ss["Title"]), Paragraph(escape(doc.subtitulo), ss["Normal"]),
-          Paragraph(escape(f"Gerado em {datetime.now():%d/%m/%Y %H:%M} por {gerado_por} · ERSUS360 — PMS Vivo"), ss["Normal"])]
+          Paragraph(escape(f"Gerado em {datetime.now():%d/%m/%Y %H:%M} por {gerado_por} · ERSUS360 — {modulo}"), ss["Normal"])]
     if doc.aviso:
         el.append(Paragraph(escape(doc.aviso), aviso))
     el.append(Spacer(1, 8))
@@ -362,7 +362,7 @@ def pdf(doc: Documento, gerado_por: str) -> bytes:
     return buf.getvalue()
 
 
-def xlsx(doc: Documento, gerado_por: str) -> bytes:
+def xlsx(doc: Documento, gerado_por: str, modulo: str = "PMS Vivo") -> bytes:
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
 
@@ -372,7 +372,7 @@ def xlsx(doc: Documento, gerado_por: str) -> bytes:
     ws.append([doc.titulo])
     ws["A1"].font = Font(bold=True, size=14)
     ws.append([doc.subtitulo])
-    ws.append([f"Gerado em {datetime.now():%d/%m/%Y %H:%M} por {gerado_por} · ERSUS360 — PMS Vivo"])
+    ws.append([f"Gerado em {datetime.now():%d/%m/%Y %H:%M} por {gerado_por} · ERSUS360 — {modulo}"])
     if doc.aviso:
         ws.append([doc.aviso])
     for s in doc.secoes:

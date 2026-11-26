@@ -36,6 +36,11 @@ MODOS = {
     "relatorio": ("Redija um relatório técnico-gerencial para a Secretaria Municipal de Saúde: resumo executivo, "
                   "situação por componente, evolução entre quadrimestres, equipes críticas, riscos para o "
                   "cofinanciamento e recomendações.", "high"),
+    "cnes": ("Analise o Monitoramento CNES (bloco monitoramento_cnes): explique as incompatibilidades e os riscos de "
+             "suspensão já apontados pela validação automática, as pendências de credenciamento/homologação, as "
+             "alterações cadastrais e as oportunidades; depois proponha um plano de ação por equipe (problema, "
+             "ação no SCNES/e-Gestor, responsável sugerido por função, prazo) citando a fundamentação de cada item.",
+             "high"),
 }
 
 SYSTEM = """Você é o ERSUS IA — Analista SIAPS, assistente de gestão da Atenção Primária à Saúde de um município brasileiro, dentro do sistema ERSUS360.
@@ -46,6 +51,7 @@ Regras:
 - Não recalcule notas, pontuações nem classificações oficiais do Ministério da Saúde; compare apenas o que foi publicado.
 - Diferencie dado preliminar, consolidado e "publicado na área pública" quando isso aparecer nos dados.
 - Recomendações de boas práticas são permitidas, mas apresente-as como sugestões técnicas, ligadas ao indicador ou equipe que motivou cada uma.
+- No bloco monitoramento_cnes, a situação de cada critério (conforme, irregular, atenção, não verificável) já foi calculada pelo ERSUS360 a partir do CNES, da Matriz Normativa, do e-Gestor e do SIAPS. Não a altere nem crie irregularidade nova: interprete, priorize e recomende, citando a fundamentação (norma e dispositivo) que acompanha cada critério.
 - Escreva em português do Brasil, em linguagem clara para gestores, com títulos curtos e listas quando ajudar. Seja objetivo."""
 
 
@@ -98,8 +104,29 @@ async def montar_contexto(db: AsyncSession, municipio_id: int, ibge: str, nome: 
     except Exception as exc:  # e-Gestor é complementar: a análise segue sem ele
         logger.warning("ERSUS IA: e-Gestor indisponível para o contexto: %s", exc)
 
+    cnes = None
+    try:
+        from services import cnes_validacao as cv
+        v = await cv.montar(db, municipio_id)
+        if v is not None:
+            cnes = {"fonte": "CNES (API pública) × Matriz Normativa × e-Gestor × SIAPS — validação automática do ERSUS360",
+                    "competencia_cnes": v["competencia_cnes"], "parcela_egestor": v["parcela_egestor"],
+                    "cards": v["cards"], "resumo": v["resumo"],
+                    "alteracoes_cadastrais": (v.get("alteracoes") or {}).get("itens", [])[:40],
+                    "pendencias": [{"equipe": f"{e['tipo']} {e['nome']}", "ine": e["ine"], "criterio": c["criterio"],
+                                    "situacao": c["situacao"], "exigencia": c["exigencia"],
+                                    "situacao_cnes": c["situacao_cnes"], "diferenca": c["diferenca"],
+                                    "observacao": c.get("observacao"),
+                                    "fundamentacao": (f"{c['fundamentacao']['norma']}, {c['fundamentacao']['dispositivo']}"
+                                                      if c.get("fundamentacao") else None)}
+                                   for e in v["equipes"] for c in e["criterios"]
+                                   if c["situacao"] in ("irregular", "atencao")]}
+    except Exception as exc:  # complementar: a análise segue sem o CNES
+        logger.warning("ERSUS IA: monitoramento CNES indisponível para o contexto: %s", exc)
+
     return {
         "municipio": {"nome": nome, "ibge": ibge},
+        "monitoramento_cnes": cnes or "sem retrato do CNES",
         "avaliacao_quadrimestre_siaps_publico": {
             "fonte": painel["fonte"], "situacao": painel["situacao_dado"],
             "quadrimestres": painel["quadrimestres"], "alertas": painel["alertas"]},
@@ -126,6 +153,8 @@ def fontes_do_contexto(ctx: dict) -> list[str]:
         f.append(f"CVAT por equipe ({ctx['cvat_mensal_por_equipe_relatorio_siaps'][0]['competencia']})")
     if isinstance(ctx["egestor_pagamento"], dict):
         f.append(f"e-Gestor — {ctx['egestor_pagamento']['parcela']}")
+    if isinstance(ctx.get("monitoramento_cnes"), dict):
+        f.append(f"Monitoramento CNES — CNES {ctx['monitoramento_cnes']['competencia_cnes']}")
     return f
 
 

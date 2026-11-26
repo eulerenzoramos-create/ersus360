@@ -104,17 +104,54 @@ def _sem_chave(eq: dict) -> dict:
     return {**eq, "profissionais": [{k: v for k, v in p.items() if k != "chave"} for p in eq["profissionais"]]}
 
 
+_TIPOS = r"^(eSF|eSFR|eSB|eMulti|eAP)$"
+_SITS = r"^(conforme|irregular|atencao|nao_verificavel)$"
+
+
 @router.get("/conformidade")
 async def conformidade_equipes(current: SessaoMunicipal, competencia: str | None = Query(None, pattern=r"^\d{6}$"),
+                               tipo: str | None = Query(None, pattern=_TIPOS),
+                               situacao: str | None = Query(None, pattern=_SITS),
+                               cnes: str | None = Query(None, pattern=r"^\d{7}$"),
                                db: AsyncSession = Depends(get_db)):
-    """Validações automáticas: retrato do CNES × Matriz Normativa × e-Gestor × SIAPS (cards, equipes, critérios)."""
+    """Validações automáticas: retrato do CNES × Matriz Normativa × e-Gestor × SIAPS (cards, equipes, critérios).
+    Filtros: modalidade (tipo), situação e estabelecimento (CNES). Os cards são sempre do município todo."""
+    from services import cnes_relatorio as rel
     from services import cnes_validacao as cv
     r = await cv.montar(db, current.municipio_id, competencia)
     if r is None:
         return {"situacao_dado": "sem_coleta", "nota": SEM_COLETA, "equipes": [], "cards": {}}
+    eqs = rel.filtrar(r, tipo, situacao, cnes)
     return {"situacao_dado": "oficial", **r,
-            "equipes": [{**{k: v for k, v in e.items() if k not in ("criterios", "profissionais")}}
-                        for e in r["equipes"]]}
+            "equipes": [{k: v for k, v in e.items() if k not in ("criterios", "profissionais")} for e in eqs],
+            "criterios_pendentes": [{"ine": e["ine"], "equipe": e["nome"], "tipo": e["tipo"], **c}
+                                    for e in eqs for c in e["criterios"] if c["situacao"] in ("irregular", "atencao")]}
+
+
+@router.get("/conformidade/exportar")
+async def conformidade_exportar(current: SessaoMunicipal, formato: str = Query("pdf", pattern=r"^(pdf|xlsx)$"),
+                                competencia: str | None = Query(None, pattern=r"^\d{6}$"),
+                                tipo: str | None = Query(None, pattern=_TIPOS),
+                                situacao: str | None = Query(None, pattern=_SITS),
+                                cnes: str | None = Query(None, pattern=r"^\d{7}$"),
+                                db: AsyncSession = Depends(get_db)):
+    from fastapi.responses import Response
+    from services import cnes_relatorio as rel
+    from services import cnes_validacao as cv
+    from services import pms_relatorios as pr
+    r = await cv.montar(db, current.municipio_id, competencia)
+    if r is None:
+        raise HTTPException(404, SEM_COLETA)
+    mun = municipio_atual()
+    doc = rel.documento(r, f"{mun.nome}/{mun.uf}", rel.filtrar(r, tipo, situacao, cnes))
+    quem = getattr(current, "nome", None) or current.username
+    nome = f"monitoramento_cnes_{current.municipio_ibge}_{r['competencia_cnes']}.{formato}"
+    if formato == "pdf":
+        return Response(pr.pdf(doc, quem, "Monitoramento CNES"), media_type="application/pdf",
+                        headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+    return Response(pr.xlsx(doc, quem, "Monitoramento CNES"),
+                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 
 @router.get("/conformidade/equipes/{ine}")
@@ -137,6 +174,11 @@ async def retrato_coletar(request: Request, current: SessaoMunicipal, db: AsyncS
         r = await cp.sincronizar(db, current.municipio_id, current.municipio_ibge, current.username, forcar=True)
     except cp.CnesIndisponivel as e:
         raise HTTPException(503, str(e))
+    from services import cnes_relatorio as rel
+    from services import cnes_validacao as cv
+    v = await cv.montar(db, current.municipio_id)
+    if v is not None:
+        r["alertas"] = await rel.sincronizar_alertas(db, current.municipio_id, v)
     await registrar_auditoria(db, "CNES_RETRATO_COLETADO", usuario=current, ip=ip_de(request),
                               tabela="cnes_retratos",
                               detalhe=f"competência {r['competencia']} ({r['situacao']}): {r['totais']}")

@@ -111,7 +111,7 @@ async def captura_importar(request: Request, current: SessaoMunicipal, pacote: d
 
 
 class AnaliseIn(BaseModel):
-    modo: Literal["pergunta", "analise", "plano", "relatorio"] = "pergunta"
+    modo: Literal["pergunta", "analise", "plano", "relatorio", "cnes"] = "pergunta"
     pergunta: Optional[str] = Field(None, max_length=2000)
 
 
