@@ -1954,7 +1954,7 @@ export default function SiapsEgestor() {
         {aba === "rel_pagamento"     && mostrar && <AbaRelatorioPagamento parcelaGlobal={item?.egestor_parcela} />}
         {aba === "diag_cobertura"    && mostrar && <AbaDiagnosticoCobertura parcelaGlobal={item?.egestor_parcela} />}
         {aba === "simulador"         && <AbaSimuladorAps parcelaGlobal={item?.egestor_parcela} />}
-        {aba === "cnes"              && <MonitoramentoCnes />}
+        {aba === "cnes"              && <MonitoramentoCnes voltar={() => setAba("painel")} />}
         {aba === "monitoramento"    && <MonitoramentoSiaps municipio={{ uf: dashData?.uf, nome: dashData?.municipio }} />}
       </div>
 
