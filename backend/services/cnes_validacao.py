@@ -87,9 +87,9 @@ def _lista(vs: list[dict]) -> str:
     return ", ".join(f"{v.get('sigla') or ''} {v['nome']} ({v['ine']})".strip() for v in vs) or "nenhuma"
 
 
-def resumo_vinculos(eq: dict, tipo: str) -> str | None:
+def resumo_vinculos(eq: dict, tipo: str, coletados: bool = True) -> str | None:
     """Resumo para a coluna "Vínculos" (dado oficial do CNES; None = retrato sem vínculos coletados)."""
-    if "equipes_vinculadas" not in eq and "vinculos_recebidos" not in eq and tipo in ("eSB", "eMulti"):
+    if not coletados or ("equipes_vinculadas" not in eq and tipo in ("eSB", "eMulti")):
         return None
     ida, volta = eq.get("equipes_vinculadas") or [], eq.get("vinculos_recebidos") or []
     if tipo == "eMulti":
@@ -106,10 +106,15 @@ def resumo_vinculos(eq: dict, tipo: str) -> str | None:
     return " · ".join(partes) or "Sem eSB/eMulti vinculada"
 
 
-def _vinculos(eq, tipo, modalidade, params, egestor_eq) -> list[dict]:
-    """Vínculos oficiais do CNES (serviço nasf-esf) × regras da matriz × vínculo usado pelo e-Gestor."""
+def _vinculos(eq, tipo, modalidade, params, egestor_eq, coletados: bool = True) -> list[dict]:
+    """Vínculos oficiais do CNES (serviço nasf-esf) × regras da matriz × vínculo usado pelo e-Gestor.
+    `coletados` = o retrato tem vínculos (coletas anteriores a esta versão não têm): sem eles, nada é afirmado."""
     if not eq["ativa"]:
         return []
+    if not coletados:
+        return [_crit("Vínculos entre equipes (CNES)", "Conforme a matriz normativa", "Vínculos não coletados neste retrato",
+                      "—", NAO_VERIFICAVEL, "PRC2_PNAB_ESB_VINC" if tipo != "eMulti" else "PRC2_40F_P2",
+                      "Clique em Atualizar CNES para coletar os vínculos.")]
     ida, volta = eq.get("equipes_vinculadas"), eq.get("vinculos_recebidos") or []
     out = []
     if tipo == "eSB":
@@ -208,7 +213,8 @@ def _ch_individual(ativos, exigida, disp, rotulo):
                  if abaixo else "—", IRREGULAR if abaixo else CONFORME, disp), {id(p) for p in abaixo}
 
 
-def validar_equipe(eq, tipo, params, egestor_eq, ch_aps_pessoa, esf_por_pessoa, ant_eq, mod_emulti=None):
+def validar_equipe(eq, tipo, params, egestor_eq, ch_aps_pessoa, esf_por_pessoa, ant_eq, mod_emulti=None,
+                   vinculos_coletados=True):
     ativos = [p for p in eq["profissionais"] if p["ativo"]]
     ant_ativos = [p for p in ant_eq["profissionais"] if p["ativo"]] if ant_eq else None
     criterios, prof_sit = [], {}
@@ -323,7 +329,7 @@ def validar_equipe(eq, tipo, params, egestor_eq, ch_aps_pessoa, esf_por_pessoa, 
                 "Sem portaria de credenciamento identificada para esta equipe: a modalidade não é oficial; o perfil "
                 "foi calculado pela carga horária e pelas equipes vinculadas no CNES."))
 
-    criterios += _vinculos(eq, tipo, modalidade, params, egestor_eq)
+    criterios += _vinculos(eq, tipo, modalidade, params, egestor_eq, vinculos_coletados)
 
     # Acúmulo acima de 60 h em equipes da APS (PRC 6, art. 12-K, § 4º)
     lim = _v(params, "regra.aps.ch_max_acumulada") or 60
@@ -382,7 +388,7 @@ def validar_equipe(eq, tipo, params, egestor_eq, ch_aps_pessoa, esf_por_pessoa, 
     return {"ine": eq["ine"], "nome": eq["nome"], "tipo": tipo, "tipo_cnes": eq["tp_equipe"], "sigla_cnes": eq["sigla"],
             "modalidade": modalidade, "modalidade_fonte": (mod_emulti or {}).get("fonte") if modalidade else None,
             "perfil_cnes": perfil, "equipes_vinculadas": vinc_lista,
-            "vinculos_recebidos": eq.get("vinculos_recebidos") or [], "resumo_vinculos": resumo_vinculos(eq, tipo),
+            "vinculos_recebidos": eq.get("vinculos_recebidos") or [], "resumo_vinculos": resumo_vinculos(eq, tipo, vinculos_coletados),
             "rotulo_modalidade": (f"eMulti {modalidade}" if modalidade else
                                   f"eMulti (não credenciada · perfil {perfil})" if tipo == "eMulti" and perfil else
                                   "eMulti (não credenciada)" if tipo == "eMulti" else tipo),
@@ -413,7 +419,10 @@ def validar(retrato: dict, anterior: dict | None, params: dict, egestor: dict, s
                 esf_por_pessoa[k] += 1
     ant = {e["ine"]: e for e in (anterior or {}).get("equipes", [])}
     mod = modalidades_emulti(egestor)
-    equipes = [validar_equipe(eq, tipos[eq["ine"]], params, eg_eq, ch_aps, esf_por_pessoa, ant.get(eq["ine"]), mod)
+    # retrato coletado antes da versão com vínculos: nenhuma equipe não-eSF tem a chave "equipes_vinculadas"
+    coletados = any("equipes_vinculadas" in e for e in retrato["equipes"] if e.get("tp_equipe") != "70")
+    equipes = [validar_equipe(eq, tipos[eq["ine"]], params, eg_eq, ch_aps, esf_por_pessoa, ant.get(eq["ine"]), mod,
+                              coletados)
                for eq in retrato["equipes"]]
 
     # Equipes pagas/credenciadas no e-Gestor que não estão no CNES (ausência de cadastro ativo)

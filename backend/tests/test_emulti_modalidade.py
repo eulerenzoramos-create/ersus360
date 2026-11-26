@@ -139,3 +139,21 @@ def test_regras_de_vinculo_esb_esf_emulti():
     assert c["situacao"] == "irregular" and c["fundamentacao"]["chave"] == "PRC2_40G_III"
     # retrato antigo (sem vínculos coletados): não inventa
     assert cv._vinculos(_eq("0000000303", "ESB X", "ESB"), "eSB", None, PARAMS, {})[0]["situacao"] == "nao_verificavel"
+
+
+async def test_retrato_antigo_sem_vinculos_nao_gera_alerta():
+    """Retrato coletado antes da versão com vínculos: eSF não pode aparecer como "sem eSB/eMulti" (nem em atenção)."""
+    ret = await cp.coletar("1300144", _api())
+    for e in ret["equipes"]:
+        e.pop("equipes_vinculadas", None)
+        e.pop("vinculos_recebidos", None)
+    eg = {"0000000303": [{"co": cv.CO_ESB40, "payload": {"coEquipeEsfEap": "0000000101"}, "st_pagamento": "PAGO",
+                          "pendencias": []}]}
+    r = cv.validar(ret, None, PARAMS, _eg(eg), {})
+    for e in r["equipes"]:
+        assert e["resumo_vinculos"] is None, e["nome"]
+        v = [c for c in e["criterios"] if c["criterio"] in (
+            "Vínculos entre equipes (CNES)", "eSB vinculada", "eMulti vinculada", "Equipe de referência da eSB",
+            "Equipes vinculadas à eMulti")]
+        assert [c["criterio"] for c in v] == ["Vínculos entre equipes (CNES)"], (e["nome"], v)
+        assert v[0]["situacao"] == "nao_verificavel"
