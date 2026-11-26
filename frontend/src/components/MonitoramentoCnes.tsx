@@ -2,7 +2,7 @@
 // Dados: /api/scnes-conformidade/* (retrato do CNES × Matriz Normativa × e-Gestor × SIAPS — validação automática).
 // Padrão visual do Painel Geral da APS: cards por modalidade (clicáveis), lista no formato do portal CNES,
 // profissionais da equipe, conformidade normativa com fundamentação e link, exportação PDF/Excel e ERSUS IA.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
@@ -46,7 +46,7 @@ async function baixar(formato: "pdf" | "xlsx", params: Record<string, string>) {
   a.click();
 }
 
-export default function MonitoramentoCnes() {
+export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState("");
   const [situacao, setSituacao] = useState("");
@@ -84,12 +84,29 @@ export default function MonitoramentoCnes() {
 
   const d = q.data;
   const cards = todos.data?.cards ?? {};
+  const filtrado = !!(tipo || situacao || cnes);
+  // "← Voltar" volta um nível: lista filtrada (aberta por um card) → lista completa → Painel Geral do eGestor/SIAPS
+  function topo() {
+    // a página pode rolar na janela ou no contêiner principal do layout
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.querySelectorAll("main, [data-scroll], .overflow-y-auto").forEach(el => (el as HTMLElement).scrollTo?.({ top: 0 }));
+  }
+  function voltarAba() { voltar?.(); topo(); }
+  function voltarNivel() {
+    if (filtrado || sub !== "equipes") { setTipo(""); setSituacao(""); setCnes(""); setSub("equipes"); return; }
+    voltarAba();
+  }
+  const rotuloVoltar = filtrado ? "← Voltar à lista completa" : sub !== "equipes" ? "← Voltar às equipes"
+    : "← Voltar ao Painel Geral";
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{ background: "#fff", border: `1px solid ${BORDA}`, borderRadius: 10, padding: "14px 18px",
         display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: NAVY }}>Monitoramento CNES — equipes e conformidade normativa</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {voltar && <button onClick={voltarAba} style={btn()} title="Voltar ao Painel Geral do eGestor/SIAPS">← Voltar</button>}
+            <div style={{ fontSize: 18, fontWeight: 700, color: NAVY }}>Monitoramento CNES — equipes e conformidade normativa</div>
+          </div>
           <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>
             {d?.situacao_dado === "oficial"
               ? <>CNES {rot(d.competencia_cnes)} (API pública, coletado em {d.coletado_em ? new Date(d.coletado_em).toLocaleString("pt-BR") : "—"})
@@ -146,12 +163,15 @@ export default function MonitoramentoCnes() {
       </div>
 
       {/* Sub-abas */}
-      <div style={{ display: "flex", gap: 6, borderBottom: `1px solid ${BORDA}` }}>
+      <div style={{ display: "flex", gap: 6, borderBottom: `1px solid ${BORDA}`, position: "sticky", top: 0, zIndex: 5,
+        background: "#f8fafc", alignItems: "center", flexWrap: "wrap" }}>
         {([["equipes", "Equipes"], ["conformidade", "Conformidade normativa"], ["alteracoes", "Alterações cadastrais"],
            ["ia", "Análise ERSUS IA"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setSub(k)} style={{ padding: "8px 14px", border: "none", cursor: "pointer",
             background: "transparent", fontWeight: 600, fontSize: 14, color: sub === k ? AZUL : MUTED,
             borderBottom: `3px solid ${sub === k ? AZUL : "transparent"}` }}>{l}</button>))}
+        {(voltar || filtrado || sub !== "equipes") && (
+          <button onClick={voltarNivel} style={{ ...btn(), marginLeft: "auto", marginBottom: 4 }}>{rotuloVoltar}</button>)}
       </div>
 
       {sub === "equipes" && d?.situacao_dado === "oficial" && (
@@ -199,6 +219,11 @@ export default function MonitoramentoCnes() {
 }
 
 function DetalheEquipe({ ine, fechar }: { ine: string; fechar: () => void }) {
+  useEffect(() => {
+    const esc = (ev: KeyboardEvent) => { if (ev.key === "Escape") fechar(); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [fechar]);
   const conf = useQuery<any>({ queryKey: ["cnes-equipe", ine],
     queryFn: () => api.get(`/api/scnes-conformidade/conformidade/equipes/${ine}`).then(r => r.data) });
   const ret = useQuery<any>({ queryKey: ["cnes-retrato-equipe", ine],
@@ -214,6 +239,7 @@ function DetalheEquipe({ ine, fechar }: { ine: string; fechar: () => void }) {
       display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "40px 16px", overflowY: "auto" }}>
       <div onClick={ev => ev.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 20,
         width: "min(1100px, 100%)", display: "grid", gap: 14 }}>
+        <div><button onClick={fechar} style={btn()}>← Voltar à lista de equipes</button></div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: NAVY }}>{e ? `${e.tipo} ${e.nome}` : "Carregando…"}</div>
