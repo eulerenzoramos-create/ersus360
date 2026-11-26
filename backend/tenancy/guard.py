@@ -75,7 +75,7 @@ ROTAS_SO_APUI: tuple[str, ...] = (
     "/api/okr/", "/api/ouvidoria/", "/api/patrimonio/", "/api/relatorios/", "/api/sync/",
     "/api/siaps/", "/api/telessaude-apui/", "/api/indicadores-aps/",
     # lista verificada de UBS/equipes CNES de Apuí
-    "/api/cnes/", "/api/equipamentos/", "/api/scnes-conformidade/", "/api/siaps-monitor/",
+    "/api/cnes/", "/api/equipamentos/", "/api/siaps-monitor/",
     "/api/dashboard-exec/", "/api/sisab/",
     # integrações configuradas só para Apuí (credenciais, CNES, agente PEC)
     "/api/integracao/", "/api/integracao-egestor-apui/", "/api/integracao-esuspec-apui/",

@@ -371,6 +371,25 @@ async def _job_egestor_pagamento() -> None:
         logger.error("[Scheduler] Erro na sincronização do e-Gestor: %s", exc, exc_info=True)
 
 
+async def _job_cnes_retrato() -> None:
+    """Job: retrato do CNES de cada município ativo pela API pública (recoleta se o último tiver > 7 dias)."""
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from services import cnes_publico as cp
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            for mun in municipios:
+                try:
+                    r = await cp.sincronizar(db, mun.id, mun.codigo_ibge, "agendador")
+                    logger.info("[Scheduler] CNES retrato %s: %s", mun.codigo_ibge, r)
+                except cp.CnesIndisponivel as exc:
+                    logger.warning("[Scheduler] CNES retrato %s: %s", mun.codigo_ibge, exc)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no retrato CNES: %s", exc, exc_info=True)
+
+
 async def _job_egestor_ausencia_diagnostico() -> None:
     """Job: Monitoramento SIAPS — lista pública de ausência (3 últimas competências) e evidências oficiais do
     diagnóstico (SISAB validação + e-Gestor pagamento) das competências com ausência ainda sem evidência válida
@@ -765,6 +784,11 @@ def start_scheduler() -> None:
                       id="egestor_pagamento_diario", replace_existing=True, misfire_grace_time=3600)
     scheduler.add_job(_job_egestor_pagamento, "date", run_date=_dt.now(_tz.utc) + _td(minutes=6),
                       id="egestor_pagamento_inicial", replace_existing=True)
+    # Monitoramento CNES: retrato por competência (API pública) — todo dia às 04:40, recoleta semanal
+    scheduler.add_job(_job_cnes_retrato, CronTrigger(hour=4, minute=40, timezone="America/Manaus"),
+                      id="cnes_retrato_diario", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(_job_cnes_retrato, "date", run_date=_dt.now(_tz.utc) + _td(minutes=9),
+                      id="cnes_retrato_inicial", replace_existing=True)
     # Monitoramento SIAPS: lista de ausência e evidências do diagnóstico (SISAB/e-Gestor) — todo dia às 06:40
     scheduler.add_job(_job_egestor_ausencia_diagnostico, CronTrigger(hour=6, minute=40, timezone="America/Manaus"),
                       id="egestor_ausencia_diagnostico_diario", replace_existing=True, misfire_grace_time=3600)
