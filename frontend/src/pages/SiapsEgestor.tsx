@@ -5,6 +5,7 @@ import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/Qual
 import QuadrimestralEquipes, { ConferenciaFontes } from "../components/QuadrimestralEquipes";
 import PainelGeralAps from "../components/PainelGeralAps";
 import AbaSimuladorAps from "../components/AbaSimuladorAps";
+import MonitoramentoCnes from "../components/MonitoramentoCnes";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
@@ -940,6 +941,7 @@ function PainelErsusIA() {
     { modo: "analise", label: "Analisar desempenho" },
     { modo: "plano", label: "Plano de ação" },
     { modo: "relatorio", label: "Relatório técnico" },
+    { modo: "cnes", label: "Monitoramento CNES" },
   ];
   return (
     <div style={{ background: "#fff", border: "1px solid #c7d2fe", borderRadius: 10, padding: 16 }}>
@@ -1848,7 +1850,7 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
 
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "painel" | "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura" | "monitoramento" | "simulador";
+type Aba = "painel" | "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura" | "monitoramento" | "simulador" | "cnes";
 
 export default function SiapsEgestor() {
   // a captura assistida do SIAPS chega pelo endereço (#captura-siaps=…) e abre direto na aba Qualidade
@@ -1889,6 +1891,7 @@ export default function SiapsEgestor() {
     { id: "simulador",          label: "💰 Simulador e Oportunidades" },
     { id: "diag_cobertura",    label: "🩺 Diagnóstico / Cobertura" },
     { id: "monitoramento",     label: "🛰️ Monitoramento SIAPS" },
+    { id: "cnes",              label: "🏥 Monitoramento CNES" },
   ];
 
   return (
@@ -1951,6 +1954,7 @@ export default function SiapsEgestor() {
         {aba === "rel_pagamento"     && mostrar && <AbaRelatorioPagamento parcelaGlobal={item?.egestor_parcela} />}
         {aba === "diag_cobertura"    && mostrar && <AbaDiagnosticoCobertura parcelaGlobal={item?.egestor_parcela} />}
         {aba === "simulador"         && <AbaSimuladorAps parcelaGlobal={item?.egestor_parcela} />}
+        {aba === "cnes"              && <MonitoramentoCnes />}
         {aba === "monitoramento"    && <MonitoramentoSiaps municipio={{ uf: dashData?.uf, nome: dashData?.municipio }} />}
       </div>
 
