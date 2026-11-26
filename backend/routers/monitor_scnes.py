@@ -25,6 +25,5 @@ async def status_monitor_scnes(current_user: UserOut = Depends(get_current_user)
         "destinatario": os.getenv("MONITOR_EMAIL", "eulerenzoramos@gmail.com"),
         "resend_configurado": bool(os.getenv("RESEND_API_KEY")),
         "agenda": "toda segunda-feira às 07:00 (America/Manaus)",
-        "pendencias_criticas": 3,
-        "pendencias_total": 9,
+        "fonte": "validação automática do último retrato do CNES (GET /api/scnes-conformidade/conformidade)",
     }
