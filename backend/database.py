@@ -66,6 +66,7 @@ async def init_db():
         from models import pms_vivo  # noqa — PMS Vivo: PMS, PAS, ações e execução
         from models import investsus_execucao  # noqa — InvestSUS: execução financeira dos planos de trabalho
         from models import aps_parametro  # noqa — Simulador APS: parâmetros normativos versionados
+        from models import cnes_retrato  # noqa — Monitoramento CNES: retrato por competência (API pública)
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):
