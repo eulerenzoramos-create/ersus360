@@ -382,6 +382,7 @@ async def _job_cnes_retrato() -> None:
             municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
             for mun in municipios:
                 try:
+                    logger.info("[Scheduler] CNES retrato %s: iniciando", mun.codigo_ibge)
                     r = await cp.sincronizar(db, mun.id, mun.codigo_ibge, "agendador")
                     logger.info("[Scheduler] CNES retrato %s: %s", mun.codigo_ibge, r)
                 except cp.CnesIndisponivel as exc:
@@ -787,8 +788,10 @@ def start_scheduler() -> None:
     # Monitoramento CNES: retrato por competência (API pública) — todo dia às 04:40, recoleta semanal
     scheduler.add_job(_job_cnes_retrato, CronTrigger(hour=4, minute=40, timezone="America/Manaus"),
                       id="cnes_retrato_diario", replace_existing=True, misfire_grace_time=3600)
+    # misfire_grace_time: o padrão do APScheduler para job "date" é 1 s — com o loop ocupado pelos jobs de
+    # partida (SIAPS/e-Gestor), a execução única era descartada sem rodar.
     scheduler.add_job(_job_cnes_retrato, "date", run_date=_dt.now(_tz.utc) + _td(minutes=9),
-                      id="cnes_retrato_inicial", replace_existing=True)
+                      id="cnes_retrato_inicial", replace_existing=True, misfire_grace_time=1800)
     # Monitoramento SIAPS: lista de ausência e evidências do diagnóstico (SISAB/e-Gestor) — todo dia às 06:40
     scheduler.add_job(_job_egestor_ausencia_diagnostico, CronTrigger(hour=6, minute=40, timezone="America/Manaus"),
                       id="egestor_ausencia_diagnostico_diario", replace_existing=True, misfire_grace_time=3600)

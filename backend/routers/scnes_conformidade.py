@@ -100,6 +100,36 @@ async def retratos(current: SessaoMunicipal, db: AsyncSession = Depends(get_db))
             for r in await cp.historico(db, current.municipio_id)]
 
 
+def _sem_chave(eq: dict) -> dict:
+    return {**eq, "profissionais": [{k: v for k, v in p.items() if k != "chave"} for p in eq["profissionais"]]}
+
+
+@router.get("/conformidade")
+async def conformidade_equipes(current: SessaoMunicipal, competencia: str | None = Query(None, pattern=r"^\d{6}$"),
+                               db: AsyncSession = Depends(get_db)):
+    """Validações automáticas: retrato do CNES × Matriz Normativa × e-Gestor × SIAPS (cards, equipes, critérios)."""
+    from services import cnes_validacao as cv
+    r = await cv.montar(db, current.municipio_id, competencia)
+    if r is None:
+        return {"situacao_dado": "sem_coleta", "nota": SEM_COLETA, "equipes": [], "cards": {}}
+    return {"situacao_dado": "oficial", **r,
+            "equipes": [{**{k: v for k, v in e.items() if k not in ("criterios", "profissionais")}}
+                        for e in r["equipes"]]}
+
+
+@router.get("/conformidade/equipes/{ine}")
+async def conformidade_equipe(ine: str, current: SessaoMunicipal,
+                              competencia: str | None = Query(None, pattern=r"^\d{6}$"),
+                              db: AsyncSession = Depends(get_db)):
+    from services import cnes_validacao as cv
+    r = await cv.montar(db, current.municipio_id, competencia)
+    eq = next((e for e in (r or {}).get("equipes", []) if e["ine"] == ine), None)
+    if not eq:
+        raise HTTPException(404, f"Equipe INE {ine} não está no retrato do CNES deste município.")
+    return {"situacao_dado": "oficial", "competencia_cnes": r["competencia_cnes"], "parcela_egestor": r["parcela_egestor"],
+            "competencia_cnes_egestor": r["competencia_cnes_egestor"], **_sem_chave(eq)}
+
+
 @router.post("/retrato/coletar")
 async def retrato_coletar(request: Request, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
     _pode_editar(current)

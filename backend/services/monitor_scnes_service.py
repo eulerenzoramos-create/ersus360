@@ -224,6 +224,71 @@ def gerar_html_relatorio(data_ref: str) -> str:
 </html>"""
 
 
+async def _validacao_atual() -> dict | None:
+    """Validação do último retrato do CNES do município piloto (destinatário do e-mail é a gestão de Apuí)."""
+    from sqlalchemy import select
+    from database import AsyncSessionLocal
+    from models.municipio import Municipio
+    from services import cnes_validacao as cv
+    async with AsyncSessionLocal() as db:
+        mun = (await db.execute(select(Municipio).where(Municipio.codigo_ibge == "1300144"))).scalar_one_or_none()
+        if mun is None:
+            return None
+        r = await cv.montar(db, mun.id)
+        if r is not None:
+            r["municipio"] = f"{mun.nome}/{mun.uf}"
+        return r
+
+
+_COR_SIT = {"irregular": ("#fef2f2", "#991b1b", "Irregular"), "atencao": ("#fffbeb", "#b45309", "Atenção"),
+            "nao_verificavel": ("#f3f4f6", "#4b5563", "Não verificável"), "conforme": ("#f0fdf4", "#1a7340", "Conforme")}
+
+
+def gerar_html_conformidade(v: dict, data_ref: str) -> str:
+    """E-mail semanal a partir da validação automática (CNES × Matriz × e-Gestor × SIAPS) — sem dado fixo."""
+    from html import escape as e
+    cards = "".join(
+        f"<td style='padding:10px;text-align:center;background:#eff6ff;border-radius:8px'>"
+        f"<div style='font-size:24px;font-weight:700;color:#1d4ed8'>{c['ativas']}</div>"
+        f"<div style='font-size:12px'>{e(t)} ativas · {c['com_incompatibilidade']} c/ incompatib.</div></td>"
+        for t, c in v["cards"].items() if c["cadastradas_cnes"])
+    linhas = ""
+    for eq in v["equipes"]:
+        for c in eq["criterios"]:
+            if c["situacao"] not in ("irregular", "atencao"):
+                continue
+            bg, cor, rot = _COR_SIT[c["situacao"]]
+            f = c.get("fundamentacao") or {}
+            linhas += (f"<tr style='background:{bg}'><td style='padding:6px 8px;color:{cor};font-weight:700'>{rot}</td>"
+                       f"<td style='padding:6px 8px'><b>{e(eq['tipo'])} {e(eq['nome'])}</b><br>INE {eq['ine']}</td>"
+                       f"<td style='padding:6px 8px'>{e(c['criterio'])}: {e(str(c['diferenca']))}"
+                       + (f"<br><i>{e(c['observacao'])}</i>" if c.get("observacao") else "")
+                       + (f"<br><a href='{f['url']}'>{e(f['norma'])}, {e(f['dispositivo'])}</a>" if f else "")
+                       + "</td></tr>")
+    alt = (v.get("alteracoes") or {}).get("itens") or []
+    lista_alt = "".join(f"<li>{e(a['tipo'].replace('_', ' '))} — {e(str(a.get('equipe')))}"
+                        f"{(' · ' + e(a['profissional'])) if a.get('profissional') else ''}</li>" for a in alt[:30])
+    return f"""<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Monitoramento CNES — ERSUS 360</title></head>
+<body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0"><tr><td align="center">
+<table width="680" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden">
+<tr><td style="background:#1e3a5f;padding:22px 28px;color:#fff">
+<div style="font-size:12px;color:#93c5fd">ERSUS 360 · {e(v.get('municipio', ''))}</div>
+<h1 style="margin:6px 0 0;font-size:20px">Monitoramento CNES — relatório semanal</h1>
+<div style="font-size:13px;color:#bfdbfe">{data_ref} · CNES {v['competencia_cnes']} · e-Gestor parcela {v.get('parcela_egestor') or '—'}
+(CNES {v.get('competencia_cnes_egestor') or '—'})</div></td></tr>
+<tr><td style="padding:18px 28px"><table width="100%" cellspacing="6"><tr>{cards}</tr></table></td></tr>
+<tr><td style="padding:8px 28px"><h2 style="font-size:15px;color:#1e3a5f">Pendências ({v['resumo']['irregulares']} irregulares ·
+{v['resumo']['atencao']} em atenção)</h2>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px">{linhas or
+'<tr><td>Nenhuma pendência encontrada.</td></tr>'}</table></td></tr>
+<tr><td style="padding:8px 28px"><h2 style="font-size:15px;color:#1e3a5f">Alterações cadastrais desde o retrato anterior</h2>
+<ul style="font-size:13px">{lista_alt or '<li>Nenhuma.</li>'}</ul></td></tr>
+<tr><td style="padding:14px 28px;font-size:11px;color:#6b7280">Fontes: CNES (API pública), e-Gestor APS (relatório público),
+SIAPS e Matriz Normativa da APS (PRC 2 e PRC 6, conferidas no Saúde Legis). Validação automática e determinística.</td></tr>
+</table></td></tr></table></body></html>"""
+
+
 async def enviar_relatorio_semanal() -> dict:
     """Gera e envia o relatório semanal SCNES/Sprint via RESEND."""
     if not RESEND_API_KEY:
@@ -236,8 +301,14 @@ async def enviar_relatorio_semanal() -> dict:
         return {"ok": False, "motivo": "desabilitado"}
 
     agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-    assunto = f"[ERSUS 360] Monitor SCNES/Sprint — {agora} — {sum(1 for p in _PENDENCIAS if 'CRÍTICO' in p['sev'])} pendências críticas"
-    html = gerar_html_relatorio(agora)
+    validacao = await _validacao_atual()
+    if validacao is None:
+        logger.warning("[MonitorSCNES] Sem retrato do CNES — relatório não enviado (não usa mais dados fixos)")
+        return {"ok": False, "motivo": "sem retrato do CNES"}
+    irr = validacao["resumo"]["irregulares"]
+    assunto = (f"[ERSUS 360] Monitoramento CNES — CNES {validacao['competencia_cnes']} — "
+               f"{irr} equipe(s) irregular(es), {validacao['resumo']['atencao']} em atenção")
+    html = gerar_html_conformidade(validacao, agora)
 
     try:
         async with httpx.AsyncClient(timeout=20) as c:

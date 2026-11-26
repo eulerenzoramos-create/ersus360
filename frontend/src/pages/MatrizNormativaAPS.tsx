@@ -163,7 +163,9 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 }
 
 function Conf({ f }: { f: Fund }) {
-  const data = f.conferido_em ? new Date(f.conferido_em).toLocaleDateString("pt-BR") : "";
+  // data sem fuso (AAAA-MM-DD) não pode passar por new Date(): em Manaus (UTC-4) ela voltaria um dia
+  const d = (f.conferido_em || "").slice(0, 10);
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "";
   if (f.conferido === null)
     return <span style={{ fontSize: 12, color: COR.muted }}>Página oficial indisponível na última verificação</span>;
   return f.conferido
