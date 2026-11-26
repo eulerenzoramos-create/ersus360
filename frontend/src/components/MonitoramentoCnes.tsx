@@ -7,13 +7,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
 type Card = { cadastradas_cnes: number; ativas: number; credenciadas: number | null; homologadas: number | null;
-  financiadas: number; regulares: number; com_incompatibilidade: number; profissionais: number };
+  financiadas: number; regulares: number; com_incompatibilidade: number; profissionais: number;
+  por_modalidade?: { modalidade: string; credenciadas: number; pagas: number; no_cnes: number }[];
+  nao_credenciadas_cnes?: number; fonte_modalidade?: string | null };
 type Fund = { norma: string; dispositivo: string; url: string };
 type Crit = { criterio: string; exigencia: string; situacao_cnes: string; diferenca: string; situacao: string;
   fundamentacao: Fund | null; observacao: string | null };
 type Equipe = { ine: string; nome: string; tipo: string; estabelecimentos: { cnes: string; nome: string }[];
   ativa: boolean; n_profissionais: number; ch_total: number; credenciada: boolean; homologada: boolean;
-  financiada: boolean; situacao: string; incompatibilidades: number };
+  financiada: boolean; situacao: string; incompatibilidades: number; rotulo_modalidade?: string;
+  modalidade?: string | null; perfil_cnes?: string | null; resumo_vinculos?: string | null;
+  equipes_vinculadas?: { ine: string; nome: string; sigla?: string | null; cnes?: string }[] | null;
+  vinculos_recebidos?: { ine: string; nome: string; sigla?: string | null; cnes?: string }[] };
 type Prof = { nome: string; cbo: string; ds_cbo: string; ch_cnes: number; ch_exigida: number | null;
   ch_aps_total: number | null; situacao: string; motivos: string[] };
 type Conformidade = { situacao_dado: string; nota?: string; competencia_cnes: string; parcela_egestor: string | null;
@@ -51,6 +56,7 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
   const [tipo, setTipo] = useState("");
   const [situacao, setSituacao] = useState("");
   const [cnes, setCnes] = useState("");
+  const [modalidade, setModalidade] = useState("");
   const [sub, setSub] = useState<"equipes" | "conformidade" | "alteracoes" | "ia">("equipes");
   const [ine, setIne] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -59,10 +65,11 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
   if (tipo) params.tipo = tipo;
   if (situacao) params.situacao = situacao;
   if (cnes) params.cnes = cnes;
+  if (modalidade) params.modalidade = modalidade;
 
-  const q = useQuery<Conformidade>({ queryKey: ["cnes-conformidade", tipo, situacao, cnes],
+  const q = useQuery<Conformidade>({ queryKey: ["cnes-conformidade", tipo, situacao, cnes, modalidade],
     queryFn: () => api.get("/api/scnes-conformidade/conformidade", { params }).then(r => r.data) });
-  const todos = useQuery<Conformidade>({ queryKey: ["cnes-conformidade", "", "", ""],
+  const todos = useQuery<Conformidade>({ queryKey: ["cnes-conformidade", "", "", "", ""],
     queryFn: () => api.get("/api/scnes-conformidade/conformidade").then(r => r.data) });
   const estabs = useMemo(() => {
     const m = new Map<string, string>();
@@ -84,7 +91,7 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
 
   const d = q.data;
   const cards = todos.data?.cards ?? {};
-  const filtrado = !!(tipo || situacao || cnes);
+  const filtrado = !!(tipo || situacao || cnes || modalidade);
   // "← Voltar" volta um nível: lista filtrada (aberta por um card) → lista completa → Painel Geral do eGestor/SIAPS
   function topo() {
     // a página pode rolar na janela ou no contêiner principal do layout
@@ -93,7 +100,7 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
   }
   function voltarAba() { voltar?.(); topo(); }
   function voltarNivel() {
-    if (filtrado || sub !== "equipes") { setTipo(""); setSituacao(""); setCnes(""); setSub("equipes"); return; }
+    if (filtrado || sub !== "equipes") { setTipo(""); setSituacao(""); setCnes(""); setModalidade(""); setSub("equipes"); return; }
     voltarAba();
   }
   const rotuloVoltar = filtrado ? "← Voltar à lista completa" : sub !== "equipes" ? "← Voltar às equipes"
@@ -128,7 +135,7 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
         {ORDEM_CARDS.filter(t => cards[t]?.cadastradas_cnes).map(t => {
           const c = cards[t]; const ativo = tipo === t;
           return (
-            <button key={t} onClick={() => { setTipo(ativo ? "" : t); setSub("equipes"); }}
+            <button key={t} onClick={() => { setTipo(ativo ? "" : t); setModalidade(""); setSub("equipes"); }}
               style={{ textAlign: "left", cursor: "pointer", background: "#fff", borderRadius: 10, padding: 14,
                 border: `2px solid ${ativo ? AZUL : BORDA}` }}>
               <div style={{ textAlign: "center" }}>
@@ -144,6 +151,18 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
                 <span>Com incompatibilidade</span><b style={{ color: c.com_incompatibilidade ? "#b91c1c" : undefined }}>{c.com_incompatibilidade}</b>
                 <span>Profissionais</span><b>{c.profissionais}</b>
               </div>
+              {t === "eMulti" && (
+                <div style={{ fontSize: 12, marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${BORDA}`, display: "grid", gap: 2 }}>
+                  {(c.por_modalidade ?? []).map(m => (
+                    <span key={m.modalidade} onClick={ev => { ev.stopPropagation(); setTipo("eMulti"); setModalidade(m.modalidade); setSub("equipes"); }}
+                      style={{ color: AZUL, cursor: "pointer" }}>
+                      eMulti {m.modalidade}: <b>{m.credenciadas}</b> credenciada(s), <b>{m.pagas}</b> paga(s)</span>))}
+                  {!!c.nao_credenciadas_cnes && (
+                    <span onClick={ev => { ev.stopPropagation(); setTipo("eMulti"); setModalidade("nao_credenciada"); setSub("equipes"); }}
+                      style={{ color: "#b45309", cursor: "pointer" }}>
+                      Sem credenciamento (só no CNES): <b>{c.nao_credenciadas_cnes}</b></span>)}
+                  {c.fonte_modalidade && <span style={{ color: MUTED }}>Fonte: {c.fonte_modalidade}</span>}
+                </div>)}
             </button>);
         })}
       </div>
@@ -152,6 +171,11 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
         <select value={tipo} onChange={e => setTipo(e.target.value)} style={sel}>
           <option value="">Todas as modalidades</option>{ORDEM_CARDS.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={modalidade} onChange={e => { setModalidade(e.target.value); if (e.target.value) setTipo("eMulti"); }} style={sel}>
+          <option value="">Todos os tipos de eMulti</option>
+          <option value="Ampliada">eMulti Ampliada</option><option value="Complementar">eMulti Complementar</option>
+          <option value="Estratégica">eMulti Estratégica</option><option value="nao_credenciada">eMulti sem credenciamento</option>
         </select>
         <select value={situacao} onChange={e => setSituacao(e.target.value)} style={sel}>
           <option value="">Todas as situações</option>{Object.entries(SIT).map(([k, v]) => <option key={k} value={k}>{v.rot}</option>)}
@@ -175,12 +199,14 @@ export default function MonitoramentoCnes({ voltar }: { voltar?: () => void }) {
       </div>
 
       {sub === "equipes" && d?.situacao_dado === "oficial" && (
-        <Tabela cab={["INE", "Nome da equipe", "Modalidade", "CNES", "Nº profissionais", "Carga horária", "e-Gestor", "Situação"]}>
+        <Tabela cab={["INE", "Nome da equipe", "Modalidade", "CNES", "Nº profissionais", "Carga horária", "Vínculos (CNES)", "e-Gestor", "Situação"]}>
           {d.equipes.map(e => (
             <tr key={e.ine} onClick={() => setIne(e.ine)} style={{ cursor: "pointer", borderTop: `1px solid ${BORDA}` }}>
-              <td style={td}><code>{e.ine}</code></td><td style={td}><b>{e.nome}</b></td><td style={td}>{e.tipo}</td>
+              <td style={td}><code>{e.ine}</code></td><td style={td}><b>{e.nome}</b></td><td style={td}>{e.rotulo_modalidade ?? e.tipo}
+</td>
               <td style={td}>{e.estabelecimentos.map(x => x.cnes).join(", ")}</td>
               <td style={tdN}>{e.n_profissionais}</td><td style={tdN}>{e.ch_total} h</td>
+              <td style={{ ...td, fontSize: 12 }}>{e.resumo_vinculos ?? <span style={{ color: MUTED }}>não coletado</span>}</td>
               <td style={td}>{e.financiada ? "Financiada" : e.credenciada ? "Não paga na parcela" : "Sem pagamento federal"}</td>
               <td style={td}><Selo s={e.situacao} />{e.incompatibilidades > 0 && <span style={{ fontSize: 12, color: MUTED }}> · {e.incompatibilidades}</span>}</td>
             </tr>))}
@@ -242,7 +268,8 @@ function DetalheEquipe({ ine, fechar }: { ine: string; fechar: () => void }) {
         <div><button onClick={fechar} style={btn()}>← Voltar à lista de equipes</button></div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: NAVY }}>{e ? `${e.tipo} ${e.nome}` : "Carregando…"}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: NAVY }}>{e ? `${e.rotulo_modalidade ?? e.tipo} — ${e.nome}` : "Carregando…"}</div>
+            {e && <Vinculos e={e} />}
             {e && <div style={{ fontSize: 13, color: MUTED }}>INE {e.ine} · {e.estabelecimentos.map((x: any) => `${x.nome} (${x.cnes})`).join(", ")}
               {" · "}CNES {rot(e.competencia_cnes)} · e-Gestor {rot(e.parcela_egestor)}</div>}
           </div>
@@ -278,6 +305,21 @@ function DetalheEquipe({ ine, fechar }: { ine: string; fechar: () => void }) {
       </div>
     </div>
   );
+}
+
+function Vinculos({ e }: { e: any }) {
+  const ida: any[] = e.equipes_vinculadas ?? [], volta: any[] = e.vinculos_recebidos ?? [];
+  const titulo = e.tipo === "eMulti" ? `Equipes apoiadas por esta eMulti (${ida.length})`
+    : e.tipo === "eSB" ? "Equipe de referência desta eSB" : "eSB e eMulti vinculadas a esta equipe";
+  const lista = e.tipo === "eMulti" || e.tipo === "eSB" ? ida : volta;
+  return (
+    <div style={{ fontSize: 13, marginTop: 6 }}>
+      <b>{titulo} — CNES:</b>{" "}
+      {e.equipes_vinculadas == null && (e.tipo === "eMulti" || e.tipo === "eSB") ? <span style={{ color: MUTED }}>não coletado (clique em Atualizar CNES)</span>
+        : lista.length === 0 ? <span style={{ color: "#b45309" }}>nenhuma</span>
+        : lista.map((v, i) => <span key={i} style={{ display: "inline-block", margin: "2px 6px 2px 0", padding: "2px 8px",
+            borderRadius: 6, background: "#eff6ff", color: NAVY }}>{v.sigla ? `${v.sigla} ` : ""}{v.nome} · INE {v.ine}{v.cnes ? ` · CNES ${v.cnes}` : ""}</span>)}
+    </div>);
 }
 
 function AnaliseIA() {
