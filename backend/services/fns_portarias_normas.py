@@ -710,3 +710,163 @@ def programa_por_texto(grupo: str | None, acao: str | None, acao_det: str | None
         if any(normalizar(x) in texto for x in p["padroes"]):
             return p
     return None
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EQUIPES DA APS — composição, carga horária e suspensão (conferidas em 26/11/2026)
+# Texto consolidado do Saúde Legis: PRC GM/MS 2/2017 (Anexo XXII — PNAB, eSFR, eMulti) e PRC GM/MS 6/2017
+# (financiamento e suspensão). Usadas pela Matriz Normativa da APS (services/aps_matriz_normativa.py) e
+# conferidas pela mesma rotina de vigência deste agente (trecho procurado de novo na página oficial).
+# tema="equipes_aps": não entram na base da consulta de despesas do FNS.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+NORMAS.update({
+    "PRC2": {
+        "nome": "Portaria de Consolidação GM/MS nº 2/2017",
+        "ementa": "Consolida as normas sobre as políticas nacionais de saúde do SUS (Anexo XXII — PNAB, equipes "
+                  "ribeirinhas e equipes multiprofissionais).",
+        "url": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0002_03_10_2017.html",
+        "fonte": "Saúde Legis (Ministério da Saúde)",
+    },
+})
+
+
+def _e(norma, dispositivo, resumo, redacao, conferencia):
+    return {**_d(norma, dispositivo, resumo, redacao, conferencia), "tema": "equipes_aps"}
+
+
+_PNAB = "Anexo XXII, Anexo 1 (PNAB), item 3.4"
+DISPOSITIVOS.update({
+    # eSF — PNAB (origem PRT GM/MS 2.436/2017)
+    "PRC2_PNAB_ESF_COMP": _e("PRC2", f"{_PNAB}, 1 (eSF)",
+                             "Composição mínima da eSF: médico, enfermeiro, auxiliar/técnico de enfermagem e ACS.",
+                             "Composta no mínimo por médico, enfermeiro, auxiliar e/ou técnico de enfermagem e ACS.",
+                             "Composta no mínimo por médico, preferencialmente da especialidade medicina de família"),
+    "PRC2_PNAB_ESF_40H": _e("PRC2", f"{_PNAB}, 1 (eSF)",
+                            "Carga horária de 40 horas semanais obrigatória para todos os profissionais da eSF.",
+                            "Obrigatoriedade de carga horária de 40 horas semanais para todos os profissionais da ESF.",
+                            "obrigatoriedade de carga horária de 40 (quarenta) horas semanais para todos os profissionais"),
+    "PRC2_PNAB_ESF_VINC": _e("PRC2", f"{_PNAB}, 1 (eSF)",
+                             "Profissional da eSF só pode estar vinculado a 1 equipe de Saúde da Família no SCNES.",
+                             "Os profissionais da ESF poderão estar vinculados a apenas 1 equipe de Saúde da Família.",
+                             "poderão estar vinculados a apenas 1 (uma) equipe de Saúde da Família"),
+    # eAP — PRT GM/MS 2.539/2019 (redação no Anexo 1 do Anexo XXII)
+    "PRC2_PNAB_EAP_COMP": _e("PRC2", f"{_PNAB}, 2 (eAP) — red. PRT GM/MS 2.539/2019",
+                             "Composição mínima da eAP: médico e enfermeiro cadastrados na mesma unidade.",
+                             "As eAP deverão ser compostas minimamente por médicos e enfermeiros na mesma unidade.",
+                             "As eAP deverão ser compostas minimamente por médicos"),
+    "PRC2_PNAB_EAP_20H": _e("PRC2", f"{_PNAB}, 2 (eAP), Modalidade I — red. PRT GM/MS 2.539/2019",
+                            "eAP Modalidade I: carga horária mínima individual de 20 horas semanais.",
+                            "Carga horária mínima individual de 20 horas semanais (50% da população de uma eSF).",
+                            "a carga horária mínima individual dos profissionais deverá ser de 20 (vinte) horas semanais"),
+    "PRC2_PNAB_EAP_30H": _e("PRC2", f"{_PNAB}, 2 (eAP), Modalidade II — red. PRT GM/MS 2.539/2019",
+                            "eAP Modalidade II: carga horária mínima individual de 30 horas semanais.",
+                            "Carga horária mínima individual de 30 horas semanais (75% da população de uma eSF).",
+                            "a carga horária mínima individual dos profissionais deverá ser de 30 (trinta) horas semanais"),
+    "PRC2_PNAB_EAP_DUP": _e("PRC2", f"{_PNAB}, 2 (eAP) — red. PRT GM/MS 2.539/2019",
+                            "Profissional da eAP pode participar de mais de uma eAP ou eSF (não é duplicidade).",
+                            "Não se aplica aos profissionais da eAP a vedação à participação em mais de uma eAP ou eSF.",
+                            "Não se aplica aos profissionais da eAP a vedação à participação em mais de uma eAP ou eSF"),
+    # eSB — PNAB e PRT GM/MS 2.539/2019
+    "PRC2_PNAB_ESB_I": _e("PRC2", f"{_PNAB}, 3 (eSB), Modalidade I",
+                          "eSB Modalidade I: cirurgião-dentista e ASB ou TSB.",
+                          "Modalidade I: Cirurgião-dentista e auxiliar em saúde bucal (ASB) ou técnico em saúde bucal (TSB).",
+                          "Modalidade I: Cirurgião-dentista e auxiliar em saúde bucal (ASB) ou técnico em saúde bucal (TSB)"),
+    "PRC2_PNAB_ESB_II": _e("PRC2", f"{_PNAB}, 3 (eSB), Modalidade II",
+                           "eSB Modalidade II: cirurgião-dentista, TSB e ASB (ou outro TSB).",
+                           "Modalidade II: Cirurgião-dentista, TSB e ASB, ou outro TSB.",
+                           "Modalidade II: Cirurgião-dentista, TSB e ASB, ou outro TSB"),
+    "PRC2_PNAB_ESB_20H": _e("PRC2", f"{_PNAB}, 3 (eSB), Modalidade I-20h — red. PRT GM/MS 2.539/2019",
+                            "eSB I-20h: carga horária mínima individual de 20 horas, profissionais na mesma unidade.",
+                            "eSB composta por profissionais com carga horária mínima individual de 20 horas semanais.",
+                            "Modalidade I-20h: eSB composta por profissionais com carga horária mínima individual de 20"),
+    "PRC2_PNAB_ESB_30H": _e("PRC2", f"{_PNAB}, 3 (eSB), Modalidade I-30h — red. PRT GM/MS 2.539/2019",
+                            "eSB I-30h: carga horária mínima individual de 30 horas, profissionais na mesma unidade.",
+                            "eSB composta por profissionais com carga horária mínima individual de 30 horas semanais.",
+                            "Modalidade I-30h: eSB composta por profissionais com carga horária mínima individual de 30"),
+    "PRC2_PNAB_ESB_DUP": _e("PRC2", f"{_PNAB}, 3 (eSB) — red. PRT GM/MS 2.539/2019",
+                            "Na eSB I-20h/I-30h a participação em mais de uma eSB ou eSF não é duplicidade.",
+                            "Não se aplica aos profissionais da eSB na modalidade I com carga horária diferenciada a vedação.",
+                            "Não se aplica aos profissionais da eSB na modalidade I com carga horária diferenciada a vedação"),
+    # eSFR — PRC 2, Anexo XXII, arts. 16 a 20 (origem PRT GM/MS 837/2014; red. 5.850/2024 e 8.994/2025)
+    "PRC2_ESFR_18": _e("PRC2", "Anexo XXII, art. 18, I a III",
+                       "Composição mínima da eSFR: médico, enfermeiro e auxiliar ou técnico de enfermagem.",
+                       "A ESFR será formada por equipe multiprofissional composta por, no mínimo, médico, enfermeiro "
+                       "e auxiliar ou técnico de enfermagem.",
+                       "A ESFR será formada por equipe multiprofissional composta por, no mínimo"),
+    "PRC2_ESFR_19": _e("PRC2", "Anexo XXII, art. 19, I e II — red. PRT GM/MS 8.994/2025",
+                       "eSB vinculada à eSFR: 1 cirurgião-dentista e 1 técnico ou auxiliar em saúde bucal.",
+                       "A eSB vinculada a eSFF da UBSF ou a eSFR deve contar com cirurgião-dentista e TSB/ASB.",
+                       "A equipe de Saúde Bucal - eSB vinculada a eSFF da UBSF ou a eSFR deve contar"),
+    "PRC2_ESFR_20": _e("PRC2", "Anexo XXII, art. 20, I a V — red. PRT GM/MS 8.994/2025",
+                       "Profissionais adicionais da eSFR (grande dispersão): até 24 ACS, 12 microscopistas, 11 "
+                       "auxiliares/técnicos de enfermagem, 1 auxiliar/técnico de saúde bucal e 2 de nível superior.",
+                       "Nas hipóteses de grande dispersão populacional, as ESFR podem contar com até 24 ACS, 12 "
+                       "microscopistas, 11 auxiliares/técnicos de enfermagem, 1 ASB/TSB e até 2 de nível superior.",
+                       "até 24 (vinte e quatro) Agentes Comunitários de Saúde"),
+    # eMulti — PRC 2, Anexo XXII, arts. 40-A a 40-M (red. PRT GM/MS 9.584/2025) e Anexo 6 (red. 11.353/2026)
+    "PRC2_40F_I": _e("PRC2", "Anexo XXII, art. 40-F, I, e Anexo 6 — red. PRT GM/MS 9.584/2025 e 11.353/2026",
+                     "eMulti composta pelas categorias (CBO) do Anexo 6 do Anexo XXII.",
+                     "As eMulti serão compostas pelo conjunto de profissionais descritos no Anexo 6 do Anexo XXII.",
+                     "as eMulti serão compostas pelo conjunto de profissionais descritos no Anexo 6 do Anexo XXII"),
+    "PRC2_40F_II": _e("PRC2", "Anexo XXII, art. 40-F, II — red. PRT GM/MS 9.584/2025",
+                      "Carga horária individual mínima do médico na eMulti: 10 horas semanais.",
+                      "A carga horária individual mínima por profissional médico da eMulti é de 10 horas semanais.",
+                      "a carga horária individual mínima por profissional médico, integrante da eMulti, é de 10"),
+    "PRC2_40F_III": _e("PRC2", "Anexo XXII, art. 40-F, III — red. PRT GM/MS 9.584/2025",
+                       "Carga horária individual mínima das demais categorias na eMulti: 20 horas semanais.",
+                       "A carga horária individual mínima das demais categorias da eMulti é de 20 horas semanais.",
+                       "a carga horária individual mínima por profissional das demais categorias profissionais"),
+    "PRC2_40F_P2": _e("PRC2", "Anexo XXII, art. 40-F, § 2º — red. PRT GM/MS 9.584/2025",
+                      "Nenhuma equipe pode estar vinculada a mais de uma eMulti ao mesmo tempo.",
+                      "Nenhuma equipe poderá estar vinculada a mais de uma eMulti simultaneamente.",
+                      "Nenhuma equipe poderá estar vinculada a mais de uma eMulti simultaneamente"),
+    "PRC2_40G_I": _e("PRC2", "Anexo XXII, art. 40-G, I — red. PRT GM/MS 9.584/2025",
+                     "eMulti Ampliada: 10 a 12 equipes vinculadas; mínimo de 300 h semanais; até 120 h por categoria.",
+                     "Vinculada a no mínimo 10 e no máximo 12 equipes; 300 horas semanais por equipe; não mais de "
+                     "120 horas da mesma categoria.",
+                     "cumprir a carga horária mínima de 300 (trezentas) horas semanais por equipe"),
+    "PRC2_40G_II": _e("PRC2", "Anexo XXII, art. 40-G, II — red. PRT GM/MS 9.584/2025",
+                      "eMulti Complementar: 5 a 9 equipes vinculadas; mínimo de 200 h semanais; até 80 h por categoria.",
+                      "Vinculada a no mínimo cinco e no máximo nove equipes; 200 horas semanais por equipe; não mais "
+                      "de 80 horas da mesma categoria.",
+                      "cumprir a carga horária mínima de 200 (duzentas) horas semanais por equipe"),
+    "PRC2_40G_III": _e("PRC2", "Anexo XXII, art. 40-G, III — red. PRT GM/MS 9.584/2025",
+                       "eMulti Estratégica: 1 a 4 equipes vinculadas; mínimo de 100 h semanais; até 40 h por categoria.",
+                       "Vinculada a no mínimo uma e no máximo quatro equipes; 100 horas semanais por equipe; não mais "
+                       "de 40 horas da mesma categoria.",
+                       "cumprir a carga horária mínima de 100 (cem) horas semanais por equipe"),
+    "PRC2_40G_P2": _e("PRC2", "Anexo XXII, art. 40-G, § 2º — red. PRT GM/MS 9.584/2025",
+                      "A carga horária da eMulti é a soma das cargas individuais dos profissionais.",
+                      "A carga horária mínima exigida por equipe deverá considerar o somatório da carga horária individual.",
+                      "deverá considerar o somatório da carga horária individual dos profissionais que compõem as eMulti"),
+    "PRC2_40G_P3": _e("PRC2", "Anexo XXII, art. 40-G, § 3º — red. PRT GM/MS 9.584/2025",
+                      "Profissional em mais de uma equipe não é duplicidade, se as cargas horárias forem compatíveis.",
+                      "A participação de profissional em mais de uma equipe não configura duplicidade profissional, "
+                      "desde que haja compatibilidade de carga horária.",
+                      "A participação de profissional em mais de uma equipe não configura duplicidade profissional"),
+    "PRC2_40H": _e("PRC2", "Anexo XXII, art. 40-H — red. PRT GM/MS 9.584/2025",
+                   "eMulti deve ter cadastro no SCNES (INE, tipo de equipe 72), usar o e-SUS APS e enviar produção ao "
+                   "Siaps; cadastrada nos mesmos tipos de estabelecimento das equipes vinculadas.",
+                   "Identificação no SCNES por INE e tipo de equipe 72 - eMulti.",
+                   "tipo de equipe 72 - eMulti"),
+    # Suspensão — PRC 6, art. 12-K e Anexo C (red. PRT GM/MS 7.799/2025)
+    "PRC6_12K_P3": _e("PRC6", "art. 12-K, § 3º — red. PRT GM/MS 7.799/2025",
+                      "Sem envio de produção ao Siaps por 3 competências consecutivas: suspensão total da eSF/eAP.",
+                      "Ausência do envio de informações de produção por três competências consecutivas: suspensão total.",
+                      "por três competências consecutivas, ocorrerá a suspensão total do incentivo financeiro para eSF e eAP"),
+    "PRC6_12K_P4": _e("PRC6", "art. 12-K, § 4º — red. PRT GM/MS 7.799/2025",
+                      "Carga horária abaixo da exigida na composição mínima da eSF/eAP, ou acúmulo acima de 60 h semanais "
+                      "por profissional em equipes da APS: suspensão total após 2 competências consecutivas do CNES.",
+                      "Descumprimento da carga horária exigida para composição mínima de eSF e eAP ou acumulação superior "
+                      "a sessenta horas semanais: suspensão total, observadas 2 competências do CNES consecutivas.",
+                      "ocorrerá a suspensão total do incentivo financeiro para eSF e eAP, observadas 2 (duas) competências"),
+    "PRC6_ANEXO_C": _e("PRC6", "Anexo C — red. PRT GM/MS 7.799/2025",
+                       "Suspensão do componente equidade por ausência de profissional da equipe mínima por 2 competências "
+                       "do CNES: 25% (aux./téc. de enfermagem ou ACS), 50% (médico ou enfermeiro; ou aux./téc. e ACS), "
+                       "75% (combinações de médico/enfermeiro com aux./téc. ou ACS), 100% (três categorias, ou médico e "
+                       "enfermeiro).",
+                       "Hipóteses de suspensão proporcional e total dos recursos financeiros de eSF, eAP e ACS.",
+                       "HIPÓTESES DE SUSPENSÃO PROPORCIONAL E TOTAL DOS RECURSOS FINANCEIROS DE eSF, eAP e ACS"),
+})

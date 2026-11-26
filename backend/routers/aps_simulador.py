@@ -42,6 +42,15 @@ async def parametros(current: SessaoMunicipal, competencia: Optional[str] = Quer
                               "que o e-Gestor não publica.")}
 
 
+@router.get("/matriz-normativa")
+async def matriz_normativa(current: SessaoMunicipal, competencia: Optional[str] = Query(None, pattern=r"^\d{6}$"),
+                           db: AsyncSession = Depends(get_db)):
+    """Matriz Normativa da APS: cadeia normativa, critérios com fundamentação e financiamento por modalidade."""
+    from datetime import date
+    from services import aps_matriz_normativa as mn
+    return await mn.montar(db, current.municipio_id, competencia or date.today().strftime("%Y%m"))
+
+
 class ParametroIn(BaseModel):
     chave: str
     valor: Optional[float] = Field(None, ge=0, le=10_000_000)

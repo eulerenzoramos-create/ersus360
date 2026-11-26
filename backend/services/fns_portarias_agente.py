@@ -983,7 +983,7 @@ async def consultar_aplicacao(db: AsyncSession, municipio_id: int | None, ibge: 
         raise LookupError("Portaria não encontrada nas transferências do exercício.")
     estado = await _estado_normas(db)
     base = [{"chave": k, **N.citar(k), "conferido_no_texto_oficial": (estado.get(k) or {}).get("confere", "manual 16/11/2026")}
-            for k in N.DISPOSITIVOS]
+            for k, d in N.DISPOSITIVOS.items() if d.get("tema") != "equipes_aps"]
     texto = (f"<analise_portaria>\n{json.dumps(_contexto_ia(r), ensure_ascii=False, default=str)}\n</analise_portaria>\n\n"
              f"<base_normativa>\n{json.dumps(base, ensure_ascii=False)}\n</base_normativa>\n\n"
              f"Data de hoje: {date.today().strftime('%d/%m/%Y')}\n"
