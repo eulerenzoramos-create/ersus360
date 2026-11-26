@@ -22,8 +22,12 @@ def _rot(c: str | None) -> str:
     return f"{c[4:6]}/{c[:4]}" if c and len(c) == 6 else (c or "—")
 
 
-def filtrar(v: dict, tipo: str | None = None, situacao: str | None = None, cnes: str | None = None) -> list[dict]:
+def filtrar(v: dict, tipo: str | None = None, situacao: str | None = None, cnes: str | None = None,
+            modalidade: str | None = None) -> list[dict]:
     eqs = v["equipes"]
+    if modalidade:   # eMulti: Ampliada | Complementar | Estratégica | nao_credenciada
+        eqs = [e for e in eqs if e["tipo"] == "eMulti" and (
+            (e["modalidade"] or "nao_credenciada") == modalidade)]
     if tipo:
         eqs = [e for e in eqs if e["tipo"] == tipo]
     if situacao:
@@ -36,6 +40,11 @@ def filtrar(v: dict, tipo: str | None = None, situacao: str | None = None, cnes:
 def documento(v: dict, municipio: str, equipes: list[dict]) -> Documento:
     comp = (f"CNES {_rot(v['competencia_cnes'])} · e-Gestor parcela {_rot(v.get('parcela_egestor'))} "
             f"(CNES {_rot(v.get('competencia_cnes_egestor'))})")
+    pm = v["cards"].get("eMulti", {}).get("por_modalidade") or []
+    emulti = Secao("eMulti por modalidade (e-Gestor)", tabelas=[(
+        ["Modalidade", "Credenciadas", "Pagas", "Equipes no CNES identificadas"],
+        [[f"eMulti {x['modalidade']}", x["credenciadas"], x["pagas"], x["no_cnes"]] for x in pm]
+        + [["Sem credenciamento (só no CNES)", 0, 0, v["cards"].get("eMulti", {}).get("nao_credenciadas_cnes", 0)]])])
     cards = Secao("Resumo por modalidade", tabelas=[(
         ["Modalidade", "Cadastradas no CNES", "Ativas", "Credenciadas", "Homologadas", "Financiadas", "Regulares",
          "Com incompatibilidade", "Profissionais"],
@@ -43,12 +52,20 @@ def documento(v: dict, municipio: str, equipes: list[dict]) -> Documento:
           "não publicado" if c["homologadas"] is None else c["homologadas"], c["financiadas"], c["regulares"],
           c["com_incompatibilidade"], c["profissionais"]] for t, c in v["cards"].items() if c["cadastradas_cnes"]])])
     lista = Secao("Equipes", tabelas=[(
-        ["INE", "Equipe", "Modalidade", "CNES", "Profissionais", "Carga horária", "Situação"],
-        [[e["ine"], e["nome"], e["tipo"], ", ".join(x["cnes"] for x in e["estabelecimentos"]), e["n_profissionais"],
-          f"{e['ch_total']} h", ROT_SIT[e["situacao"]]] for e in equipes])])
+        ["INE", "Equipe", "Modalidade", "CNES", "Profissionais", "Carga horária", "Vínculos (CNES)", "Situação"],
+        [[e["ine"], e["nome"], e.get("rotulo_modalidade") or e["tipo"], ", ".join(x["cnes"] for x in e["estabelecimentos"]),
+          e["n_profissionais"],
+          f"{e['ch_total']} h", e.get("resumo_vinculos") or "não coletado", ROT_SIT[e["situacao"]]] for e in equipes])])
+    vinc = Secao("Vínculos entre equipes (CNES — ficha do estabelecimento)", tabelas=[(
+        ["Equipe", "Tipo do vínculo", "Equipe vinculada", "INE", "Estabelecimento"],
+        [[f"{e.get('rotulo_modalidade') or e['tipo']} {e['nome']}",
+          "Apoia" if e["tipo"] == "eMulti" else "Referência" if e["tipo"] == "eSB" else "Recebe apoio/eSB",
+          f"{v.get('sigla') or ''} {v['nome']}".strip(), v["ine"], v.get("cnes") or ""]
+         for e in equipes for v in ((e.get("equipes_vinculadas") or []) if e["tipo"] in ("eMulti", "eSB")
+                                    else (e.get("vinculos_recebidos") or []))])])
     conf = Secao("Conformidade normativa (critérios irregulares e em atenção)", tabelas=[(
         ["Equipe", "Critério", "Exigência MS", "Situação CNES", "Diferença", "Situação", "Fundamentação"],
-        [[f"{e['tipo']} {e['nome']} ({e['ine']})", c["criterio"], c["exigencia"], c["situacao_cnes"], c["diferenca"],
+        [[f"{e.get('rotulo_modalidade') or e['tipo']} {e['nome']} ({e['ine']})", c["criterio"], c["exigencia"], c["situacao_cnes"], c["diferenca"],
           ROT_SIT[c["situacao"]],
           (f"{c['fundamentacao']['norma']}, {c['fundamentacao']['dispositivo']} — {c['fundamentacao']['url']}"
            if c.get("fundamentacao") else "—") + (f" · {c['observacao']}" if c.get("observacao") else "")]
@@ -60,7 +77,8 @@ def documento(v: dict, municipio: str, equipes: list[dict]) -> Documento:
          for e in equipes for p in e["profissionais"] if p["situacao"] == "irregular"])])
     return Documento(
         titulo=f"Monitoramento CNES — {municipio}", subtitulo=comp,
-        secoes=[cards, lista, conf, profs],
+        secoes=([cards, emulti] if v["cards"].get("eMulti", {}).get("cadastradas_cnes") else [cards])
+        + [lista, vinc, conf, profs],
         aviso=("Validação automática: CNES (API pública) × Matriz Normativa da APS (PRC 2 e PRC 6, conferidas no "
                "Saúde Legis) × e-Gestor APS (relatório público) × SIAPS. Vínculos em outros municípios não aparecem "
                "na consulta do CNES por município."))

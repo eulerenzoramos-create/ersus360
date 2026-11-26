@@ -789,6 +789,10 @@ DISPOSITIVOS.update({
                             "Na eSB I-20h/I-30h a participação em mais de uma eSB ou eSF não é duplicidade.",
                             "Não se aplica aos profissionais da eSB na modalidade I com carga horária diferenciada a vedação.",
                             "Não se aplica aos profissionais da eSB na modalidade I com carga horária diferenciada a vedação"),
+    "PRC2_PNAB_ESB_VINC": _e("PRC2", f"{_PNAB}, 3 (eSB)",
+                             "A eSB é vinculada a uma eAB/eAP ou eSF e compartilha a gestão, o território e a população.",
+                             "Os profissionais de Saúde Bucal são vinculados a uma equipe de Atenção Básica ou de Saúde da Família.",
+                             "os profissionais de Saúde Bucal são vinculados a uma equipe de Atenção Básica (eAB) ou equipe de Saúde da Família (eSF)"),
     # eSFR — PRC 2, Anexo XXII, arts. 16 a 20 (origem PRT GM/MS 837/2014; red. 5.850/2024 e 8.994/2025)
     "PRC2_ESFR_18": _e("PRC2", "Anexo XXII, art. 18, I a III",
                        "Composição mínima da eSFR: médico, enfermeiro e auxiliar ou técnico de enfermagem.",

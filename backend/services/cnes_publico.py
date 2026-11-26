@@ -216,6 +216,24 @@ async def _coletar(ib6: str, buscar: Buscar) -> dict:
         for p in profs or []:
             equipes[ine]["profissionais"].append({**_norm_prof_equipe(p), "cnes": est["cnes"]})
 
+    # 2b) vínculos oficiais entre equipes (serviço "nasf-esf" da ficha do estabelecimento no portal CNES):
+    #     eMulti → equipes apoiadas; eSB → eSF/eAP/eSFR de referência. Para eSF/eSFR o serviço vem vazio — o vínculo
+    #     inverso (quais eSB/eMulti apoiam a equipe) é montado a partir destas mesmas listas oficiais.
+    emultis = [(ine, est, eq) for ine, est, eq in pedidos if str(eq.get("tpEquipe")) != "70"]
+    vinc = await asyncio.gather(*[
+        chamar(f"/services/estabelecimentos-equipes/nasf-esf/{est['id']}?coMun={ib6}"
+               f"&coArea={eq.get('coArea') or ''}&coEquipe={eq.get('seqEquipe') or ''}",
+               f"vínculos da equipe {ine}") for ine, est, eq in emultis])
+    for (ine, _est, _eq), lista in zip(emultis, vinc):
+        if lista is None:
+            continue
+        atuais = equipes[ine].setdefault("equipes_vinculadas", [])
+        for v in lista:
+            iv = str(v.get("ineEsf") or "").strip()
+            if iv and iv not in {x["ine"] for x in atuais}:
+                atuais.append({"ine": iv, "nome": (v.get("noReferenciaEsf") or "").strip(),
+                               "tipo_cnes": str(v.get("tpEquipeEsf") or ""), "cnes": str(v.get("coCnesEsf") or "")})
+
     # 3) lotações por pessoa (todos os estabelecimentos do município) → vínculos simultâneos / CH total
     pessoas: dict[str, dict] = {}
     for est, profs in zip(estabs, prof_por_est):
@@ -229,6 +247,16 @@ async def _coletar(ib6: str, buscar: Buscar) -> dict:
     for pes in pessoas.values():
         pes["ch_total"] = sum(l["ch_total"] for l in pes["lotacoes"])
         pes["n_estabelecimentos"] = len({l["cnes"] for l in pes["lotacoes"]})
+
+    nomes = {i: (e["nome"], e["sigla"]) for i, e in equipes.items()}
+    for ine, e in equipes.items():
+        for v in e.get("equipes_vinculadas") or []:
+            v["sigla"] = nomes.get(v["ine"], (None, None))[1]
+            alvo = equipes.get(v["ine"])
+            if alvo is not None:
+                alvo.setdefault("vinculos_recebidos", []).append(
+                    {"ine": ine, "nome": e["nome"], "sigla": e["sigla"],
+                     "cnes": (e["estabelecimentos"] or [{}])[0].get("cnes", "")})
 
     for eq in equipes.values():
         ativos = [p for p in eq["profissionais"] if p["ativo"]]

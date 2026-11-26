@@ -106,6 +106,7 @@ def _sem_chave(eq: dict) -> dict:
 
 _TIPOS = r"^(eSF|eSFR|eSB|eMulti|eAP)$"
 _SITS = r"^(conforme|irregular|atencao|nao_verificavel)$"
+_MODS = r"^(Ampliada|Complementar|Estratégica|nao_credenciada)$"
 
 
 @router.get("/conformidade")
@@ -113,6 +114,7 @@ async def conformidade_equipes(current: SessaoMunicipal, competencia: str | None
                                tipo: str | None = Query(None, pattern=_TIPOS),
                                situacao: str | None = Query(None, pattern=_SITS),
                                cnes: str | None = Query(None, pattern=r"^\d{7}$"),
+                               modalidade: str | None = Query(None, pattern=_MODS),
                                db: AsyncSession = Depends(get_db)):
     """Validações automáticas: retrato do CNES × Matriz Normativa × e-Gestor × SIAPS (cards, equipes, critérios).
     Filtros: modalidade (tipo), situação e estabelecimento (CNES). Os cards são sempre do município todo."""
@@ -121,7 +123,7 @@ async def conformidade_equipes(current: SessaoMunicipal, competencia: str | None
     r = await cv.montar(db, current.municipio_id, competencia)
     if r is None:
         return {"situacao_dado": "sem_coleta", "nota": SEM_COLETA, "equipes": [], "cards": {}}
-    eqs = rel.filtrar(r, tipo, situacao, cnes)
+    eqs = rel.filtrar(r, tipo, situacao, cnes, modalidade)
     return {"situacao_dado": "oficial", **r,
             "equipes": [{k: v for k, v in e.items() if k not in ("criterios", "profissionais")} for e in eqs],
             "criterios_pendentes": [{"ine": e["ine"], "equipe": e["nome"], "tipo": e["tipo"], **c}
@@ -134,6 +136,7 @@ async def conformidade_exportar(current: SessaoMunicipal, formato: str = Query("
                                 tipo: str | None = Query(None, pattern=_TIPOS),
                                 situacao: str | None = Query(None, pattern=_SITS),
                                 cnes: str | None = Query(None, pattern=r"^\d{7}$"),
+                                modalidade: str | None = Query(None, pattern=_MODS),
                                 db: AsyncSession = Depends(get_db)):
     from fastapi.responses import Response
     from services import cnes_relatorio as rel
@@ -143,7 +146,7 @@ async def conformidade_exportar(current: SessaoMunicipal, formato: str = Query("
     if r is None:
         raise HTTPException(404, SEM_COLETA)
     mun = municipio_atual()
-    doc = rel.documento(r, f"{mun.nome}/{mun.uf}", rel.filtrar(r, tipo, situacao, cnes))
+    doc = rel.documento(r, f"{mun.nome}/{mun.uf}", rel.filtrar(r, tipo, situacao, cnes, modalidade))
     quem = getattr(current, "nome", None) or current.username
     nome = f"monitoramento_cnes_{current.municipio_ibge}_{r['competencia_cnes']}.{formato}"
     if formato == "pdf":
