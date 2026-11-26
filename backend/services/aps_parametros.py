@@ -101,7 +101,41 @@ VERSOES: list[tuple[str, str, float, str, str]] = [
       for c, v in zip(CLASSES, vs)],
 ]
 
+# Regras de composição, carga horária e suspensão das equipes (Matriz Normativa da APS). Valor → dispositivo
+# conferido no texto oficial (services/fns_portarias_normas.py, tema "equipes_aps") e competência da redação.
+# Atualização: como os demais parâmetros — registrar (pendente) → validar; a versão anterior fica no histórico.
+REGRAS: dict[str, tuple[float, str, str]] = {
+    "regra.eSF.ch_individual": (40, "PRC2_PNAB_ESF_40H", "201709"),
+    "regra.eSF.max_equipes_por_profissional": (1, "PRC2_PNAB_ESF_VINC", "201709"),
+    "regra.eAP20.ch_individual": (20, "PRC2_PNAB_EAP_20H", "201909"),
+    "regra.eAP30.ch_individual": (30, "PRC2_PNAB_EAP_30H", "201909"),
+    "regra.eSB20.ch_individual": (20, "PRC2_PNAB_ESB_20H", "201909"),
+    "regra.eSB30.ch_individual": (30, "PRC2_PNAB_ESB_30H", "201909"),
+    "regra.eSFR.adicional.acs": (24, "PRC2_ESFR_20", "202511"),
+    "regra.eSFR.adicional.microscopista": (12, "PRC2_ESFR_20", "202511"),
+    "regra.eSFR.adicional.aux_tec_enfermagem": (11, "PRC2_ESFR_20", "202511"),
+    "regra.eSFR.adicional.aux_tec_saude_bucal": (1, "PRC2_ESFR_20", "202511"),
+    "regra.eSFR.adicional.nivel_superior": (2, "PRC2_ESFR_20", "202511"),
+    "regra.eMulti.ch_individual.medico": (10, "PRC2_40F_II", "202512"),
+    "regra.eMulti.ch_individual.demais": (20, "PRC2_40F_III", "202512"),
+    **{f"regra.eMulti.{m}.{c}": (v, d, "202512")
+       for m, d, vals in (("ampliada", "PRC2_40G_I", (300, 120, 10, 12)),
+                          ("complementar", "PRC2_40G_II", (200, 80, 5, 9)),
+                          ("estrategica", "PRC2_40G_III", (100, 40, 1, 4)))
+       for c, v in zip(("ch_total_min", "ch_max_mesma_categoria", "equipes_vinculadas_min",
+                        "equipes_vinculadas_max"), vals)},
+    "regra.aps.ch_max_acumulada": (60, "PRC6_12K_P4", "202508"),
+    "regra.suspensao.competencias_cnes": (2, "PRC6_12K_P4", "202508"),
+    "regra.suspensao.competencias_sem_producao": (3, "PRC6_12K_P3", "202508"),
+    "regra.suspensao.pct.ausencia_aux_tec_ou_acs": (25, "PRC6_ANEXO_C", "202508"),
+    "regra.suspensao.pct.ausencia_medico_ou_enfermeiro": (50, "PRC6_ANEXO_C", "202508"),
+    "regra.suspensao.pct.ausencia_aux_tec_e_acs": (50, "PRC6_ANEXO_C", "202508"),
+    "regra.suspensao.pct.ausencia_combinada": (75, "PRC6_ANEXO_C", "202508"),
+    "regra.suspensao.pct.ausencia_tres_ou_medico_e_enfermeiro": (100, "PRC6_ANEXO_C", "202508"),
+}
+
 DESCRICAO = {
+    "regra": "Regra de composição, carga horária ou suspensão das equipes (Matriz Normativa da APS)",
     "fixo": "Componente fixo (por equipe, conforme estrato do IED)",
     "vinculo": "Vínculo e acompanhamento territorial (por classificação)",
     "qualidade": "Componente de qualidade (por classificação)",
@@ -122,6 +156,13 @@ async def vigentes(db: AsyncSession, municipio_id: int, competencia: str) -> dic
     saida = {k: {"valor": v if not isinstance(v, str) else None, "valor_texto": v if isinstance(v, str) else None,
                  "norma": n, "fonte": FONTE_BASE, "origem": "norma", "vigencia_inicio": None, "id": None}
              for k, (v, n) in BASE.items()}
+    from services import fns_portarias_normas as N   # import tardio: evita ciclo na carga dos módulos
+    for k, (v, disp, vig) in REGRAS.items():
+        d = N.DISPOSITIVOS[disp]
+        norma = N.NORMAS[d["norma"]]
+        saida[k] = {"valor": v, "valor_texto": None, "norma": f"{norma['nome']}, {d['dispositivo']}"[:200],
+                    "fonte": norma["url"], "origem": "norma", "vigencia_inicio": vig, "id": None,
+                    "dispositivo": disp}
     for k, vig, v, n, f in VERSOES:
         if competencia >= vig:
             saida[k] = {"valor": v, "valor_texto": None, "norma": n, "fonte": f, "origem": "norma",
