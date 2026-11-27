@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { IndicadoresPrograma, SincronizacaoProgramas, TabelaPropostasProgramas, AreaSelo, AREA_ROTULO } from "../components/investsus/ProgramasMS";
 import { LimitesInvestSUS } from "../components/investsus/LimitesInvestSUS";
-import { TetoTresValores, valoresDoCard, TabelaPropostasTeto, ResumoGerencialTetos, SeletorExercicio, MOD_ROTULO, ESTAGIO_ROTULO } from "../components/investsus/TetoFinanceiro";
+import { TetoTresValores, valoresDoCard, TabelaPropostasTeto, ResumoGerencialTetos, SeletorExercicio, MOD_ROTULO, ESTAGIO_ROTULO, fmtBRL } from "../components/investsus/TetoFinanceiro";
 import {
   RefreshCw, ExternalLink, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2,
   Clock, Info, Landmark, Users, ClipboardList,
@@ -149,7 +149,15 @@ function CardPrograma({ g, exercicio }: { g: any; exercicio: number }) {
         {lim ? (
           <>
             <div><b>Referência:</b> {lim.documento}</div>
-            <div><b>Registrado:</b> {fmtData(lim.registrado_em)}{lim.registrado_por ? ` · ${lim.registrado_por}` : ""}</div>
+            {g.limite_oficial && (
+              <div style={{ color: g.limite_oficial.indicado_confere ? "#047857" : "#b45309", fontWeight: 600 }}>
+                {g.limite_oficial.indicado_confere ? <CheckCircle2 size={11} style={{ verticalAlign: -1 }} /> : <AlertTriangle size={11} style={{ verticalAlign: -1 }} />}{" "}
+                InvestSUS: Limite {fmtBRL(g.limite_oficial.limite)} · Valor Indicado (usado) {fmtBRL(g.limite_oficial.valor_indicado)} · Limite a Indicar (saldo) {fmtBRL(g.limite_oficial.limite_a_indicar)}
+                {g.limite_oficial.indicado_confere ? " — confere com as propostas do ERSUS360" : ` — propostas no ERSUS360 somam ${fmtBRL(g.limite_oficial.utilizado_ersus)}; sincronize`}
+              </div>
+            )}
+            {g.limite_manual && <div style={{ color: "#6b7280" }}>Valor registrado manualmente antes: {fmtBRL(g.limite_manual.valor)} ({g.limite_manual.documento}) — prevalece o oficial do InvestSUS.</div>}
+            <div><b>{g.limite_oficial ? "Lido em" : "Registrado"}:</b> {fmtData(lim.registrado_em)}{lim.registrado_por ? ` · ${lim.registrado_por}` : ""}</div>
             {lim.url && <a href={lim.url} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", display: "inline-flex", alignItems: "center", gap: 3 }}>Documento oficial <ExternalLink size={11} /></a>}
             {lim.observacao && <div>{lim.observacao}</div>}
           </>

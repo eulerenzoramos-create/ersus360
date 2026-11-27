@@ -36,7 +36,7 @@ MODALIDADES_MODELO: dict[str, dict] = {
     "rp6": {"rotulo": "Emenda Individual (RP 6)", "curto": "Individual", "cor": "#7c3aed", "bg": "#f5f3ff"},
     "rp7": {"rotulo": "Emenda de Bancada (RP 7)", "curto": "Bancada", "cor": "#0284c7", "bg": "#eff6ff"},
     "rp8": {"rotulo": "Emenda de Comissão (RP 8)", "curto": "Comissão", "cor": "#059669", "bg": "#f0fdf4"},
-    "programa": {"rotulo": "Recurso de Programa (Outros)", "curto": "Outros", "cor": "#d97706", "bg": "#fffbeb"},
+    "programa": {"rotulo": "Programa do Ministério da Saúde (Outros tipos)", "curto": "Programa MS", "cor": "#d97706", "bg": "#fffbeb"},
     "outros_federais": {"rotulo": "Outros recursos federais", "curto": "Outros federais", "cor": "#475569",
                         "bg": "#f8fafc"},
     "a_classificar": {"rotulo": "Emenda federal a classificar", "curto": "A classificar", "cor": "#6b7280",
@@ -239,7 +239,7 @@ def tipo_oficial_de(payload) -> str | None:
 TIPOS_RECURSO: dict[str, str] = {
     "pap": "PAP",
     "mac": "MAC",
-    "programa": "Programa",
+    "programa": "Programa do Ministério da Saúde",
     "coletivas": "Emendas coletivas (RP 7 + RP 8)",
     "rp6": "Emendas individuais (RP 6)",
     "rp7": "Emenda de bancada (RP 7)",

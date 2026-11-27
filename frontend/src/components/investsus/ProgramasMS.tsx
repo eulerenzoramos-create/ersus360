@@ -75,7 +75,7 @@ export function IndicadoresPrograma({ g }: { g: any }) {
 const CATEGORIAS = [
   { k: "incremento_mac", rotulo: "Incremento MAC" },
   { k: "incremento_pap", rotulo: "Incremento PAP" },
-  { k: "outros", rotulo: "Outros tipos (programas)" },
+  { k: "outros", rotulo: "Outros tipos (Programa do Ministério da Saúde)" },
 ];
 
 /** Cabeçalho de sincronização + conferência com o gráfico da tela Propostas do InvestSUS. */
