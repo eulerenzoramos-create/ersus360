@@ -225,3 +225,67 @@ def descrever(execucao_iniciada, status_execucao, percentual, data_provavel) -> 
         p = f"{percentual:.0f}%" if percentual is not None else "—"
         return f"Parcial {p} · previsão {data_provavel.strftime('%d/%m/%Y') if data_provavel else '—'}"
     return "Sem monitoramento cadastrado"
+
+
+def anos_monitorados(ano_atual: int | None = None) -> list[int]:
+    """Ano atual e anterior, nunca antes do início do Monitoramento no InvestSUS."""
+    ano = ano_atual or datetime.now().year
+    return [a for a in (ano - 1, ano) if a >= ANO_INICIAL]
+
+
+async def coletar_servidor(cnpj: str, ibge7: str, cred: dict[str, str]) -> dict:
+    """Mesma leitura que o navegador faz, feita pelo servidor com o acesso de integração do
+    município (tenancy.credenciais, sistema INVESTSUS). Devolve o payload de /sincronizar
+    ou levanta RuntimeError com o motivo (sem acesso, sessão expirada, portal fora do ar)."""
+    import asyncio
+    import httpx
+    from services.investsus_scraper import _cabecalhos_contexto, autenticar_cliente
+
+    cnpj = so_digitos(cnpj)
+    if len(cnpj) != 14:
+        raise RuntimeError("CNPJ do Fundo Municipal de Saúde não cadastrado para o município.")
+    erros: list = []
+    headers = {**_cabecalhos_contexto(ibge7, cnpj), "Content-Type": "application/json"}
+    itens: list[dict] = []
+    resumos: dict = {}
+    async with httpx.AsyncClient(follow_redirects=True, headers=headers, timeout=45.0) as client:
+        if await autenticar_cliente(client, cred, erros):
+            raise RuntimeError("; ".join(e["erro"] for e in erros))
+        for ano in anos_monitorados():
+            for pagina in range(1, 21):
+                r = await client.post(f"{INVESTSUS_API}/monitoramento/paginado", json={
+                    "filter": {"idSituacaoProposta": SITUACAO_PROPOSTA_PAGA, "ano": ano, "cnpj": cnpj},
+                    "pageNumber": pagina, "pageSize": 100})
+                if r.status_code in (401, 403):
+                    raise RuntimeError(f"InvestSUS recusou o acesso ({r.status_code}): sessão expirada ou sem permissão.")
+                r.raise_for_status()
+                d = r.json()
+                lote = d if isinstance(d, list) else (d.get("items") or [])
+                itens.extend(x for x in lote if isinstance(x, dict))
+                total = len(lote) if isinstance(d, list) else int(d.get("total") or len(lote))
+                if not lote or len(lote) < 100 or len(itens) >= total:
+                    break
+            try:
+                r = await client.get(f"{INVESTSUS_API}/geral/monitoramento/tipos-monitoramento/valores",
+                                     params={"idSituacaoProposta": SITUACAO_PROPOSTA_PAGA, "ano": ano, "cnpj": cnpj})
+                if r.status_code == 200:
+                    resumos[str(ano)] = r.json()
+            except Exception:  # o resumo do gráfico é opcional
+                pass
+
+        sem = asyncio.Semaphore(4)
+
+        async def projeto(co):
+            async with sem:
+                try:
+                    r = await client.get(f"{INVESTSUS_API}/monitoramento/projeto/{co}")
+                    if r.status_code == 200:
+                        return r.json() if r.content else {}
+                except Exception:
+                    return None
+                return None
+
+        forms = await asyncio.gather(*(projeto(i.get("coProposta")) if i.get("coProposta") not in (None, "")
+                                       else asyncio.sleep(0, result=None) for i in itens))
+    return {"anos": anos_monitorados(), "resumos": resumos,
+            "itens": [{"item": i, "monitoramento": f} for i, f in zip(itens, forms)]}

@@ -209,6 +209,38 @@ def _resultado_vazio() -> dict[str, Any]:
             "sincronizado_em": datetime.utcnow().isoformat() + "Z"}
 
 
+async def autenticar_cliente(client: httpx.AsyncClient, cred: dict[str, str], erros: list) -> bool:
+    """Coloca no cliente o acesso do município. Ordem: CPF/senha (token novo a cada vez) →
+    token fixo → cookie de sessão (copiados do navegador, expiram). Devolve True se não há
+    acesso utilizável (o motivo vai para `erros`)."""
+    cookie = (cred.get("COOKIE") or "").strip()
+    token = (cred.get("TOKEN") or "").strip()
+    cpf, senha = somente_digitos(cred.get("CPF")), (cred.get("SENHA") or "").strip()
+    if not (cpf and senha) and not cookie and not token:
+        erros.append({"endpoint": "auth", "erro": "Credenciais do InvestSUS não configuradas para o município."})
+        return True
+    erro_login = None
+    if cpf and senha:
+        try:
+            client.headers["Authorization"] = f"Bearer {await _autenticar(client, cpf, senha)}"
+        except Exception as exc:
+            logger.error("InvestSUS auth falhou: %s", exc)
+            erro_login = str(exc)
+    if not cpf or not senha or erro_login:
+        if token:
+            client.headers["Authorization"] = f"Bearer {token}"
+        elif cookie:
+            # 'scpa' é cookie do portal gov.br e conflita com a sessão do InvestSUS
+            partes = [p.strip() for p in cookie.split(";") if p.strip() and not p.strip().lower().startswith("scpa=")]
+            client.headers["Cookie"] = "; ".join(partes)
+        elif erro_login:
+            erros.append({"endpoint": "auth", "erro": erro_login})
+            return True
+        if erro_login:
+            erros.append({"endpoint": "auth", "erro": f"{erro_login} — usado o acesso alternativo (token/cookie)."})
+    return False
+
+
 async def sincronizar_investsus(cnpj: str, ibge7: str, cred: dict[str, str]) -> dict:
     """Busca as propostas do Fundo dos exercícios acompanhados (ano atual e anterior) no InvestSUS.
     cred: {"COOKIE","TOKEN","CPF","SENHA"} do município (tenancy.credenciais)."""
@@ -220,36 +252,10 @@ async def sincronizar_investsus(cnpj: str, ibge7: str, cred: dict[str, str]) -> 
 
     ano = datetime.now().year
     headers: dict = {**_cabecalhos_contexto(ibge7, cnpj), "Content-Type": "application/json"}
-    cookie = (cred.get("COOKIE") or "").strip()
-    token = (cred.get("TOKEN") or "").strip()
-    cpf, senha = somente_digitos(cred.get("CPF")), (cred.get("SENHA") or "").strip()
-    if not (cpf and senha) and not cookie and not token:
-        resultado["erros"].append({"endpoint": "auth", "erro": "Credenciais do InvestSUS não configuradas para o município."})
-        return resultado
-
     async with httpx.AsyncClient(follow_redirects=True, headers=headers) as client:
-        # Ordem: CPF/senha (token novo a cada sincronização) → token fixo → cookie de sessão.
-        # Cookie e token copiados do navegador expiram; só são usados se não houver CPF/senha
-        # ou se o login por CPF/senha falhar.
-        erro_login = None
-        if cpf and senha:
-            try:
-                client.headers["Authorization"] = f"Bearer {await _autenticar(client, cpf, senha)}"
-            except Exception as exc:
-                logger.error("InvestSUS auth falhou: %s", exc)
-                erro_login = str(exc)
-        if not cpf or not senha or erro_login:
-            if token:
-                client.headers["Authorization"] = f"Bearer {token}"
-            elif cookie:
-                # 'scpa' é cookie do portal gov.br e conflita com a sessão do InvestSUS
-                partes = [p.strip() for p in cookie.split(";") if p.strip() and not p.strip().lower().startswith("scpa=")]
-                client.headers["Cookie"] = "; ".join(partes)
-            elif erro_login:
-                resultado["erros"].append({"endpoint": "auth", "erro": erro_login})
-                return resultado
-            if erro_login:
-                resultado["erros"].append({"endpoint": "auth", "erro": f"{erro_login} — usado o acesso alternativo (token/cookie)."})
+        erro_auth = await autenticar_cliente(client, cred, resultado["erros"])
+        if erro_auth:
+            return resultado
 
         for exercicio in exercicios_investsus(ano):
             raws, erro = await _buscar_propostas_paginado(client, cnpj, exercicio)

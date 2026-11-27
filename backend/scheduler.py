@@ -546,7 +546,7 @@ async def _job_pms_vivo_alertas() -> None:
 
 async def _job_investsus_federal() -> None:
     """Job INVESTSUS 360 (escopo federal): para cada município ativo, sincroniza as propostas
-    federais do InvestSUS quando o município tem acesso configurado (INVESTSUS_*_{IBGE7}) e
+    federais e o Monitoramento de Execução do InvestSUS quando o município tem acesso configurado (INVESTSUS_*_{IBGE7}) e
     o CNPJ do Fundo cadastrado, e escala os alertas de prazo de diligência."""
     logger.info("[Scheduler] INVESTSUS 360: sincronização federal e prazos de diligência...")
     try:
@@ -570,6 +570,13 @@ async def _job_investsus_federal() -> None:
                                     mun.codigo_ibge, r["criadas"], r["atualizadas"], r["movimentacoes"], r["alertas"])
                     except Exception as exc:  # sessão expirada, portal fora do ar etc. — não para o job
                         logger.warning("[Scheduler] InvestSUS %s: %s", mun.codigo_ibge, exc)
+                    try:
+                        from routers.investsus_monitoramento import sincronizar_pelo_servidor
+                        r = await sincronizar_pelo_servidor(mun.id, _credenciais_investsus(ctx))
+                        logger.info("[Scheduler] InvestSUS monitoramento %s: %s lidas, %s alteradas, %s alertas",
+                                    mun.codigo_ibge, r["lidas"], r["alteradas"], r["alertas"])
+                    except Exception as exc:
+                        logger.warning("[Scheduler] InvestSUS monitoramento %s: %s", mun.codigo_ibge, exc)
                 try:
                     async with AsyncSessionLocal() as db:
                         n = await verificar_prazos_diligencia(db, mun.id)
