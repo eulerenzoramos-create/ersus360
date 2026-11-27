@@ -615,3 +615,74 @@ class ColetaRegularizacaoInvestSUS(Base):
     atualizacao_cef: Mapped[date | None] = mapped_column(Date, nullable=True)
     ok: Mapped[bool] = mapped_column(Boolean, default=True)
     erro: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MonitoramentoInvestSUS(Base):
+    """Monitoramento de Execução da proposta paga (tela "Monitoramento de Emendas" do InvestSUS).
+    Uma linha por município × proposta. Os campos oficiais vêm do navegador do usuário logado
+    no InvestSUS (/monitoramento/paginado e /monitoramento/projeto/{coProposta}); nunca digitados."""
+    __tablename__ = "is_monitoramento"
+    __table_args__ = (
+        Index("ix_is_monitoramento_mun_prop", "municipio_id", "numero_proposta", unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    proposta_id: Mapped[int | None] = mapped_column(ForeignKey("is_propostas.id"), nullable=True, index=True)
+    numero_proposta: Mapped[str] = mapped_column(String(100))
+    co_proposta: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    exercicio: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Lista oficial (colunas da tela do InvestSUS)
+    tipo_recurso: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    tipo_proposta: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    tipo_proposta_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    situacao: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    instrumento: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    valor: Mapped[float] = mapped_column(Float, default=0.0)
+    st_atualizacao: Mapped[str | None] = mapped_column(String(5), nullable=True)      # A | P (oficial)
+    status_execucao_lista: Mapped[str | None] = mapped_column(String(20), nullable=True)  # T = finalizada
+    dt_operacao: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)     # última atualização
+    # Formulário "Cadastrar Monitoramento" (oficial)
+    execucao_iniciada: Mapped[str | None] = mapped_column(String(1), nullable=True)   # S | N
+    status_execucao: Mapped[str | None] = mapped_column(String(10), nullable=True)    # TOTAL | PARCIAL
+    percentual_execucao: Mapped[float | None] = mapped_column(Float, nullable=True)
+    data_provavel_finalizacao: Mapped[date | None] = mapped_column(Date, nullable=True)
+    payload_lista: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    payload_monitoramento: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    presente_ultima_coleta: Mapped[bool] = mapped_column(Boolean, default=True)
+    primeira_coleta_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class MonitoramentoRegistroInvestSUS(Base):
+    """Histórico do monitoramento: cada mudança lida do InvestSUS (origem investsus) e cada
+    preenchimento feito pela equipe no ERSUS360 (origem ersus) para depois lançar no InvestSUS."""
+    __tablename__ = "is_monitoramento_registros"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    monitoramento_id: Mapped[int] = mapped_column(ForeignKey("is_monitoramento.id"), index=True)
+    origem: Mapped[str] = mapped_column(String(10))  # investsus | ersus
+    execucao_iniciada: Mapped[str | None] = mapped_column(String(1), nullable=True)
+    status_execucao: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    percentual_execucao: Mapped[float | None] = mapped_column(Float, nullable=True)
+    data_provavel_finalizacao: Mapped[date | None] = mapped_column(Date, nullable=True)
+    observacao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    usuario: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    lancado_no_investsus: Mapped[bool] = mapped_column(Boolean, default=False)
+    lancado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    lancado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class MonitoramentoColetaInvestSUS(Base):
+    """Cada leitura do Monitoramento no InvestSUS (auditoria), com o resumo oficial do gráfico."""
+    __tablename__ = "is_monitoramento_coletas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    usuario: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    anos: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    resumo_oficial: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {ano: resposta de .../valores}
+    resumo: Mapped[dict | None] = mapped_column(JSON, nullable=True)

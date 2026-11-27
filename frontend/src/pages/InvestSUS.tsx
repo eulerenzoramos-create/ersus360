@@ -8,11 +8,12 @@ import TetosMunicipais from "./InvestSUSTetos";
 import { TetoTresValores, valoresDoCard, ResumoGerencialTetos, SeletorExercicio } from "../components/investsus/TetoFinanceiro";
 import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao, RepassesPlanos, baixar } from "./InvestSUSExecucao";
 import RegularizacaoContas from "../components/investsus/RegularizacaoContas";
+import MonitoramentoExecucao from "../components/investsus/MonitoramentoExecucao";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
   TrendingUp, DollarSign, BarChart3, Bell, Info, Eye, Calendar,
-  Building2, ClipboardList, Activity, Filter, Download, Users, Wrench, ShieldCheck,
+  Building2, ClipboardList, Activity, Filter, Download, Users, Wrench, ShieldCheck, History,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -3987,7 +3988,7 @@ function ColarPropostasInvestSUS({ municipio_id }: { municipio_id: number }) {
 }
 
 export default function InvestSUS() {
-  const [aba, setAba] = useState<"painel" | "repasses" | "recursos" | "propostas" | "execucao" | "contas" | "alertas" | "relatorio">("painel");
+  const [aba, setAba] = useState<"painel" | "repasses" | "recursos" | "propostas" | "execucao" | "monitoramento" | "contas" | "alertas" | "relatorio">("painel");
   const [repassePropostaId, setRepassePropostaId] = useState<number | null>(null);
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
   const [execPropostaId, setExecPropostaId] = useState<number | null>(null);
@@ -4024,6 +4025,7 @@ export default function InvestSUS() {
     { key: "recursos",  label: "Recursos Disponíveis",     icone: <Users size={13} /> },
     { key: "propostas", label: "Propostas",                icone: <FileText size={13} /> },
     { key: "execucao",  label: "Execução das Propostas",   icone: <Wrench size={13} /> },
+    { key: "monitoramento", label: "Monitoramento de Execução", icone: <History size={13} /> },
     { key: "contas",    label: "Regularização de Contas",  icone: <ShieldCheck size={13} /> },
     { key: "alertas",   label: "Pendências e Alertas",     icone: <Bell size={13} /> },
     { key: "relatorio", label: "Relatórios",               icone: <Download size={13} /> },
@@ -4102,6 +4104,8 @@ export default function InvestSUS() {
           tipoRecurso={tipoRecurso} setTipoRecurso={setTipoRecurso} />
       ) : aba === "execucao" ? (
         <ExecucaoFinanceira propostaId={execPropostaId} setPropostaId={setExecPropostaId} onAbrirProposta={setPropostaSelecionada} />
+      ) : aba === "monitoramento" ? (
+        <MonitoramentoExecucao onAbrirProposta={setPropostaSelecionada} />
       ) : aba === "contas" ? (
         <RegularizacaoContas onAbrirProposta={setPropostaSelecionada} />
       ) : aba === "alertas" ? (
