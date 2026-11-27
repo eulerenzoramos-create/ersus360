@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { api } from "../../lib/api";
 import { capturarLimites } from "./relay";
-import { COR_TETO, fmtBRL } from "./TetoFinanceiro";
+import { COR_TETO, fmtBRL, SeletorExercicio } from "./TetoFinanceiro";
 
 const CAT_ROTULO: Record<string, string> = {
   individual_pap: "Teto RP 6 · PAP", individual_mac: "Teto RP 6 · MAC",
@@ -147,6 +147,37 @@ export function LimitesInvestSUS({ exercicio, limites, cards }: { exercicio: num
           {!atual && <div style={{ fontSize: 10.5, color: "#6b7280" }}>Clique numa linha para ver o detalhe por município/estabelecimento, como no InvestSUS.</div>}
         </>
       )}
+    </div>
+  );
+}
+
+
+/** Aba "Limites" do InvestSUS no ERSUS360 (Consultar limites PAP e MAC), com seletor de exercício. */
+export function AbaLimites() {
+  const [exercicio, setExercicio] = useState<number | null>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["investsus-tetos", "limites", exercicio],
+    queryFn: () => api.get(`/api/investsus/tetos${exercicio ? `?exercicio=${exercicio}` : ""}`).then(r => r.data),
+    placeholderData: (anterior: any) => anterior,
+  });
+  const card: React.CSSProperties = { background: "#fff", color: "#111827", borderRadius: 10, border: "1px solid #e5e7eb", padding: 16, marginBottom: 14 };
+  if (isLoading) return <div style={{ ...card, color: "#9ca3af", fontSize: 12 }}>Carregando limites…</div>;
+  if (error || !data) return <div style={{ ...card, color: "#b45309", fontSize: 12 }}>Não foi possível carregar os limites.</div>;
+  return (
+    <div>
+      <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#f8fafc" }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#1e3a5f" }}>Limites — consultar limites PAP e MAC</div>
+          <div style={{ fontSize: 12, color: "#4b5563", maxWidth: 760 }}>
+            Mesma tela "Limites" do InvestSUS: para cada tipo de limite, o Limite, o Valor Indicado e o Limite a Indicar do Fundo.
+            Os 4 limites de Incremento ao custeio também conferem os tetos PAP/MAC calculados pelo ERSUS360.
+          </div>
+        </div>
+        <SeletorExercicio valor={data.exercicio} anos={data.exercicios_disponiveis ?? [data.exercicio]} onChange={setExercicio} />
+      </div>
+      <div style={card}>
+        <LimitesInvestSUS exercicio={data.exercicio} limites={data.limites_investsus ?? []} cards={data.cards} />
+      </div>
     </div>
   );
 }

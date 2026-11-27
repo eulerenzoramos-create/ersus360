@@ -83,7 +83,7 @@ const _cab = (contexto: string): Record<string, string> => ({
 const SITUACAO_PAGA = 67;
 const anosMonitorados = () => { const a = new Date().getFullYear(); return a - 1 >= 2025 ? [a - 1, a] : [a]; };
 
-async function capturarMonitoramento(cnpj: string, contexto: string, onProg: (m: string) => void) {
+export async function capturarMonitoramento(cnpj: string, contexto: string, onProg: (m: string) => void) {
   const headers = _cab(contexto);
   const itens: any[] = [];
   const resumos: Record<string, any> = {};
