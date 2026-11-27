@@ -14,7 +14,7 @@ export const fmtBRL = (v: number | null | undefined) =>
   v == null ? "Não disponível" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtPct = (v: number | null | undefined) => (v == null ? "—" : `${v.toFixed(1)}%`);
 
-export const MOD_ROTULO: Record<string, string> = { rp6: "RP 6 — Individual", rp7: "RP 7 — Bancada", rp8: "RP 8 — Comissão", programa: "Programa" };
+export const MOD_ROTULO: Record<string, string> = { rp6: "RP 6 — Individual", rp7: "RP 7 — Bancada", rp8: "RP 8 — Comissão", programa: "Programa do Ministério da Saúde" };
 export const ESTAGIO_ROTULO: Record<string, string> = { aprovado: "Aprovado", proposta: "Valor da proposta", indicado: "Indicado (sem proposta aprovada)", sem_valor: "Sem valor" };
 const SITUACAO_PROPOSTA = (s?: string) => (s ? s.replace(/_/g, " ").replace(/^./, c => c.toUpperCase()) : "—");
 

@@ -156,7 +156,7 @@ export const TIPOS_RECURSO: [string, string][] = [
   ["programa_outros", "Recursos de programa / outros"],
 ];
 const DICA_TIPO_RECURSO = "PAP/MAC: componente ou tipo oficial gravado do InvestSUS/FNS, ou nome oficial exato do programa "
-  + "(Custeio da Atenção Primária à Saúde / Custeio da Média e Alta Complexidade). Programa: Recurso de Programa do MS. "
+  + "(Custeio da Atenção Primária à Saúde / Custeio da Média e Alta Complexidade). Programa MS: proposta de Programa do Ministério da Saúde (Outros tipos no InvestSUS). "
   + "Recursos de programa / outros: tudo que não é emenda RP 6/7/8.";
 
 function SeletorTipoRecurso({ valor, onChange, largura = 250 }: { valor: string; onChange: (v: string) => void; largura?: number }) {
@@ -750,7 +750,7 @@ const GRUPO_CONFIG: Record<string, { label: string; cor: string; bg: string; ico
   rp6:           { label: "Emenda Individual (RP 6)",     cor: "#7c3aed", bg: "#f5f3ff", icone: "👤" },
   rp7:           { label: "Emenda de Bancada (RP 7)",     cor: "#0284c7", bg: "#eff6ff", icone: "🏛️" },
   rp8:           { label: "Emenda de Comissão (RP 8)",    cor: "#059669", bg: "#f0fdf4", icone: "⚖️" },
-  programa:      { label: "Recurso de Programa (Outros)", cor: "#d97706", bg: "#fffbeb", icone: "📋" },
+  programa:      { label: "Programa do Ministério da Saúde (Outros tipos)", cor: "#d97706", bg: "#fffbeb", icone: "📋" },
   a_classificar: { label: "Emenda federal a classificar", cor: "#6b7280", bg: "#f9fafb", icone: "❔" },
 };
 const MODALIDADES_FEDERAIS = ["rp6", "rp7", "rp8", "programa"];

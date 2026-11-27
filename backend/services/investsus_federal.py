@@ -7,7 +7,7 @@ recursos do Governo Federal (Ministério da Saúde / InvestSUS), em quatro modal
     rp6       Emenda Parlamentar Individual Federal          (RP 6)
     rp7       Emenda Parlamentar de Bancada Federal          (RP 7)
     rp8       Emenda Parlamentar de Comissão do Congresso    (RP 8)
-    programa  Recurso de Programa (Outros) do Ministério da Saúde
+    programa  Programa do Ministério da Saúde ("Outros tipos" no InvestSUS)
 
 Emendas estaduais (Assembleia Legislativa / orçamento estadual) estão FORA do
 escopo e não são captadas. A arquitetura já separa a ESFERA de cada registro e
@@ -102,7 +102,7 @@ MODALIDADES: dict[str, dict] = {
     "rp6": {"rotulo": "Emenda Individual (RP 6)", "curto": "RP 6", "tipo_emenda": "individual"},
     "rp7": {"rotulo": "Emenda de Bancada (RP 7)", "curto": "RP 7", "tipo_emenda": "bancada"},
     "rp8": {"rotulo": "Emenda de Comissão (RP 8)", "curto": "RP 8", "tipo_emenda": "comissao"},
-    "programa": {"rotulo": "Recurso de Programa (Outros)", "curto": "Programa", "tipo_emenda": "programa"},
+    "programa": {"rotulo": "Programa do Ministério da Saúde (Outros tipos)", "curto": "Programa MS", "tipo_emenda": "programa"},
 }
 # Emenda federal cuja fonte não informou o tipo: fica visível para o técnico classificar
 # (nunca vira "individual" por omissão — era assim que RP 7/RP 8 sumiam dos painéis).

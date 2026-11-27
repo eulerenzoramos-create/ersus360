@@ -4,7 +4,7 @@
 // nada é calculado aqui. Os quatro "Incremento ao custeio" validam os cards de teto.
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
+import { RefreshCw, CheckCircle2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { api } from "../../lib/api";
 import { capturarLimites } from "./relay";
 import { COR_TETO, fmtBRL, SeletorExercicio } from "./TetoFinanceiro";
@@ -90,6 +90,13 @@ export function LimitesInvestSUS({ exercicio, limites, cards }: { exercicio: num
         </div>
       ) : (
         <>
+          {sel !== "todos" && (
+            <button onClick={() => setSel("todos")}
+              style={{ alignSelf: "flex-start", padding: "7px 12px", borderRadius: 6, border: "1px solid #d1d5db", background: "#fff",
+                color: "#1e3a5f", fontSize: 12.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <ArrowLeft size={14} /> Voltar para todos os limites
+            </button>
+          )}
           <select value={sel} onChange={e => setSel(e.target.value)}
             style={{ padding: "10px 12px", borderRadius: 6, border: "1px solid #d0e3f4", fontSize: 12.5, fontWeight: 700, color: "#111827", background: "#fff" }}>
             <option value="todos">TODOS OS LIMITES ({limites.length})</option>

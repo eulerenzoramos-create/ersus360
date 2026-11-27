@@ -38,7 +38,7 @@ const STATUS: Record<string, { label: string; cor: string; bg: string; icone: Re
   "ABERTURA RECENTE":         { label: "Abertura recente",        cor: "#0284c7", bg: "#eff6ff", icone: <Clock size={12} /> },
   "NÃO INFORMADO PELO BANCO": { label: "Não informado pelo banco", cor: "#d97706", bg: "#fffbeb", icone: <Info size={12} /> },
 };
-const MODALIDADE: Record<string, string> = { rp6: "RP 6", rp7: "RP 7", rp8: "RP 8", programa: "Programa" };
+const MODALIDADE: Record<string, string> = { rp6: "RP 6", rp7: "RP 7", rp8: "RP 8", programa: "Programa MS" };
 
 const fmt = (v: number) => (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");

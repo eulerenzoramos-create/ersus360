@@ -93,7 +93,7 @@ async def test_acompanhamento_exporta_pdf_e_excel(db_session, municipio):
                    "RELATÓRIO — INVESTSUS", "Responsável: Euler Ramos", "Escopo federal",
                    "EMENDA DE COMISSÃO (RP 8)", "Nenhuma proposta encontrada nesta modalidade.",
                    "Parlamentar / Autoria", "Dep. Fulano", "PSD/AM", "Oficial: Proposta enviada",
-                   "Total Outros — Recurso de Programa (Outros)", "Dados não disponíveis"):
+                   "Total Programa MS — Programa do Ministério da Saúde (Outros tipos)", "Dados não disponíveis"):
         assert trecho in texto, trecho
     assert "ALHEIA" not in texto
 

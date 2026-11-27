@@ -249,6 +249,13 @@ def _filtro_visivel():
     )
 
 
+def _filtro_na_lista_oficial():
+    """Exclui o que a conferência não achou na lista oficial do InvestSUS (ex.: emendas do Portal
+    da Transparência sem proposta). Canceladas continuam — cada tela decide se as considera."""
+    return or_(PropostaInvestSUS.conferencia_investsus.is_(None),
+               PropostaInvestSUS.conferencia_investsus != "nao_encontrada")
+
+
 def _ids_no_periodo(mid: int):
     return select(PropostaInvestSUS.id).where(PropostaInvestSUS.municipio_id == mid, _filtro_visivel())
 
@@ -2776,7 +2783,7 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
     props = (await db.execute(
         select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa),
                                           selectinload(PropostaInvestSUS.historico))
-        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_na_lista_oficial()))).scalars().all()
     from models.investsus import LimiteProgramaInvestSUS
     lims = (await db.execute(select(LimiteProgramaInvestSUS).where(
         LimiteProgramaInvestSUS.municipio_id == mid, LimiteProgramaInvestSUS.exercicio == ano))).scalars().all()
@@ -2785,6 +2792,7 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
     limites_isus = await _limites_investsus(db, mid, ano)
     from services import investsus_limites as lim_svc
     lim_svc.aplicar_conferencia(painel, {x["categoria"]: x for x in limites_isus if x["categoria"]})
+    lim_svc.aplicar_programas(painel, limites_isus)
     painel["limites_investsus"] = limites_isus
     consultas = [t.consultado_em for t in regs if t.consultado_em]
     painel["ultima_consulta"] = max(consultas).isoformat() if consultas else None

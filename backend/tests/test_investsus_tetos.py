@@ -383,3 +383,66 @@ async def test_sincronizacao_preenche_componente_sem_sobrescrever_tecnico(db_ses
     ps = {p.numero_proposta: p for p in (await db_session.execute(select(PropostaInvestSUS))).scalars()}
     assert ps["A1"].componente == "MAC"  # classificação existente preservada
     assert ps["A2"].componente == "PAP" and ps["A2"].tipo_financiamento == "custeio"
+
+
+@pytest.mark.asyncio
+async def test_tetos_ignoram_emenda_fora_da_lista_oficial(db_session, municipio):
+    """Emenda do Portal da Transparência que a conferência não achou no InvestSUS não entra
+    em "a classificar" nem em "Outros tipos"; o Programa do MS continua em Outros tipos."""
+    from models.investsus import PropostaInvestSUS, SituacaoNormalizada
+    from routers import investsus as rt
+    db_session.add_all([
+        PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="202643830011", exercicio=2026,
+                          modalidade="a_classificar", conferencia_investsus="nao_encontrada", valor_indicado=7,
+                          situacao_normalizada=SituacaoNormalizada.RECURSO_DISPONIVEL),
+        PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="63000740301202600", exercicio=2026,
+                          modalidade="programa", componente="PAP", tipo_financiamento="custeio",
+                          valor_proposta=1250000, valor_aprovado=1250000, valor_pago=1250000,
+                          payload_original={"tipoRecurso": {"descricao": "PROGRAMA"}, "tipoProposta": {"descricao": "CUSTEIO PAP"}},
+                          situacao_normalizada=SituacaoNormalizada.TOTALMENTE_PAGA),
+    ])
+    await db_session.commit()
+    painel = await rt.tetos_municipais(db_session, _usuario(municipio.id), 2026)
+    numeros = [x["numero_proposta"] for g in painel["a_classificar"].values() for x in g]
+    assert "202643830011" not in numeros
+    ersus = painel["sincronizacao"]["conferencia_tipos"]["ersus"]
+    assert ersus["outros"]["qtd"] == 1 and ersus["outros"]["valor_ativas"] == 1250000
+    progs = [x["numero_proposta"] for g in painel["programacao"]["programas"] for x in g["propostas"]]
+    assert progs == ["63000740301202600"]
+
+
+@pytest.mark.asyncio
+async def test_programa_ms_usa_limite_oficial_da_portaria(db_session, municipio):
+    """CUSTEIO PAP - PARCELA SUPLEMENTAR - PORT. 10.169/2026 (tela Limites) vira o valor máximo do
+    programa PAP; o usado é o Valor Indicado e o saldo confere. Valores de Apuí em 27/11/2026."""
+    from models.investsus import LimiteInvestSUS, PropostaInvestSUS, SituacaoNormalizada
+    from routers import investsus as rt
+
+    def prog(numero, valor, sit):
+        return PropostaInvestSUS(
+            municipio_id=municipio.id, numero_proposta=numero, exercicio=2026, modalidade="programa",
+            componente="PAP", tipo_financiamento="custeio", objeto="CUSTEIO DA ATENÇÃO PRIMÁRIA À SAÚDE",
+            valor_proposta=valor, valor_aprovado=valor,
+            payload_original={"tipoRecurso": {"descricao": "PROGRAMA"}, "tipoProposta": {"descricao": "CUSTEIO PAP"}},
+            situacao_normalizada=sit)
+    db_session.add_all([
+        prog("63000740301202600", 1250000, SituacaoNormalizada.TOTALMENTE_PAGA),
+        prog("63000729729202600", 2000000, SituacaoNormalizada.EM_ANALISE),
+        LimiteInvestSUS(municipio_id=municipio.id, exercicio=2026, descricao="CUSTEIO PAP - PARCELA SUPLEMENTAR - PORT. 10.169/2026",
+                        tipo_limite="IBGE", limite=8078142, valor_indicado=3250000, limite_a_indicar=4828142,
+                        linhas=[{"nome": "APUI", "limite": 8078142, "valor_indicado": 3250000, "limite_a_indicar": 4828142}]),
+        LimiteInvestSUS(municipio_id=municipio.id, exercicio=2026, descricao="INCREMENTO AO PROGRAMA AGORA TEM ESPECIALISTAS",
+                        tipo_limite="CNES", limite=5675296, valor_indicado=0, limite_a_indicar=5675296,
+                        linhas=[{"nome": "SMS", "limite": 5675296, "valor_indicado": 0, "limite_a_indicar": 5675296}]),
+    ])
+    await db_session.commit()
+    painel = await rt.tetos_municipais(db_session, _usuario(municipio.id), 2026)
+    progs = {g["programa"]: g for g in painel["programacao"]["programas"]}
+    pap = next(g for g in progs.values() if g.get("limite_oficial", {}).get("portarias") == ["10.169/2026"])
+    assert pap["valor_maximo"] == 8078142 and pap["valor_solicitado"] == 3250000 and pap["saldo"] == 4828142
+    assert pap["limite_oficial"]["indicado_confere"] and pap["situacao_limite"] == "confirmado"
+    assert pap["area"] == "pap" and "Portaria 10.169/2026" in pap["limite"]["documento"]
+    ate = progs["INCREMENTO AO PROGRAMA AGORA TEM ESPECIALISTAS"]
+    assert ate["saldo"] == 5675296 and ate["propostas"] == []
+    assert len(painel["programacao"]["limites_oficiais"]) == 2
+    assert {x["programa"] for x in painel["resumo"]["programas"]} == set(progs)
