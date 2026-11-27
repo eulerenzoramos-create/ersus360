@@ -336,3 +336,14 @@ async def marcar_lancado(reg_id: int, db: DbDep, user: UserDep):
     r.lancado_no_investsus, r.lancado_em, r.lancado_por = True, datetime.utcnow(), user.nome
     await db.commit()
     return _reg_dict(r)
+
+
+async def sincronizar_pelo_servidor(mid: int, cred: dict[str, str]) -> dict:
+    """Usado pelo job agendado: lê o Monitoramento com o acesso de integração do município."""
+    from database import AsyncSessionLocal
+    from routers.investsus import _dados_fundo
+    async with AsyncSessionLocal() as db:
+        fundo = await _dados_fundo(db, mid)
+    payload = await mon.coletar_servidor(fundo["cnpj"], fundo["ibge"], cred)
+    async with AsyncSessionLocal() as db:
+        return await aplicar_coleta(db, mid, payload, "Automático (servidor)")

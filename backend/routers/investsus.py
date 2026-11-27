@@ -2782,6 +2782,10 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
         LimiteProgramaInvestSUS.municipio_id == mid, LimiteProgramaInvestSUS.exercicio == ano))).scalars().all()
     painel = tetos_svc.montar_painel({t.categoria: _teto_registro(t) for t in regs}, props, _modalidade_de, ano,
                                      {lm.programa: _limite_programa_registro(lm) for lm in lims})
+    limites_isus = await _limites_investsus(db, mid, ano)
+    from services import investsus_limites as lim_svc
+    lim_svc.aplicar_conferencia(painel, {x["categoria"]: x for x in limites_isus if x["categoria"]})
+    painel["limites_investsus"] = limites_isus
     consultas = [t.consultado_em for t in regs if t.consultado_em]
     painel["ultima_consulta"] = max(consultas).isoformat() if consultas else None
     # Exercícios com planilha oficial cadastrada + exercícios das propostas do município
@@ -2886,6 +2890,89 @@ async def registrar_limite_programa(db: DbDep, user: UserDep, body: dict = Body(
     lm.registrado_por = user.nome
     await db.commit()
     return {"ok": True, **_limite_programa_registro(lm), "exercicio": exercicio}
+
+
+# ── Tela "Limites" do InvestSUS (8 tipos de limite por exercício) ─────────────
+# Capturada pelo navegador do usuário logado no gov.br (mesmo relay das propostas):
+# GET /corporativo/entidades/tipo-limites e /corporativo/entidades/{cnpj}/limites.
+# Regras e mapeamento: services/investsus_limites.py.
+
+def _limite_isus_registro(r) -> dict:
+    return {"tipo_id": r.tipo_id, "descricao": r.descricao, "categoria": r.categoria,
+            "tipo_limite": r.tipo_limite, "limite": r.limite, "valor_indicado": r.valor_indicado,
+            "limite_a_indicar": r.limite_a_indicar, "linhas": r.linhas or [],
+            "capturado_em": r.capturado_em.isoformat() if r.capturado_em else None,
+            "capturado_por": r.capturado_por}
+
+
+async def _limites_investsus(db, mid: int, ano: int) -> list[dict]:
+    from models.investsus import LimiteInvestSUS
+    from services import investsus_limites as lim_svc
+    regs = (await db.execute(select(LimiteInvestSUS).where(
+        LimiteInvestSUS.municipio_id == mid, LimiteInvestSUS.exercicio == ano))).scalars().all()
+    out = [_limite_isus_registro(r) for r in regs]
+    for x in out:
+        x["area"] = lim_svc.area_do_tipo(x["descricao"])
+    return sorted(out, key=lambda x: (lim_svc.ordem(x["descricao"]), x["descricao"]))
+
+
+@router.get("/limites")
+async def limites_investsus(db: DbDep, user: UserDep, exercicio: int = Query(None)):
+    """Os tipos de limite da tela Limites do InvestSUS, como capturados (Limite · Valor Indicado ·
+    Limite a Indicar). Sem captura, a lista vem vazia — nada é estimado."""
+    from services import investsus_tetos as tetos_svc
+    mid = _municipio_id(user)
+    ano = exercicio or tetos_svc.EXERCICIO_PADRAO
+    tipos = await _limites_investsus(db, mid, ano)
+    capt = [t["capturado_em"] for t in tipos if t["capturado_em"]]
+    return {"exercicio": ano, "tipos": tipos, "ultima_captura": max(capt) if capt else None}
+
+
+@router.post("/limites/sincronizar")
+async def sincronizar_limites_investsus(db: DbDep, user: UserDep, body: dict = Body(...)):
+    """Recebe do navegador a tela Limites do InvestSUS de um exercício:
+    {exercicio, tipos: [{id, descricao, linhas: [resposta bruta de /entidades/{cnpj}/limites]}]}.
+    Cada tipo substitui a captura anterior, que vai para o histórico."""
+    from models.investsus import LimiteInvestSUS
+    from services import investsus_limites as lim_svc
+    _pode_sincronizar(user)
+    mid = _municipio_id(user)
+    try:
+        exercicio = int(body.get("exercicio"))
+    except (TypeError, ValueError):
+        raise HTTPException(422, "Informe o exercício")
+    tipos = body.get("tipos")
+    if not isinstance(tipos, list) or not tipos:
+        raise HTTPException(422, "Nenhum tipo de limite recebido do InvestSUS")
+    existentes = {lim_svc.normalizar(r.descricao): r for r in (await db.execute(select(LimiteInvestSUS).where(
+        LimiteInvestSUS.municipio_id == mid, LimiteInvestSUS.exercicio == exercicio))).scalars().all()}
+    agora = datetime.utcnow()
+    gravados = 0
+    for t in tipos[:50]:
+        if not isinstance(t, dict) or not str(t.get("descricao") or "").strip():
+            continue
+        linhas = t.get("linhas") if isinstance(t.get("linhas"), list) else []
+        m = lim_svc.montar_tipo(t.get("id"), str(t["descricao"])[:300], linhas[:500])
+        r = existentes.get(lim_svc.normalizar(m["descricao"]))
+        if r is None:
+            r = LimiteInvestSUS(municipio_id=mid, exercicio=exercicio, descricao=m["descricao"], historico=[])
+            db.add(r)
+        else:
+            ant = _limite_isus_registro(r)
+            ant.pop("linhas", None)
+            r.historico = [*(r.historico or []), ant][-20:]
+        r.tipo_id = m["tipo_id"]
+        r.categoria = m["categoria"]
+        r.tipo_limite = m["tipo_limite"]
+        r.limite = m["limite"]
+        r.valor_indicado = m["valor_indicado"]
+        r.limite_a_indicar = m["limite_a_indicar"]
+        r.linhas = m["linhas"]
+        r.capturado_em = agora
+        r.capturado_por = user.nome
+        gravados += 1
+    await db.commit()
+    return {"ok": True, "exercicio": exercicio, "tipos_gravados": gravados}
 
 
 @router.post("/tetos/atualizar")

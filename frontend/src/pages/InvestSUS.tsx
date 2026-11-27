@@ -6,14 +6,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import TetosMunicipais from "./InvestSUSTetos";
 import { TetoTresValores, valoresDoCard, ResumoGerencialTetos, SeletorExercicio } from "../components/investsus/TetoFinanceiro";
+import { INVESTSUS_API, cabecalhosInvestSUS, capturarLimites } from "../components/investsus/relay";
+import { LimitesInvestSUS, AbaLimites } from "../components/investsus/LimitesInvestSUS";
 import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao, RepassesPlanos, baixar } from "./InvestSUSExecucao";
 import RegularizacaoContas from "../components/investsus/RegularizacaoContas";
-import MonitoramentoExecucao from "../components/investsus/MonitoramentoExecucao";
+import MonitoramentoExecucao, { capturarMonitoramento } from "../components/investsus/MonitoramentoExecucao";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
   TrendingUp, DollarSign, BarChart3, Bell, Info, Eye, Calendar,
-  Building2, ClipboardList, Activity, Filter, Download, Users, Wrench, ShieldCheck, History,
+  Building2, ClipboardList, Activity, Filter, Download, Users, Wrench, ShieldCheck, History, ArrowDownWideNarrow,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -351,8 +353,16 @@ function DashboardInvestSUS({ municipio_id, onSelect, tipoRecurso, setTipoRecurs
                       {comp === "pap" ? "PAP — Atenção Primária" : "MAC — Média e Alta Complexidade"}
                     </span>
                     <TetoTresValores v={valoresDoCard(c)} compacto />
-                    {c?.situacao === "pendente_validacao" && (
-                      <div style={{ fontSize: 10.5, color: "#b45309" }}>Pendente de validação — ver memória de cálculo em Recursos Disponíveis</div>
+                    {c?.investsus_limites?.validado ? (
+                      <div style={{ fontSize: 10.5, color: "#047857", fontWeight: 600 }}>✓ Conferido com a tela Limites do InvestSUS</div>
+                    ) : c?.investsus_limites?.disponivel ? (
+                      <div style={{ fontSize: 10.5, color: "#b45309" }}>
+                        Diverge da tela Limites do InvestSUS
+                        {!c.investsus_limites.indicado_confere && ` — Valor Indicado lá: ${fmt(c.investsus_limites.valor_indicado)}`}
+                        {!c.investsus_limites.limite_confere && ` — Limite lá: ${fmt(c.investsus_limites.limite)}`}
+                      </div>
+                    ) : c?.situacao === "pendente_validacao" && (
+                      <div style={{ fontSize: 10.5, color: "#b45309" }}>Pendente de validação — clique em Atualizar Limites abaixo para conferir com o InvestSUS</div>
                     )}
                   </div>
                 );
@@ -361,6 +371,12 @@ function DashboardInvestSUS({ municipio_id, onSelect, tipoRecurso, setTipoRecurs
           ))}
         </div>
       </div>
+
+      {tetos && (
+        <div style={S.card}>
+          <LimitesInvestSUS exercicio={tetos.exercicio} limites={tetos.limites_investsus ?? []} cards={tetos.cards} />
+        </div>
+      )}
 
       {tetos?.resumo && <div style={{ marginBottom: 14 }}><ResumoGerencialTetos resumo={tetos.resumo} exercicio={tetos.exercicio} /></div>}
 
@@ -2830,17 +2846,8 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
 // O gov.br não permite login automático pelo servidor. Aqui o navegador do usuário,
 // já logado no InvestSUS em outra aba, consulta a API oficial e envia os itens ao
 // ERSUS360 (/sincronizar-relay), que aplica as regras federais do município da sessão.
-const _INVESTSUS_API = "https://investsus-backend-prd.saude.gov.br/api";
-
-function _cabecalhosInvestSUS(contexto: string): Record<string, string> {
-  return {
-    "content-type": "application/json",
-    "accept": "application/json, text/plain, */*",
-    "cz-aphrodite-de-peixes": "DIREME",
-    "cz-milo-de-escopiao": "ENTPUBLICAFNS",
-    "cz-mu-de-aries": contexto,
-  };
-}
+const _INVESTSUS_API = INVESTSUS_API;
+const _cabecalhosInvestSUS = cabecalhosInvestSUS;
 
 // Detalhe de cada proposta (tela "Visualizar"): cadastro, pareceres, repasses, anexos e
 // planos de trabalho. Proposta cancelada/rejeitada não tem cadastro (a API responde erro).
@@ -2911,6 +2918,124 @@ async function _capturarInvestSUS(cnpj: string, contexto: string, onProgresso: (
   return todos;
 }
 
+// Sincronização completa pelo navegador logado no gov.br: propostas, detalhe de cada uma,
+// tela Limites e Monitoramento de Execução. Usada pelo botão e pelo modo automático.
+async function sincronizarTudoInvestSUS(fundo: any, setProgresso: (m: string) => void): Promise<any> {
+  const itens = await _capturarInvestSUS(fundo.cnpj, fundo.contexto_investsus, setProgresso);
+  if (!itens.length) throw new Error("Nenhuma proposta encontrada no InvestSUS para este Fundo.");
+  setProgresso(`Gravando ${itens.length} propostas no ERSUS360…`);
+  // completo: a lista de todos os exercícios veio sem erro → o ERSUS360 é conferido com ela
+  const lista = (await api.post("/api/investsus/sincronizar-relay", { items: itens, completo: true, anos: _exerciciosInvestSUS() })).data;
+
+  // Detalhe de cada proposta → seções da proposta no ERSUS360
+  const detalhes = await _capturarDetalhes(itens, fundo.contexto_investsus, setProgresso);
+  const soma: Record<string, number> = {};
+  for (let i = 0; i < detalhes.length; i += 25) {
+    setProgresso(`Gravando os detalhes no ERSUS360… ${Math.min(i + 25, detalhes.length)}/${detalhes.length}`);
+    const r = await api.post("/api/investsus/sincronizar-detalhes", { detalhes: detalhes.slice(i, i + 25) });
+    for (const [k, v] of Object.entries(r.data || {})) if (typeof v === "number") soma[k] = (soma[k] || 0) + v;
+  }
+  // Tela Limites (8 tipos de limite) dos exercícios acompanhados — falha aqui não desfaz as propostas
+  let limites: any = null;
+  try {
+    let tipos = 0;
+    for (const ano of _exerciciosInvestSUS()) {
+      const capt = await capturarLimites(fundo.cnpj, fundo.contexto_investsus, ano, setProgresso);
+      if (capt.length) {
+        await api.post("/api/investsus/limites/sincronizar", { exercicio: ano, tipos: capt });
+        tipos = Math.max(tipos, capt.length);
+      }
+    }
+    limites = { tipos };
+  } catch (e: any) {
+    limites = { erro: e?.message === "SEM_SESSAO" ? "sessão do InvestSUS expirou" : (e?.message || "falha") };
+  }
+  // Monitoramento de Execução — idem, falha aqui não desfaz o resto
+  let monitoramento: any = null;
+  try {
+    const payload = await capturarMonitoramento(fundo.cnpj, fundo.contexto_investsus, setProgresso);
+    monitoramento = (await api.post("/api/investsus/monitoramento/sincronizar", payload)).data;
+  } catch (e: any) {
+    monitoramento = { erro: e?.message === "SEM_SESSAO" ? "sessão do InvestSUS expirou" : (e?.response?.data?.detail || e?.message || "falha") };
+  }
+  return { ...lista, detalhe: soma, limites, monitoramento, alertas: (lista.alertas || 0) + (soma.alertas || 0) };
+}
+
+function _invalidarInvestSUS(qc: any) {
+  for (const k of ["investsus-dashboard", "investsus-propostas", "investsus-tetos", "investsus-monitoramento",
+                   "investsus-monitoramento-hist", "investsus-alertas"]) qc.invalidateQueries({ queryKey: [k] });
+}
+
+// Hora da última sincronização completa neste navegador (conveniência local; os dados ficam no servidor).
+const _chaveSinc = (fundo: any) => `ersus_investsus_sinc_${fundo?.cnpj ?? ""}`;
+function _marcarSincronizacao(fundo: any, modo: string) {
+  try { localStorage.setItem(_chaveSinc(fundo), JSON.stringify({ em: new Date().toISOString(), modo })); } catch { /* sem storage */ }
+}
+function _ultimaSincronizacao(fundo: any): { em: string; modo: string } | null {
+  try { const v = localStorage.getItem(_chaveSinc(fundo)); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+
+const _INTERVALO_AUTO_MS = 3 * 60 * 60 * 1000;   // sincroniza sozinho se a última tem mais de 3 h
+const _VERIFICA_AUTO_MS = 15 * 60 * 1000;         // confere a cada 15 min enquanto a tela está aberta
+
+/** Sincronização automática: com a tela InvestSUS aberta e o usuário logado no InvestSUS (gov.br)
+ *  neste navegador, roda sozinha a cada 3 h, sem clicar. Sem login, só avisa e tenta de novo depois. */
+function SincronizacaoAutomatica({ municipio_id, onAbrirSincronizar }: { municipio_id: number; onAbrirSincronizar: () => void }) {
+  const qc = useQueryClient();
+  const { data: escopo } = useQuery({
+    queryKey: ["investsus-escopo", municipio_id],
+    queryFn: () => api.get("/api/investsus/escopo").then(r => r.data),
+  });
+  const fundo = escopo?.fundo;
+  const pronto = !!(fundo?.cnpj && fundo?.contexto_investsus);
+  const [estado, setEstado] = useState<"" | "rodando" | "sem_sessao" | "sem_permissao" | "erro">("");
+  const [progresso, setProgresso] = useState("");
+  const [ultima, setUltima] = useState<{ em: string; modo: string } | null>(null);
+  const rodando = useRef(false);
+
+  useEffect(() => {
+    if (!pronto) return;
+    setUltima(_ultimaSincronizacao(fundo));
+    let ativo = true;
+    const tentar = async () => {
+      const u = _ultimaSincronizacao(fundo);
+      if (rodando.current || !ativo) return;
+      if (u && Date.now() - new Date(u.em).getTime() < _INTERVALO_AUTO_MS) { setUltima(u); return; }
+      rodando.current = true; setEstado("rodando");
+      try {
+        await sincronizarTudoInvestSUS(fundo, setProgresso);
+        _marcarSincronizacao(fundo, "automática");
+        _invalidarInvestSUS(qc);
+        if (ativo) { setUltima(_ultimaSincronizacao(fundo)); setEstado(""); }
+      } catch (e: any) {
+        const st = e?.response?.status;
+        if (ativo) setEstado(e?.message === "SEM_SESSAO" ? "sem_sessao" : st === 403 ? "sem_permissao" : "erro");
+      } finally {
+        rodando.current = false; setProgresso("");
+      }
+    };
+    tentar();
+    const t = setInterval(tentar, _VERIFICA_AUTO_MS);
+    return () => { ativo = false; clearInterval(t); };
+  }, [pronto, fundo?.cnpj]);
+
+  if (!pronto || estado === "sem_permissao") return null;
+  const hora = ultima ? new Date(ultima.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : null;
+  const cor = estado === "sem_sessao" || estado === "erro" ? "#b45309" : "#047857";
+  return (
+    <div title="Com esta tela aberta e o InvestSUS logado (gov.br) neste navegador, o ERSUS360 sincroniza sozinho a cada 3 horas: propostas, detalhes, Limites e Monitoramento."
+      style={{ fontSize: 11, color: cor, display: "flex", alignItems: "center", gap: 5, background: cor + "12", border: `1px solid ${cor}40`, borderRadius: 999, padding: "4px 10px", maxWidth: 360 }}>
+      <RefreshCw size={11} style={{ animation: estado === "rodando" ? "spin 1s linear infinite" : "none", flexShrink: 0 }} />
+      {estado === "rodando" ? <span>Sincronizando automaticamente… {progresso}</span>
+        : estado === "sem_sessao" ? <span>Automático aguardando login no{" "}
+            <a href="https://investsus.saude.gov.br" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 600 }}>InvestSUS ↗</a></span>
+        : estado === "erro" ? <span>Automático falhou —{" "}
+            <button onClick={onAbrirSincronizar} style={{ background: "none", border: "none", color: "#1d4ed8", fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 11 }}>ver</button></span>
+        : <span>Sincronização automática ativa{hora ? ` · última ${hora}` : ""}</span>}
+    </div>
+  );
+}
+
 function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
   const qc = useQueryClient();
   const { data: escopo } = useQuery({
@@ -2929,25 +3054,10 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
     if (!pronto) return;
     setEstado("rodando"); setErro(null); setResultado(null);
     try {
-      const itens = await _capturarInvestSUS(fundo.cnpj, fundo.contexto_investsus, setProgresso);
-      if (!itens.length) throw new Error("Nenhuma proposta encontrada no InvestSUS para este Fundo.");
-      setProgresso(`Gravando ${itens.length} propostas no ERSUS360…`);
-      // completo: a lista de todos os exercícios veio sem erro → o ERSUS360 é conferido com ela
-      const resp = await api.post("/api/investsus/sincronizar-relay", { items: itens, completo: true, anos: _exerciciosInvestSUS() });
-      const lista = resp.data;
-
-      // Detalhe de cada proposta → seções da proposta no ERSUS360
-      const detalhes = await _capturarDetalhes(itens, fundo.contexto_investsus, setProgresso);
-      const soma: Record<string, number> = {};
-      for (let i = 0; i < detalhes.length; i += 25) {
-        setProgresso(`Gravando os detalhes no ERSUS360… ${Math.min(i + 25, detalhes.length)}/${detalhes.length}`);
-        const r = await api.post("/api/investsus/sincronizar-detalhes", { detalhes: detalhes.slice(i, i + 25) });
-        for (const [k, v] of Object.entries(r.data || {})) if (typeof v === "number") soma[k] = (soma[k] || 0) + v;
-      }
-      setResultado({ ...lista, detalhe: soma, alertas: (lista.alertas || 0) + (soma.alertas || 0) });
+      setResultado(await sincronizarTudoInvestSUS(fundo, setProgresso));
       setEstado("");
-      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
-      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+      _invalidarInvestSUS(qc);
+      _marcarSincronizacao(fundo, "manual");
     } catch (e: any) {
       if (e?.message === "SEM_SESSAO") { setEstado("sem_sessao"); return; }
       const d = e?.response?.data;
@@ -3014,6 +3124,20 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
             {resultado.criadas} novas · {resultado.atualizadas} atualizadas · {resultado.movimentacoes} mudança(s) de situação · {resultado.alertas} alerta(s)
             {resultado.fora_escopo > 0 && <> · {resultado.fora_escopo} fora do escopo federal (ignoradas)</>}
           </div>
+          {resultado.limites && (
+            <div style={{ color: resultado.limites.erro ? "#92400e" : "#374151", marginTop: 6 }}>
+              <strong>Limites:</strong>{" "}
+              {resultado.limites.erro ? `não lidos (${resultado.limites.erro}) — use "Atualizar Limites" no Painel.`
+                : `${resultado.limites.tipos} tipos de limite lidos da tela Limites do InvestSUS.`}
+            </div>
+          )}
+          {resultado.monitoramento && (
+            <div style={{ color: resultado.monitoramento.erro ? "#92400e" : "#374151", marginTop: 6 }}>
+              <strong>Monitoramento:</strong>{" "}
+              {resultado.monitoramento.erro ? `não lido (${resultado.monitoramento.erro}).`
+                : `${resultado.monitoramento.lidas} propostas pagas lidas · ${resultado.monitoramento.alteradas} com mudança.`}
+            </div>
+          )}
           {resultado.conferencia && (
             <div style={{ color: "#374151", marginTop: 6 }}>
               <strong>Conferência:</strong> {resultado.conferencia.investsus_visiveis ?? resultado.conferencia.investsus_total} propostas no InvestSUS
@@ -3988,7 +4112,7 @@ function ColarPropostasInvestSUS({ municipio_id }: { municipio_id: number }) {
 }
 
 export default function InvestSUS() {
-  const [aba, setAba] = useState<"painel" | "repasses" | "recursos" | "propostas" | "execucao" | "monitoramento" | "contas" | "alertas" | "relatorio">("painel");
+  const [aba, setAba] = useState<"painel" | "repasses" | "recursos" | "limites" | "propostas" | "execucao" | "monitoramento" | "contas" | "alertas" | "relatorio">("painel");
   const [repassePropostaId, setRepassePropostaId] = useState<number | null>(null);
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
   const [execPropostaId, setExecPropostaId] = useState<number | null>(null);
@@ -4023,6 +4147,7 @@ export default function InvestSUS() {
     { key: "painel",    label: "Painel de Propostas",      icone: <BarChart3 size={13} /> },
     { key: "repasses",  label: "Repasses e Planos",        icone: <DollarSign size={13} /> },
     { key: "recursos",  label: "Recursos Disponíveis",     icone: <Users size={13} /> },
+    { key: "limites",   label: "Limites",                  icone: <ArrowDownWideNarrow size={13} /> },
     { key: "propostas", label: "Propostas",                icone: <FileText size={13} /> },
     { key: "execucao",  label: "Execução das Propostas",   icone: <Wrench size={13} /> },
     { key: "monitoramento", label: "Monitoramento de Execução", icone: <History size={13} /> },
@@ -4047,6 +4172,7 @@ export default function InvestSUS() {
             <div>Fonte: InvestSUS / MS</div>
             <div>Atualização: manual auditável</div>
           </div>
+          <SincronizacaoAutomatica municipio_id={municipio_id} onAbrirSincronizar={() => setSincAberto(true)} />
           <button style={{ ...S.btn("#1e3a5f"), padding: "7px 14px" }} onClick={() => setSincAberto(true)}>
             <RefreshCw size={13} /> Sincronizar
           </button>
@@ -4099,6 +4225,8 @@ export default function InvestSUS() {
           onPlanilhaCompleta={(id) => { setExecPropostaId(id); setAba("execucao"); }} />
       ) : aba === "recursos" ? (
         <RecursosDisponiveis municipio_id={municipio_id} onSincronizar={() => setSincAberto(true)} />
+      ) : aba === "limites" ? (
+        <AbaLimites />
       ) : aba === "propostas" ? (
         <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada}
           tipoRecurso={tipoRecurso} setTipoRecurso={setTipoRecurso} />

@@ -686,3 +686,29 @@ class MonitoramentoColetaInvestSUS(Base):
     anos: Mapped[list | None] = mapped_column(JSON, nullable=True)
     resumo_oficial: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {ano: resposta de .../valores}
     resumo: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
+class LimiteInvestSUS(Base):
+    """Tela "Limites" do InvestSUS: um registro por município × exercício × tipo de limite
+    (8 tipos em 2026 — Incremento PAP/MAC individuais e coletivas, Agora Tem Especialistas,
+    Custeio PAP, Custeio MAC, Rede Sarah). Valores exatamente como a API oficial devolve
+    (services/investsus_limites.py); a captura anterior fica em `historico`."""
+    __tablename__ = "is_limites_investsus"
+    __table_args__ = (
+        Index("ix_is_lim_isus_mun_ex_tipo", "municipio_id", "exercicio", "descricao", unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    exercicio: Mapped[int] = mapped_column(Integer)
+    tipo_id: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    descricao: Mapped[str] = mapped_column(String(300))
+    categoria: Mapped[str | None] = mapped_column(String(30), nullable=True)  # individual_pap … | None = programa
+    tipo_limite: Mapped[str | None] = mapped_column(String(10), nullable=True)  # IBGE | CNES
+    limite: Mapped[float | None] = mapped_column(Float, nullable=True)
+    valor_indicado: Mapped[float | None] = mapped_column(Float, nullable=True)
+    limite_a_indicar: Mapped[float | None] = mapped_column(Float, nullable=True)
+    linhas: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    historico: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    capturado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    capturado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
